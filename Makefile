@@ -9,7 +9,12 @@ BOOST_PATH = /opt/cad/boost/1_65_1
 BOOST_INC  = $(BOOST_PATH)/include
 BOOST_LIB  = $(BOOST_PATH)/lib
 
-TARGET = slon
+TARGET = vframe
+
+BUILD_DIR = build
+OBJ_DIR   = $(BUILD_DIR)/obj
+BIN_DIR   = bin
+SRC_DIR   = src
 
 FLAGS     = -ffunction-sections 
 FLAGS    += -fdata-sections
@@ -17,13 +22,13 @@ FLAGS    += -fdata-sections
 CFLAGS = --std=c++11
 LFLAGS = -Wl,--gc-sections
 
-$(TARGET).so: $(TARGET).o Makefile
-	g++ -shared -Wl,--export-dynamic $(TARGET).o -L$(BOOST_LIB) -l:libboost_python3.so -lboost_numpy3 \
-	-L/usr/lib/python3.5/config-3.5m-x86_64-linux-gnu -lpython$(PYTHON_VERSION)m -o $(TARGET).so $(CFLAGS) $(FLAGS) $(LFLAGS)
+$(BIN_DIR)/$(TARGET).so: $(OBJ_DIR)/$(TARGET).o Makefile
+	g++ -shared -Wl,--export-dynamic $(OBJ_DIR)/$(TARGET).o -L$(BOOST_LIB) -l:libboost_python3.so -lboost_numpy3 \
+	-L/usr/lib/python3.5/config-3.5m-x86_64-linux-gnu -lpython$(PYTHON_VERSION)m -o $(BIN_DIR)/$(TARGET).so $(CFLAGS) $(FLAGS) $(LFLAGS)
 
-$(TARGET).o: $(TARGET).cpp Makefile
-	g++ -I$(PYTHON_INCLUDE) -I$(BOOST_INC) -fPIC -c $(TARGET).cpp $(CFLAGS) $(FLAGS)
+$(OBJ_DIR)/$(TARGET).o: $(SRC_DIR)/$(TARGET).cpp Makefile
+	g++ -I$(PYTHON_INCLUDE) -I$(BOOST_INC) -fPIC -c $(CFLAGS) $(FLAGS) -o $(OBJ_DIR)/$(TARGET).o $(SRC_DIR)/$(TARGET).cpp
 
-all: $(TARGET).so
+all: $(BIN_DIR)/$(TARGET).so
 
 

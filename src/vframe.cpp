@@ -20,6 +20,7 @@ double sqroot(double a) {
   return std::sqrt(a);
 }
 
+
 //std::vector<double> list_of_nums() {
   //return std::vector<double>{1,2,3,4,5};
 //}
@@ -128,7 +129,7 @@ void init_frame()
 
 }
 //------------------------------------------------------------------------------
-BOOST_PYTHON_MODULE(slon)
+BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
     //boost::python::numeric::array::set_module_and_type("numpy", "ndarray");

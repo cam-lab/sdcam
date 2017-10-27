@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
 
-import slon
+import sys
+
+sys.path.append('bin')
+
+import vframe
 import time
 
-slon.init_numpy()
-slon.init_frame()
+vframe.init_numpy()
+vframe.init_frame()
 
-f = slon.Frame()
+f = vframe.Frame()
 
 for i in range(400):
     t = f.read()
