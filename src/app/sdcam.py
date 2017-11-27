@@ -3,7 +3,8 @@
 
 import sys
 
-sys.path.append('bin')
+sys.path.append('bin/release')
+#sys.path.append('bin')
 
 import vframe
 import time

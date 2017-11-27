@@ -3,3 +3,6 @@ __pycache__
 *.o
 *.vtg
 *.vpwhistu
+bin
+build
+.sconsign.dblite
