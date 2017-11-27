@@ -2,8 +2,7 @@
 <Project
     Version="10.0"
     VendorName="SlickEdit"
-    WorkingDir="."
-    VCSProject="Git:">
+    WorkingDir=".">
     <Config
         Name="Release"
         OutputFile=""
@@ -74,20 +73,25 @@
     <Files>
         <Folder
             Name="src"
-            Filters="*.c;*.C;*.cc;*.cpp;*.cp;*.cxx;*.prg;*.s;*.S;*.h;*.H;*.hh;*.hpp;*.hxx">
+            Filters="*.c;*.C;*.cc;*.cpp;*.cp;*.cxx;*.prg;*.s;*.S;*.h;*.H;*.hh;*.hpp;*.hxx"
+            GUID="{86D2A741-EE0C-4143-BDB3-A5D59182DD0F}">
             <F N="src/app/sdcam.py"/>
             <F N="src/vframe/vframe.cpp"/>
             <F N="src/include/timing.h"/>
         </Folder>
         <Folder
             Name="lib"
-            Filters=""></Folder>
+            Filters=""
+            GUID="{87193895-B5F4-4DA2-9607-314AD530860B}"></Folder>
         <Folder
             Name="Scripts"
-            Filters="">
+            Filters=""
+            GUID="{CD3029F7-4AC6-4A66-9CFC-BCF30622DF60}">
             <F
                 N="Makefile"
                 Type="Makefile"/>
+            <F N="SConstruct"/>
+            <F N="src/vframe/vframe.scons"/>
         </Folder>
     </Files>
 </Project>
