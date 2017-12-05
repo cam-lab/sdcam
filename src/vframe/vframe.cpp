@@ -3,34 +3,26 @@
 
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 #include <iostream>
 #include <stdint.h>
 
-//#include <chrono>
-//#include <thread>
-
 #include "timing.h"
 #include <unistd.h>
+
+#include <ip_qpipe_def.h>
+
+//using namespace IP_QPIPE_LIB;
 
 namespace bp = boost::python;
 namespace np = boost::python::numpy;
 
-double sqroot(double a) {
-  return std::sqrt(a);
-}
 
+const uint16_t FRAME_SIZE_X = 8; // 1280;
+const uint16_t FRAME_SIZE_Y = 4; // 960;
 
-//std::vector<double> list_of_nums() {
-  //return std::vector<double>{1,2,3,4,5};
-//}
-
-const uint16_t FRAME_SIZE_X = 1280;
-const uint16_t FRAME_SIZE_Y = 960;
-
-uint16_t frame[FRAME_SIZE_Y*FRAME_SIZE_X];
-
-uint16_t arr[] = {1,2,3,4,5};
+//uint16_t frame[FRAME_SIZE_Y*FRAME_SIZE_X];
 
 //------------------------------------------------------------------------------
 void init_numpy()
@@ -38,121 +30,95 @@ void init_numpy()
     np::initialize();
 }
 //------------------------------------------------------------------------------
-void gen_frame()
+struct A
 {
-    for(int i = 0; i < sizeof(frame)/sizeof(frame[0]); ++i)
-    {
-        frame[i] += i;
-    }
-}
-//------------------------------------------------------------------------------
-class TFrame {
-public:
-    TFrame() 
-        : Data(np::empty(bp::make_tuple(1), np::dtype::get_builtin<uint16_t>() ) ) 
-    {
-        //auto idx = 0;  //only one element
-        //*(reinterpret_cast<uint16_t *>(Data.get_data())+idx) = d[0];
-    }
-
-
-    void load(uint16_t *d, size_t count)
-    {
-        double t1 = seconds();
-        Data = np::from_data(d, np::dtype::get_builtin<uint16_t>(),
-                             bp::make_tuple(count),
-                             bp::make_tuple(sizeof(uint16_t)),
-                             bp::object()).reshape(bp::make_tuple(FRAME_SIZE_X, FRAME_SIZE_Y));
-        double t2 = seconds();
-        std::cout << "c++ create frame (from_data and reshape: " << t2 - t1 << std::endl;
-    }
-        
-    bp::object data() 
-    {
-        return Data;
-    }
+    int x;
+    int y;
+};
+struct B
+{
+    B() : Arr(np::empty(bp::make_tuple(4), np::dtype::get_builtin<uint32_t>())) { }
+    bp::object ndarr() { return Arr; }
     
-    double read()
-    {
-        //std::this_thread::sleep_for(std::chrono::milliseconds(40));
-        usleep(40000);
-
-        double t1 = seconds();
-        gen_frame();
-        double t2 = seconds();
-        load(frame, sizeof(frame)/sizeof(uint16_t));
-        double t3 = seconds();
-        std::cout << "gen frame: " << t2 - t1 << " load: " << t3 - t2 << std::endl;
-        //std::cout << "frame data: " << bp::extract<char const *>(bp::str(Data)) << std::endl;
-        return seconds();
-    }
-    
-private:
-    np::ndarray Data;
+    int c;
+    A   a;
+    np::ndarray Arr;
 };
 //------------------------------------------------------------------------------
-np::ndarray &get_frame()
+struct TVFrame
 {
-    static np::ndarray py_array = np::from_data(arr, np::dtype::get_builtin<int>(),
-                                     bp::make_tuple(5),
-                                     bp::make_tuple(sizeof(int)),
-                                     bp::object());
+    TVFrame()
+       : size_x(FRAME_SIZE_X)
+       , size_y(FRAME_SIZE_Y)
+       , pixbuf(np::empty(bp::make_tuple(FRAME_SIZE_X*FRAME_SIZE_Y), np::dtype::get_builtin<uint16_t>()))
+    {
+    }
     
-    return py_array;
+    bp::object pbuf() { return pixbuf; }
+    
+    uint32_t    size_x;
+    uint32_t    size_y;
+    A           a;
+    np::ndarray pixbuf;
+};
+
+void f(TVFrame *f)
+{
+    std::cout << "pixbuf: " << bp::extract<const char *>(bp::str(f->pixbuf)) << std::endl;
+    std::cout << "a.x: " << f->a.x << ", a.y: " << f->a.y << std::endl;
 }
-//------------------------------------------------------------------------------
-void init_frame()
+uint32_t g(TVFrame &f)
 {
-//  for(int row = 0; row < FRAME_SIZE_Y; ++row)
-//  {
-//      for(int col = 0; col < FRAME_SIZE_X; ++col)
-//      {
-//          frame[row][col] = row + col;
-//      }
-//  }
-
-    for(int i = 0; i < sizeof(frame)/sizeof(frame[0]); ++i)
-    {
-        frame[i] = i;
-    }
-
-
-    std::cout << "C++ array:" << std::endl;
-    for (int j = 0; j < 5; ++j)
-    {
-        std::cout << arr[j] << ' ';
-    }
-    
-    np::ndarray &py_array = get_frame(); 
-    std::cout << std::endl
-              << "Python ndarray: " << bp::extract<char const *>(bp::str(py_array)) << std::endl;
-
+    f.a.x = 123;
+    f.a.y = 987;
+    return 4;
 }
 //------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
-    //boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
-    //import_array();
 
-    def("sqroot",     &sqroot);
-    def("init_numpy", &init_numpy);
-    def("init_frame", &init_frame);
+    {
+        scope outer =
+        class_<TVFrame>("TVFrame", init<>())
+            .add_property("size_x", &TVFrame::size_x)
+            .add_property("size_y", &TVFrame::size_y)
+            //.add_property("a", make_getter(&TVFrame::a), make_setter(&TVFrame::a))
+            //.add_property("a", make_getter(&TVFrame::a))
+            .add_property("a", &TVFrame::a)
+            .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
+            .def("pbuf", &TVFrame::pbuf)
+        ;
+        
+        class_<A>("A")
+            .add_property("x", make_getter(&A::x), make_setter(&A::x))
+            .add_property("y", make_getter(&A::y), make_setter(&A::y))
+        ;
+    }
     
- 
-    //class_<TFrame>("Frame", init<uint16_t *, size_t>())
-    class_<TFrame>("Frame")
-        .def("data", &TFrame::data)
-        .def("read", &TFrame::read)
+    
+    def("print_frame", f);
+    def("change_a", g);
+    
+    class_<B>("B", init<>())
+        .add_property("c", &B::c)
+        .def_readwrite("a", &B::a)
+        .def("Arr", &B::ndarr)
     ;
+    def("init_numpy", &init_numpy);
+    
+//  {
+//      scope in_TPipeRxParams =
+//      class_<TPipeRxParams>("PipeRxParams")
+//          .add_property("Key",       make_getter(&TPipeRxParams::Key),   make_setter(&TPipeRxParams::Key))
+//          .add_property("isCreated", make_getter(&TPipeRxParams::isCreated), make_setter(&TPipeRxParams::isCreated))
+//          .add_property("Id",        make_getter(&TPipeRxParams::Id   ), make_setter(&TPipeRxParams::Id   ))
+//      ;
+//
+//  }
+    
     
 
-    //def("get_frame",  &get_frame);
-    // def("list_of_nums", &list_of_nums);
-
-    //class_<std::vector<double> >("MyVector")
-        //.def(vector_indexing_suite<std::vector<double> >())
-        //;
 }
 //------------------------------------------------------------------------------
 
