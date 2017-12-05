@@ -74,6 +74,23 @@ uint32_t g(TVFrame &f)
     return 4;
 }
 //------------------------------------------------------------------------------
+void ff()
+{
+    std::cout << "slonick!" << std::endl;
+}
+//------------------------------------------------------------------------------
+typedef boost::function<void () > fptr;
+
+void pff( fptr fp )
+{
+    fp();
+}
+
+void pfff(bp::object& func)
+{
+    func();
+}
+//------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
@@ -83,11 +100,8 @@ BOOST_PYTHON_MODULE(vframe)
         class_<TVFrame>("TVFrame", init<>())
             .add_property("size_x", &TVFrame::size_x)
             .add_property("size_y", &TVFrame::size_y)
-            //.add_property("a", make_getter(&TVFrame::a), make_setter(&TVFrame::a))
-            //.add_property("a", make_getter(&TVFrame::a))
             .add_property("a", &TVFrame::a)
             .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
-            .def("pbuf", &TVFrame::pbuf)
         ;
         
         class_<A>("A")
@@ -97,15 +111,18 @@ BOOST_PYTHON_MODULE(vframe)
     }
     
     
+    def("init_numpy", &init_numpy);
     def("print_frame", f);
     def("change_a", g);
+    def("ff", ff);
+    def("pff", pff);
+    def("pfff", pfff);
     
     class_<B>("B", init<>())
         .add_property("c", &B::c)
         .def_readwrite("a", &B::a)
         .def("Arr", &B::ndarr)
     ;
-    def("init_numpy", &init_numpy);
     
 //  {
 //      scope in_TPipeRxParams =

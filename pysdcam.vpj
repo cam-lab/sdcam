@@ -98,9 +98,23 @@
             Name="include"
             Filters=""
             GUID="{3946931D-3C35-47FE-BFA8-339563CBE11C}">
-            <F N="src/include/ip_qpipe_def.h"/>
-            <F N="src/include/ip_qpipe_lib.h"/>
             <F N="src/include/timing.h"/>
+            <F N="inc/tqueue.h"/>
+            <F N="inc/RawStreamTester.h"/>
+            <F N="inc/UDP_Defs.h"/>
+            <F N="inc/drvbuf.h"/>
+            <F N="inc/msg.h"/>
+            <F N="inc/frame.h"/>
+            <F N="inc/bufpool.h"/>
+            <F N="inc/SysUtilsQt.h"/>
+            <F N="inc/tthread.h"/>
+            <F N="inc/SysUtils.h"/>
+            <F N="inc/frameqt.h"/>
+            <F N="inc/ip_qpipe_def.h"/>
+            <F N="inc/netaddr.h"/>
+            <F N="inc/rawbuf.h"/>
+            <F N="inc/ip_qpipe_lib.h"/>
+            <F N="inc/qudp_lib.h"/>
         </Folder>
         <Folder
             Name="boost"

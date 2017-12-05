@@ -14,7 +14,7 @@ from helpers import *
 #     Common settings
 #
 QTDIR      = os.environ['QT5DIR']
-INCDIR     = '#src/include'
+INCDIR     = ['#inc', '#src/include']
 BINDIR     = '#bin'
 BUILDROOT  = '#build'
 LIBDIR     = '#lib'
