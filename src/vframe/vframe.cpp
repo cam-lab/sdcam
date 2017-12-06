@@ -13,7 +13,7 @@
 
 #include <ip_qpipe_def.h>
 
-//using namespace IP_QPIPE_LIB;
+using namespace IP_QPIPE_LIB;
 
 namespace bp = boost::python;
 namespace np = boost::python::numpy;
@@ -50,7 +50,7 @@ struct TVFrame
     TVFrame()
        : size_x(FRAME_SIZE_X)
        , size_y(FRAME_SIZE_Y)
-       , pixbuf(np::empty(bp::make_tuple(FRAME_SIZE_X*FRAME_SIZE_Y), np::dtype::get_builtin<uint16_t>()))
+       , pixbuf(np::empty(bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X), np::dtype::get_builtin<uint16_t>()))
     {
     }
     
@@ -90,13 +90,21 @@ void pfff(bp::object& func)
 {
     func();
 }
+
+void pipe_rx_params(TPipeRxParams *p)
+{
+    std::cout << "key: " << p->pipeKey << ", isCreated: " << p->isCreated << ", id: " << p->pipeId << std::endl;
+    std::cout << "chunkSize: "  << p->pipeInfo.chunkSize 
+              << ", chumkNum: " << p->pipeInfo.chunkNum 
+              << ", txReady: "  << p->pipeInfo.txReady << std::endl;
+}
 //------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
 
     {
-        scope outer =
+        scope vframe_scope =
         class_<TVFrame>("TVFrame", init<>())
             .add_property("size_x", &TVFrame::size_x)
             .add_property("size_y", &TVFrame::size_y)
@@ -110,10 +118,36 @@ BOOST_PYTHON_MODULE(vframe)
         ;
     }
     
+    {
+        scope qpipe_rx_params_scope = 
+        class_<TPipeRxParams>("TPipeRxParams")
+            .add_property("key",       &TPipeRxParams::pipeKey)
+            .add_property("isCreated", &TPipeRxParams::isCreated)
+            .add_property("id",        &TPipeRxParams::pipeId)
+            .add_property("Info",      &TPipeRxParams::pipeInfo)
+        ;
+        
+        class_<TPipeInfo>("TPipeInfo")
+            .add_property("chunkSize", make_getter(&TPipeInfo::chunkSize), make_setter(&TPipeInfo::chunkSize))
+            .add_property("chunkNum",  make_getter(&TPipeInfo::chunkNum),  make_setter(&TPipeInfo::chunkNum))
+            .add_property("txReady",   make_getter(&TPipeInfo::txReady),   make_setter(&TPipeInfo::txReady))
+        ;
+    }
+    
+//  static const int MaxRxNum = 4;
+//
+//  uint32_t chunkSize;
+//  uint32_t chunkNum;
+//  uint32_t txReady;
+//  uint32_t rxReady[MaxRxNum];
+    
+    
     
     def("init_numpy", &init_numpy);
     def("print_frame", f);
     def("change_a", g);
+    def("pipe_rx_params", &pipe_rx_params);
+    
     def("ff", ff);
     def("pff", pff);
     def("pfff", pfff);
@@ -123,18 +157,6 @@ BOOST_PYTHON_MODULE(vframe)
         .def_readwrite("a", &B::a)
         .def("Arr", &B::ndarr)
     ;
-    
-//  {
-//      scope in_TPipeRxParams =
-//      class_<TPipeRxParams>("PipeRxParams")
-//          .add_property("Key",       make_getter(&TPipeRxParams::Key),   make_setter(&TPipeRxParams::Key))
-//          .add_property("isCreated", make_getter(&TPipeRxParams::isCreated), make_setter(&TPipeRxParams::isCreated))
-//          .add_property("Id",        make_getter(&TPipeRxParams::Id   ), make_setter(&TPipeRxParams::Id   ))
-//      ;
-//
-//  }
-    
-    
 
 }
 //------------------------------------------------------------------------------
