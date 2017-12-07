@@ -115,6 +115,8 @@
             <F N="inc/rawbuf.h"/>
             <F N="inc/ip_qpipe_lib.h"/>
             <F N="inc/qudp_lib.h"/>
+            <F N="src/include/array_indexing_suite.h"/>
+            <F N="src/include/array_ref.h"/>
         </Folder>
         <Folder
             Name="boost"

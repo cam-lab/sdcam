@@ -9,3 +9,4 @@ import vframe
 vframe.init_numpy()
 
 f = vframe.TVFrame()
+p = vframe.TPipeRxParams()

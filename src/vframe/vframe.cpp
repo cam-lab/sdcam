@@ -3,7 +3,12 @@
 
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#pragma GCC diagnostic pop
+
 
 #include <iostream>
 #include <stdint.h>
@@ -12,6 +17,9 @@
 #include <unistd.h>
 
 #include <ip_qpipe_def.h>
+
+#include <array_ref.h>
+#include <array_indexing_suite.h>
 
 using namespace IP_QPIPE_LIB;
 
@@ -91,12 +99,63 @@ void pfff(bp::object& func)
     func();
 }
 
+std::string pipe_info_str(TPipeInfo & r, std::string offset)
+{
+    std::stringstream out;
+    out << offset << "chunkSize: "   << r.chunkSize  << std::endl
+        << offset << "chunkNum:  "   << r.chunkNum   << std::endl
+        << offset << "txReady:   "   << r.txReady    << std::endl
+        << offset << "rxReady:   [ " << r.rxReady[0] << ", "
+                                     << r.rxReady[1] <<  ", "
+                                     << r.rxReady[2] <<  ", "
+                                     << r.rxReady[3] << " ]" << std::endl;
+    return out.str();
+}
+
+std::string pipe_info_repr(TPipeInfo & r)
+{   
+    std::stringstream out;
+    out << "PipeInfo: { " << std::endl << pipe_info_str(r, "  ") << "}";
+    return out.str();
+}
+
+std::string pipe_rx_params_str(TPipeRxParams & r)
+{
+    std::stringstream out;
+    out << "  key:       " << r.pipeKey   << std::endl
+        << "  isCreated: " << r.isCreated << std::endl
+        << "  id:        " << r.pipeId    << std::endl
+        << "  info:      " << std::endl
+        << pipe_info_str(r.pipeInfo, "    ");
+
+    return out.str();
+}
+
+std::string pipe_rx_params_repr(TPipeRxParams & r)
+{
+    std::stringstream out;
+    out << "PipeRxParams: { " << std::endl << pipe_rx_params_str(r) << "}";
+    return out.str();
+}
+
+
 void pipe_rx_params(TPipeRxParams *p)
 {
     std::cout << "key: " << p->pipeKey << ", isCreated: " << p->isCreated << ", id: " << p->pipeId << std::endl;
-    std::cout << "chunkSize: "  << p->pipeInfo.chunkSize 
-              << ", chumkNum: " << p->pipeInfo.chunkNum 
-              << ", txReady: "  << p->pipeInfo.txReady << std::endl;
+    std::cout << "chunkSize: "  << p->pipeInfo.chunkSize
+       << ", chumkNum: " << p->pipeInfo.chunkNum
+       << ", txReady: "  << p->pipeInfo.txReady
+       << std::endl;
+    
+    p->pipeKey++;
+    p->isCreated += 2;
+    p->pipeId += 4;
+    
+    for(int i = 0; i < 4; ++i)
+    {
+        std::cout << "rxReady[" << i << "] :" << p->pipeInfo.rxReady[i] << std::endl;
+        p->pipeInfo.rxReady[i]++;
+    }
 }
 //------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
@@ -121,26 +180,34 @@ BOOST_PYTHON_MODULE(vframe)
     {
         scope qpipe_rx_params_scope = 
         class_<TPipeRxParams>("TPipeRxParams")
-            .add_property("key",       &TPipeRxParams::pipeKey)
-            .add_property("isCreated", &TPipeRxParams::isCreated)
-            .add_property("id",        &TPipeRxParams::pipeId)
-            .add_property("Info",      &TPipeRxParams::pipeInfo)
+            .add_property("key",       make_getter(&TPipeRxParams::pipeKey  ), make_setter(&TPipeRxParams::pipeKey  ))
+            .add_property("isCreated", make_getter(&TPipeRxParams::isCreated), make_setter(&TPipeRxParams::isCreated))
+            .add_property("id",        make_getter(&TPipeRxParams::pipeId   ), make_setter(&TPipeRxParams::pipeId   ))
+            .add_property("info",      make_getter(&TPipeRxParams::pipeInfo ), make_setter(&TPipeRxParams::pipeInfo ))
+            .def("__str__",  pipe_rx_params_str)
+            .def("__repr__", pipe_rx_params_repr)
+        ;
+
+        class_< array_ref<uint32_t> >("uint32_t_array")
+            .def( array_indexing_suite< array_ref<uint32_t> >() )
         ;
         
         class_<TPipeInfo>("TPipeInfo")
             .add_property("chunkSize", make_getter(&TPipeInfo::chunkSize), make_setter(&TPipeInfo::chunkSize))
             .add_property("chunkNum",  make_getter(&TPipeInfo::chunkNum),  make_setter(&TPipeInfo::chunkNum))
             .add_property("txReady",   make_getter(&TPipeInfo::txReady),   make_setter(&TPipeInfo::txReady))
+            .add_property("rxReady",   
+                          // getter that returns an array_ref view into the array
+                          //static_cast< array_ref<uint32_t>(*)(TPipeInfo *) >([](TPipeInfo *obj)
+                          (+[](TPipeInfo *obj)
+                          {
+                              return array_ref<uint32_t>(obj->rxReady);
+                          }),
+                          "Array of 'rxReady'")
+            .def("__str__",  pipe_info_str)
+            .def("__repr__", pipe_info_repr)
         ;
     }
-    
-//  static const int MaxRxNum = 4;
-//
-//  uint32_t chunkSize;
-//  uint32_t chunkNum;
-//  uint32_t txReady;
-//  uint32_t rxReady[MaxRxNum];
-    
     
     
     def("init_numpy", &init_numpy);
