@@ -27,7 +27,7 @@ env['CURDIR'] = CurDir
 #
 #     Setup sources and target
 #
-Sources = [ 'vframe.cpp', 'streamlink.cpp' ]
+Sources = [ 'vframe.cpp', 'qpipe_cfg.cpp' ]
 Target = os.path.join(env['BINDIR'], ProductName)
 
 #-------------------------------------------------------------------------------
