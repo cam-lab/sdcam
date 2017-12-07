@@ -107,8 +107,9 @@ BOOST_PYTHON_MODULE(vframe)
     //
     //    Common exposed functions
     //
-    def("init_numpy", &init_numpy);
-    def("pipe_rx_params", &pipe_rx_params);
+    def("init_numpy",     init_numpy);
+    def("qpipe_cfg",      qpipe_cfg);
+    def("pipe_rx_params", pipe_rx_params);
 }
 //------------------------------------------------------------------------------
 

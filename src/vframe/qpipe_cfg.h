@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include <ip_qpipe_def.h>
+#include <ip_qpipe_lib.h>
 
 using namespace IP_QPIPE_LIB;
 
@@ -16,6 +17,8 @@ std::string pipe_info_repr      (TPipeInfo& r);
 std::string pipe_rx_params_str  (TPipeRxParams& r);
 std::string pipe_rx_params_repr (TPipeRxParams& r);
 void        pipe_rx_params      (TPipeRxParams *p);
+int         qpipe_cfg           (TPipeRxParams& p);
+
 //------------------------------------------------------------------------------
 #endif // QPIPE_CFG_H
 

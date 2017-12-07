@@ -3,6 +3,13 @@
 #include "qpipe_cfg.h"
 
 //------------------------------------------------------------------------------
+int qpipe_cfg(TPipeRxParams &p)
+{
+    p.pipeRxNotifyFunc = 0;
+    
+    return static_cast<int>(createPipeViewRx(p));
+}
+//------------------------------------------------------------------------------
 std::string pipe_info_str(TPipeInfo & r, std::string offset)
 {
     std::stringstream out;

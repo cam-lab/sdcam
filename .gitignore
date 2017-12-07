@@ -6,4 +6,5 @@ __pycache__
 *.vpwhistu
 bin
 build
+lib
 .sconsign.dblite

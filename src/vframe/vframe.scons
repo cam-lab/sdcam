@@ -50,7 +50,10 @@ env.Append(CPPPATH = [PYTHON_INCLUDE])
 env.Append(LIBPATH = [os.path.join(BOOST_PATH, 'lib')])
 
 #env.Append(SHLINKFLAGS = ['-l:libboost_python3.so', '-Wl,--export-dynamic'])
-env.Append(LIBS     = ['python' + PYTHON_VERSION + 'm', 'boost_numpy3'])
+env.Append(LIBS     = ['python' + PYTHON_VERSION + 'm', 'boost_numpy3', 'ip_qpipe'])
+
+env.EnableQt5Modules(['QtCore']) # should be after project libs
+
 
 env['SHLIBPREFIX'] = ''
 

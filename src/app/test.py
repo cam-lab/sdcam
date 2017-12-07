@@ -10,3 +10,5 @@ vframe.init_numpy()
 
 f = vframe.TVFrame()
 p = vframe.TPipeRxParams()
+
+p.key = 2307
