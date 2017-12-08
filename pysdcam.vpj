@@ -81,6 +81,7 @@
             <F N="src/vframe/streamlink.cpp"/>
             <F N="src/app/test.py"/>
             <F N="src/vframe/vframe.cpp"/>
+            <F N="src/vframe/vframe.h"/>
         </Folder>
         <Folder
             Name="lib"

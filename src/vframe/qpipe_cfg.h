@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "vframe.h"
+
 #include <ip_qpipe_def.h>
 #include <ip_qpipe_lib.h>
 
@@ -18,6 +20,7 @@ std::string pipe_rx_params_str  (TPipeRxParams& r);
 std::string pipe_rx_params_repr (TPipeRxParams& r);
 void        pipe_rx_params      (TPipeRxParams *p);
 int         qpipe_cfg           (TPipeRxParams& p);
+int         qpipe_read_data     (TVFrame &f, TPipeRxParams &p);
 
 //------------------------------------------------------------------------------
 #endif // QPIPE_CFG_H

@@ -1,11 +1,8 @@
 
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-#include <boost/python.hpp>
-#include <boost/python/numpy.hpp>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #pragma GCC diagnostic pop
 
@@ -21,34 +18,11 @@
 #include <array_ref.h>
 #include <array_indexing_suite.h>
 
-namespace bp = boost::python;
-namespace np = boost::python::numpy;
-
-
-const uint16_t FRAME_SIZE_X = 8; // 1280;
-const uint16_t FRAME_SIZE_Y = 4; // 960;
-
 //------------------------------------------------------------------------------
 void init_numpy()
 {
     np::initialize();
 }
-//------------------------------------------------------------------------------
-struct TVFrame
-{
-    TVFrame()
-       : size_x(FRAME_SIZE_X)
-       , size_y(FRAME_SIZE_Y)
-       , pixbuf(np::empty(bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X), np::dtype::get_builtin<uint16_t>()))
-    {
-    }
-    
-    bp::object pbuf() { return pixbuf; }
-    
-    uint32_t    size_x;
-    uint32_t    size_y;
-    np::ndarray pixbuf;
-};
 //------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
 {
@@ -64,6 +38,7 @@ BOOST_PYTHON_MODULE(vframe)
             .add_property("size_x", &TVFrame::size_x)
             .add_property("size_y", &TVFrame::size_y)
             .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
+            .add_property("rawbuf", make_getter(&TVFrame::rawbuf))
         ;
     }
     
@@ -107,9 +82,11 @@ BOOST_PYTHON_MODULE(vframe)
     //
     //    Common exposed functions
     //
-    def("init_numpy",     init_numpy);
-    def("qpipe_cfg",      qpipe_cfg);
-    def("pipe_rx_params", pipe_rx_params);
+    def("init_numpy",      init_numpy);
+    def("qpipe_cfg",       qpipe_cfg);
+    def("qpipe_read_data", qpipe_read_data);
+    
+    def("pipe_rx_params",  pipe_rx_params);
 }
 //------------------------------------------------------------------------------
 
