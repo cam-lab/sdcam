@@ -58,8 +58,11 @@ def colorize(s, color):
 #-------------------------------------------------------------------------------
 def set_comstr(env):
     env['CCCOMSTR']      = colorize('%s : $SOURCE' % COMSTR['cc'],    'white'  ) 
+    env['SHCCCOMSTR']    = colorize('%s : $SOURCE' % COMSTR['cc'],    'white'  ) 
     env['CXXCOMSTR']     = colorize('%s : $SOURCE' % COMSTR['cxx'],   'white'  ) 
+    env['SHCXXCOMSTR']   = colorize('%s : $SOURCE' % COMSTR['cxx'],   'white'  ) 
     env['LINKCOMSTR']    = colorize("%s : $TARGET" % COMSTR['link'],  'green'  )
+    env['SHLINKCOMSTR']  = colorize("%s : $TARGET" % COMSTR['link'],  'green'  )
     env['ARCOMSTR']      = colorize('%s : $TARGET' % COMSTR['lib'],   'magenta')
     env['RANLIBCOMSTR']  = colorize('%s : $TARGET' % COMSTR['ranlib'],'magenta')
     env['QT5_MOCCOMSTR'] = colorize('%s : $SOURCE' % COMSTR['qt5moc'],'yellow' )  

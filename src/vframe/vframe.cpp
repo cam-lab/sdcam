@@ -1,36 +1,22 @@
 
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#pragma GCC diagnostic pop
 
-#include <boost/python.hpp>
-#include <boost/python/numpy.hpp>
 
-#include <iostream>
 #include <stdint.h>
-
-//#include <chrono>
-//#include <thread>
+#include <iostream>
 
 #include "timing.h"
 #include <unistd.h>
 
-namespace bp = boost::python;
-namespace np = boost::python::numpy;
+#include "qpipe_cfg.h"
 
-double sqroot(double a) {
-  return std::sqrt(a);
-}
-
-
-//std::vector<double> list_of_nums() {
-  //return std::vector<double>{1,2,3,4,5};
-//}
-
-const uint16_t FRAME_SIZE_X = 1280;
-const uint16_t FRAME_SIZE_Y = 960;
-
-uint16_t frame[FRAME_SIZE_Y*FRAME_SIZE_X];
-
-uint16_t arr[] = {1,2,3,4,5};
+#include <array_ref.h>
+#include <array_indexing_suite.h>
 
 //------------------------------------------------------------------------------
 void init_numpy()
@@ -38,121 +24,215 @@ void init_numpy()
     np::initialize();
 }
 //------------------------------------------------------------------------------
-void gen_frame()
+TVFrame::TVFrame()
+    : host_fnum      ( 0 )
+    , host_fpixsize  ( 2 )             // bytes
+    , host_fsize_x   ( FRAME_SIZE_X )  
+    , host_fsize_y   ( FRAME_SIZE_Y )  
+    
+    , meta_buf_size  ( 0 )
+    , meta_elem_size ( 0 )
+    , meta_info_size ( 0 )
+
+    , fnum           ( 0 )
+    , tstamp         ( 0 )
+    , size_x         ( 0 )
+    , size_y         ( 0 )
+    , pixwidth       ( 0 )
+                     
+    , det_cr         ( 0 )
+    , det_exp        ( 0 )
+    , det_gain       ( 0 )
+                     
+    , pulse_count    ( 0 )
+    , pulse_delay    ( 0 )
+    , resp_int_time  ( 0 )
+     
+    , pixbuf(np::empty(bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X), np::dtype::get_builtin<uint16_t>()))
+    , rawbuf(np::empty(bp::make_tuple(RAWBUF_SIZE/sizeof(uint32_t)), np::dtype::get_builtin<uint32_t>()))
 {
-    for(int i = 0; i < sizeof(frame)/sizeof(frame[0]); ++i)
-    {
-        frame[i] += i;
-    }
 }
 //------------------------------------------------------------------------------
-class TFrame {
-public:
-    TFrame() 
-        : Data(np::empty(bp::make_tuple(1), np::dtype::get_builtin<uint16_t>() ) ) 
+bool TVFrame::fill(uint8_t *src, uint32_t len)
+{
+    uint32_t *buf = reinterpret_cast<uint32_t *>(src);
+    
+    //--------------------------------------------------------------------------
+    //
+    //   Host data
+    //
+    if(buf[0] != 0) return false;
+
+    host_fnum = buf[6];
+
+    if(buf[7] != host_fpixsize) return false;
+    if(buf[8] != host_fsize_y)  return false;
+    if(buf[9] != host_fsize_x)  return false;
+    
+    //--------------------------------------------------------------------------
+    //
+    //   Meta info
+    //
+    meta_buf_size  = buf[META_INFO_HEADER_OFFSET];
+    meta_elem_size = buf[META_INFO_HEADER_OFFSET+1];
+    meta_info_size = buf[META_INFO_HEADER_OFFSET+2];
+    
+    uint16_t *minfo = reinterpret_cast<uint16_t *>(buf + META_INFO_DATA_OFFSET);
+    
+    fnum     = retreive_fnum(minfo);
+    tstamp   = retreive_tstamp(minfo + TSTAMP_OFFSET); 
+    size_x   = minfo[SIZE_X_OFFSET];
+    size_y   = minfo[SIZE_Y_OFFSET];
+    pixwidth = minfo[PIXWIDTH_OFFSET];
+   
+    det_cr   = minfo[DET_CR_OFFSET];
+    det_exp  = minfo[DET_EXP_OFFSET]; 
+    det_gain = minfo[DET_GAIN_OFFSET]; 
+
+    pulse_count   = minfo[PULSE_COUNT_OFFSET]; 
+    pulse_delay   = minfo[PULSE_DELAY_OFFSET]; 
+    resp_int_time = minfo[RESP_INT_TIME_OFFSET]; 
+    
+    //--------------------------------------------------------------------------
+    //
+    //   Check length
+    //
+    if(META_INFO_DATA_OFFSET*sizeof(uint32_t) + meta_buf_size + host_fsize_x*host_fsize_y*host_fpixsize != len)
     {
-        //auto idx = 0;  //only one element
-        //*(reinterpret_cast<uint16_t *>(Data.get_data())+idx) = d[0];
+        std::cout << "E: incorrect chunk data length" << std::endl;
+        return false;
     }
 
-
-    void load(uint16_t *d, size_t count)
-    {
-        double t1 = seconds();
-        Data = np::from_data(d, np::dtype::get_builtin<uint16_t>(),
-                             bp::make_tuple(count),
-                             bp::make_tuple(sizeof(uint16_t)),
-                             bp::object()).reshape(bp::make_tuple(FRAME_SIZE_X, FRAME_SIZE_Y));
-        double t2 = seconds();
-        std::cout << "c++ create frame (from_data and reshape: " << t2 - t1 << std::endl;
-    }
+    //--------------------------------------------------------------------------
+    //
+    //   Pixel array
+    //
+    std::memcpy(pixbuf.get_data(), 
+                src + META_INFO_DATA_OFFSET*sizeof(uint32_t) + meta_buf_size, 
+                host_fsize_x*host_fsize_y*host_fpixsize);
+    
+    return true;
+}
+//------------------------------------------------------------------------------
+uint32_t TVFrame::retreive_fnum(uint16_t *p)
+{
+    return (  p[0] & 0xff)        +
+           ( (p[1] & 0xff) << 8)  +
+           ( (p[2] & 0xff) << 16) +
+           ( (p[3] & 0xff) << 24);
+}
+//------------------------------------------------------------------------------
+uint64_t TVFrame::retreive_tstamp(uint16_t *p)
+{
+    uint32_t l = (  p[0] & 0xff)        +
+                 ( (p[1] & 0xff) << 8)  +
+                 ( (p[2] & 0xff) << 16) +
+                 ( (p[3] & 0xff) << 24);
+    
+    uint64_t h = (  p[4] & 0xff)        +
+                 ( (p[5] & 0xff) << 8)  +
+                 ( (p[6] & 0xff) << 16) +
+                 ( (p[7] & 0xff) << 24);
         
-    bp::object data() 
-    {
-        return Data;
-    }
-    
-    double read()
-    {
-        //std::this_thread::sleep_for(std::chrono::milliseconds(40));
-        usleep(40000);
-
-        double t1 = seconds();
-        gen_frame();
-        double t2 = seconds();
-        load(frame, sizeof(frame)/sizeof(uint16_t));
-        double t3 = seconds();
-        std::cout << "gen frame: " << t2 - t1 << " load: " << t3 - t2 << std::endl;
-        //std::cout << "frame data: " << bp::extract<char const *>(bp::str(Data)) << std::endl;
-        return seconds();
-    }
-    
-private:
-    np::ndarray Data;
-};
-//------------------------------------------------------------------------------
-np::ndarray &get_frame()
-{
-    static np::ndarray py_array = np::from_data(arr, np::dtype::get_builtin<int>(),
-                                     bp::make_tuple(5),
-                                     bp::make_tuple(sizeof(int)),
-                                     bp::object());
-    
-    return py_array;
+    return l + (h << 32);
 }
 //------------------------------------------------------------------------------
-void init_frame()
+std::string vframe_str(TVFrame & r)
 {
-//  for(int row = 0; row < FRAME_SIZE_Y; ++row)
-//  {
-//      for(int col = 0; col < FRAME_SIZE_X; ++col)
-//      {
-//          frame[row][col] = row + col;
-//      }
-//  }
+    std::stringstream out;
+    out << "    host_fnum     : " << r.host_fnum     << std::endl
+        << "    fnum          : " << r.fnum          << std::endl
+        << "    size_x        : " << r.size_x        << std::endl
+        << "    size_y        : " << r.size_y        << std::endl
+        << "    pixwidth      : " << r.pixwidth      << std::endl
+        << "    det_cr        : " << r.det_cr        << std::endl
+        << "    det_exp       : " << r.det_exp       << std::endl
+        << "    det_gain      : " << r.det_gain      << std::endl
+        << "    pulse_count   : " << r.pulse_count   << std::endl
+        << "    pulse_delay   : " << r.pulse_delay   << std::endl
+        << "    resp_int_time : " << r.resp_int_time << std::endl;
 
-    for(int i = 0; i < sizeof(frame)/sizeof(frame[0]); ++i)
-    {
-        frame[i] = i;
-    }
-
-
-    std::cout << "C++ array:" << std::endl;
-    for (int j = 0; j < 5; ++j)
-    {
-        std::cout << arr[j] << ' ';
-    }
-    
-    np::ndarray &py_array = get_frame(); 
-    std::cout << std::endl
-              << "Python ndarray: " << bp::extract<char const *>(bp::str(py_array)) << std::endl;
-
+    return out.str();
 }
+//------------------------------------------------------------------------------
+std::string vframe_repr(TVFrame & r)
+{
+    std::stringstream out;
+    out << "class 'TVFrame': { " << std::endl << vframe_str(r) << "}";
+    return out.str();
+}
+//------------------------------------------------------------------------------
+
 //------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
-    //boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
-    //import_array();
 
-    def("sqroot",     &sqroot);
-    def("init_numpy", &init_numpy);
-    def("init_frame", &init_frame);
+    //--------------------------------------------------------------------------
+    //
+    //    Video frame wrap definitions
+    //
+    {
+        scope vframe_scope =
+        class_<TVFrame>("TVFrame", init<>())
+            .add_property("host_fnum", &TVFrame::host_fnum)
+            .add_property("fnum",   &TVFrame::fnum)
+            .add_property("tstamp", &TVFrame::tstamp)
+            .add_property("size_x", &TVFrame::size_x)
+            .add_property("size_y", &TVFrame::size_y)
+            .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
+            .add_property("rawbuf", make_getter(&TVFrame::rawbuf))
+            .def("__str__",  vframe_str)
+            .def("__repr__", vframe_repr)
+        ;
+    }
     
- 
-    //class_<TFrame>("Frame", init<uint16_t *, size_t>())
-    class_<TFrame>("Frame")
-        .def("data", &TFrame::data)
-        .def("read", &TFrame::read)
-    ;
+    //--------------------------------------------------------------------------
+    //
+    //    qpipe parameters wrap definitions
+    //
+    {
+        scope qpipe_rx_params_scope = 
+        class_<TPipeRxParams>("TPipeRxParams")
+            .add_property("key",       make_getter(&TPipeRxParams::pipeKey  ), make_setter(&TPipeRxParams::pipeKey  ))
+            .add_property("isCreated", make_getter(&TPipeRxParams::isCreated), make_setter(&TPipeRxParams::isCreated))
+            .add_property("id",        make_getter(&TPipeRxParams::pipeId   ), make_setter(&TPipeRxParams::pipeId   ))
+            .add_property("info",      make_getter(&TPipeRxParams::pipeInfo ), make_setter(&TPipeRxParams::pipeInfo ))
+            .def("__str__",  pipe_rx_params_str)
+            .def("__repr__", pipe_rx_params_repr)
+        ;
+
+        class_< array_ref<uint32_t> >("uint32_t_array")
+            .def( array_indexing_suite< array_ref<uint32_t> >() )
+        ;
+        
+        class_<TPipeInfo>("TPipeInfo")
+            .add_property("chunkSize", make_getter(&TPipeInfo::chunkSize), make_setter(&TPipeInfo::chunkSize))
+            .add_property("chunkNum",  make_getter(&TPipeInfo::chunkNum),  make_setter(&TPipeInfo::chunkNum))
+            .add_property("txReady",   make_getter(&TPipeInfo::txReady),   make_setter(&TPipeInfo::txReady))
+            .add_property("rxReady",   
+                          // getter that returns an array_ref view into the array
+                          //static_cast< array_ref<uint32_t>(*)(TPipeInfo *) >([](TPipeInfo *obj)
+                          (+[](TPipeInfo *obj)
+                          {
+                              return array_ref<uint32_t>(obj->rxReady);
+                          }),
+                          "Array of 'rxReady'")
+            .def("__str__",  pipe_info_str)
+            .def("__repr__", pipe_info_repr)
+        ;
+    }
     
-
-    //def("get_frame",  &get_frame);
-    // def("list_of_nums", &list_of_nums);
-
-    //class_<std::vector<double> >("MyVector")
-        //.def(vector_indexing_suite<std::vector<double> >())
-        //;
+    //--------------------------------------------------------------------------
+    //
+    //    Common exposed functions
+    //
+    def("init_numpy",      init_numpy);
+    def("qpipe_cfg",       qpipe_cfg);
+    def("qpipe_read_data", qpipe_read_data);
+    def("qpipe_get_frame", qpipe_get_frame);
+    
+    def("pipe_rx_params",  pipe_rx_params);
 }
 //------------------------------------------------------------------------------
 

@@ -14,7 +14,7 @@ from helpers import *
 #     Common settings
 #
 QTDIR      = os.environ['QT5DIR']
-INCDIR     = '#src/include'
+INCDIR     = ['#inc', '#src/include']
 BINDIR     = '#bin'
 BUILDROOT  = '#build'
 LIBDIR     = '#lib'
@@ -85,5 +85,6 @@ qtEnv.Tool('qt5')
 SConscript('src/vframe/vframe.scons', 
             exports = 'qtEnv',
             variant_dir = '#build/%s/%s' % (qtEnv['VARIANT'], 'vframe' ), duplicate = 0)
+SConscript('src/qpipe/SConscript', exports = 'qtEnv')
 #-------------------------------------------------------------------------------
 
