@@ -24,6 +24,146 @@ void init_numpy()
     np::initialize();
 }
 //------------------------------------------------------------------------------
+TVFrame::TVFrame()
+    : host_fnum      ( 0 )
+    , host_fpixsize  ( 2 )             // bytes
+    , host_fsize_x   ( FRAME_SIZE_X )  
+    , host_fsize_y   ( FRAME_SIZE_Y )  
+    
+    , meta_buf_size  ( 0 )
+    , meta_elem_size ( 0 )
+    , meta_info_size ( 0 )
+
+    , fnum           ( 0 )
+    , tstamp         ( 0 )
+    , size_x         ( 0 )
+    , size_y         ( 0 )
+    , pixwidth       ( 0 )
+                     
+    , det_cr         ( 0 )
+    , det_exp        ( 0 )
+    , det_gain       ( 0 )
+                     
+    , pulse_count    ( 0 )
+    , pulse_delay    ( 0 )
+    , resp_int_time  ( 0 )
+     
+    , pixbuf(np::empty(bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X), np::dtype::get_builtin<uint16_t>()))
+    , rawbuf(np::empty(bp::make_tuple(RAWBUF_SIZE/sizeof(uint32_t)), np::dtype::get_builtin<uint32_t>()))
+{
+}
+//------------------------------------------------------------------------------
+bool TVFrame::fill(uint8_t *src, uint32_t len)
+{
+    uint32_t *buf = reinterpret_cast<uint32_t *>(src);
+    
+    //--------------------------------------------------------------------------
+    //
+    //   Host data
+    //
+    if(buf[0] != 0) return false;
+
+    host_fnum = buf[6];
+
+    if(buf[7] != host_fpixsize) return false;
+    if(buf[8] != host_fsize_y)  return false;
+    if(buf[9] != host_fsize_x)  return false;
+    
+    //--------------------------------------------------------------------------
+    //
+    //   Meta info
+    //
+    meta_buf_size  = buf[META_INFO_HEADER_OFFSET];
+    meta_elem_size = buf[META_INFO_HEADER_OFFSET+1];
+    meta_info_size = buf[META_INFO_HEADER_OFFSET+2];
+    
+    uint16_t *minfo = reinterpret_cast<uint16_t *>(buf + META_INFO_DATA_OFFSET);
+    
+    fnum     = retreive_fnum(minfo);
+    tstamp   = retreive_tstamp(minfo + TSTAMP_OFFSET); 
+    size_x   = minfo[SIZE_X_OFFSET];
+    size_y   = minfo[SIZE_Y_OFFSET];
+    pixwidth = minfo[PIXWIDTH_OFFSET];
+   
+    det_cr   = minfo[DET_CR_OFFSET];
+    det_exp  = minfo[DET_EXP_OFFSET]; 
+    det_gain = minfo[DET_GAIN_OFFSET]; 
+
+    pulse_count   = minfo[PULSE_COUNT_OFFSET]; 
+    pulse_delay   = minfo[PULSE_DELAY_OFFSET]; 
+    resp_int_time = minfo[RESP_INT_TIME_OFFSET]; 
+    
+    //--------------------------------------------------------------------------
+    //
+    //   Check length
+    //
+    if(META_INFO_DATA_OFFSET*sizeof(uint32_t) + meta_buf_size + host_fsize_x*host_fsize_y*host_fpixsize != len)
+    {
+        std::cout << "E: incorrect chunk data length" << std::endl;
+        return false;
+    }
+
+    //--------------------------------------------------------------------------
+    //
+    //   Pixel array
+    //
+    std::memcpy(pixbuf.get_data(), 
+                src + META_INFO_DATA_OFFSET*sizeof(uint32_t) + meta_buf_size, 
+                host_fsize_x*host_fsize_y*host_fpixsize);
+    
+    return true;
+}
+//------------------------------------------------------------------------------
+uint32_t TVFrame::retreive_fnum(uint16_t *p)
+{
+    return (  p[0] & 0xff)        +
+           ( (p[1] & 0xff) << 8)  +
+           ( (p[2] & 0xff) << 16) +
+           ( (p[3] & 0xff) << 24);
+}
+//------------------------------------------------------------------------------
+uint64_t TVFrame::retreive_tstamp(uint16_t *p)
+{
+    uint32_t l = (  p[0] & 0xff)        +
+                 ( (p[1] & 0xff) << 8)  +
+                 ( (p[2] & 0xff) << 16) +
+                 ( (p[3] & 0xff) << 24);
+    
+    uint64_t h = (  p[4] & 0xff)        +
+                 ( (p[5] & 0xff) << 8)  +
+                 ( (p[6] & 0xff) << 16) +
+                 ( (p[7] & 0xff) << 24);
+        
+    return l + (h << 32);
+}
+//------------------------------------------------------------------------------
+std::string vframe_str(TVFrame & r)
+{
+    std::stringstream out;
+    out << "    host_fnum     : " << r.host_fnum     << std::endl
+        << "    fnum          : " << r.fnum          << std::endl
+        << "    size_x        : " << r.size_x        << std::endl
+        << "    size_y        : " << r.size_y        << std::endl
+        << "    pixwidth      : " << r.pixwidth      << std::endl
+        << "    det_cr        : " << r.det_cr        << std::endl
+        << "    det_exp       : " << r.det_exp       << std::endl
+        << "    det_gain      : " << r.det_gain      << std::endl
+        << "    pulse_count   : " << r.pulse_count   << std::endl
+        << "    pulse_delay   : " << r.pulse_delay   << std::endl
+        << "    resp_int_time : " << r.resp_int_time << std::endl;
+
+    return out.str();
+}
+//------------------------------------------------------------------------------
+std::string vframe_repr(TVFrame & r)
+{
+    std::stringstream out;
+    out << "class 'TVFrame': { " << std::endl << vframe_str(r) << "}";
+    return out.str();
+}
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
@@ -35,10 +175,15 @@ BOOST_PYTHON_MODULE(vframe)
     {
         scope vframe_scope =
         class_<TVFrame>("TVFrame", init<>())
+            .add_property("host_fnum", &TVFrame::host_fnum)
+            .add_property("fnum",   &TVFrame::fnum)
+            .add_property("tstamp", &TVFrame::tstamp)
             .add_property("size_x", &TVFrame::size_x)
             .add_property("size_y", &TVFrame::size_y)
             .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
             .add_property("rawbuf", make_getter(&TVFrame::rawbuf))
+            .def("__str__",  vframe_str)
+            .def("__repr__", vframe_repr)
         ;
     }
     
@@ -85,6 +230,7 @@ BOOST_PYTHON_MODULE(vframe)
     def("init_numpy",      init_numpy);
     def("qpipe_cfg",       qpipe_cfg);
     def("qpipe_read_data", qpipe_read_data);
+    def("qpipe_get_frame", qpipe_get_frame);
     
     def("pipe_rx_params",  pipe_rx_params);
 }

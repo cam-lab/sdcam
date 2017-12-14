@@ -10,25 +10,37 @@ int qpipe_cfg(TPipeRxParams &p)
     return static_cast<int>(createPipeViewRx(p));
 }
 //------------------------------------------------------------------------------
-//  struct TPipeRxTransfer
-//  {
-//      unsigned pipeKey;
-//      //uint8_t* dataBuf;
-//      void*    dataBuf;
-//      uint32_t dataLen;
-//  };
-
-
 int qpipe_read_data(TVFrame &f, TPipeRxParams &p)
 {
     TPipeRxTransfer t;
     t.pipeKey = p.pipeKey;
-    t.dataBuf = f.rawbuf.get_data();
-    t.dataLen = f.rawbuf.shape(0);
+    t.dataBuf = f.raw_buf();
+    t.dataLen = f.raw_buf_len();
     
 //    std::cout << "data len: " << t.dataLen << std::endl;
     
     return static_cast<int>( readData(t) );
+}
+//------------------------------------------------------------------------------
+//  typedef bool (*RxTransferFunc)(void* obj, uint8_t* src, uint32_t len);
+//  struct TPipeRxTransferFuncObj
+//  {
+//      unsigned       pipeKey;
+//      RxTransferFunc transferFunc;
+//      void*          obj;
+//
+//      //--- DEBUG
+//      uint32_t dataLen;
+//  };
+
+int qpipe_get_frame(TVFrame &f, TPipeRxParams &p)
+{
+    TPipeRxTransferFuncObj t;
+    t.pipeKey = p.pipeKey;
+    t.transferFunc = &deserialize_frame;
+    t.obj          = &f;
+    
+    return static_cast<int>( readDataFuncObj(t) );
 }
 //------------------------------------------------------------------------------
 std::string pipe_info_str(TPipeInfo & r, std::string offset)

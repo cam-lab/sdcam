@@ -21,6 +21,7 @@ std::string pipe_rx_params_repr (TPipeRxParams& r);
 void        pipe_rx_params      (TPipeRxParams *p);
 int         qpipe_cfg           (TPipeRxParams& p);
 int         qpipe_read_data     (TVFrame &f, TPipeRxParams &p);
+int         qpipe_get_frame     (TVFrame &f, TPipeRxParams &p);
 
 //------------------------------------------------------------------------------
 #endif // QPIPE_CFG_H
