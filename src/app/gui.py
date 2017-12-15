@@ -42,6 +42,12 @@ class MainWindow(QMainWindow):
     def set_title(self, text = ''):
         text = ' - ' + text if len(text) > 0 else ''
         self.setWindowTitle(PROGRAM_NAME + ' v' + VERSION + text)
+        
+    #--------------------------------------------------------------------------------    
+    def closeEvent(self, event):
+        Settings = QSettings('cam-lab', 'pysdcam')
+        Settings.setValue( 'geometry', self.saveGeometry() )
+        QWidget.closeEvent(self, event)
 
     #--------------------------------------------------------------------------------    
     def initUI(self):
@@ -57,6 +63,13 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.MainView)
         
         self.set_title()
+        
+        Settings = QSettings('cam-lab', 'pysdcam')
+        if Settings.contains('geometry'):
+            self.restoreGeometry( Settings.value('geometry') )
+        else:
+            self.setGeometry(100, 100, 1024, 768)
+
         
         #--------------------------------------------------------------------------------    
 
