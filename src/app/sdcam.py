@@ -22,6 +22,8 @@ class TSDCam:
 
     def __init__(self):
         self.mwin = gui.MainWindow()
+        
+        
     
 #-------------------------------------------------------------------------------
 if __name__ == '__main__':

@@ -14,6 +14,10 @@ from PyQt5.QtGui  import QIcon, QBrush, QColor, QKeyEvent, QFont, QResizeEvent
 from PyQt5.QtCore import QSettings, pyqtSignal, QObject, QEvent
 from PyQt5.QtCore import QT_VERSION_STR
 
+PROGRAM_NAME = 'Software-Defined Camera'
+VERSION      = '0.1.0'
+
+
 #-------------------------------------------------------------------------------
 class TGraphicsView(QGraphicsView):
     
@@ -28,13 +32,16 @@ class TGraphicsView(QGraphicsView):
 #-------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
 
-    PROGRAM_NAME = 'Software-Defined Camera'
-
     #--------------------------------------------------------------------------------    
     def __init__(self):
         super().__init__()
 
         self.initUI()
+        
+    #--------------------------------------------------------------------------------    
+    def set_title(self, text = ''):
+        text = ' - ' + text if len(text) > 0 else ''
+        self.setWindowTitle(PROGRAM_NAME + ' v' + VERSION + text)
 
     #--------------------------------------------------------------------------------    
     def initUI(self):
@@ -48,6 +55,8 @@ class MainWindow(QMainWindow):
         self.MainView = TGraphicsView(self.MainScene, self)
         self.MainView.setFrameStyle(QFrame.NoFrame)
         self.setCentralWidget(self.MainView)
+        
+        self.set_title()
         
         #--------------------------------------------------------------------------------    
 
