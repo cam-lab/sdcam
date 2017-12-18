@@ -32,6 +32,8 @@ class TGraphicsView(QGraphicsView):
 #-------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
 
+    close_signal = pyqtSignal()
+    
     #--------------------------------------------------------------------------------    
     def __init__(self):
         super().__init__()
@@ -47,6 +49,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         Settings = QSettings('cam-lab', 'pysdcam')
         Settings.setValue( 'geometry', self.saveGeometry() )
+        self.close_signal.emit()
         QWidget.closeEvent(self, event)
 
     #--------------------------------------------------------------------------------    
