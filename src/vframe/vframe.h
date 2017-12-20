@@ -56,6 +56,9 @@ struct TVFrame
     char      *raw_buf()     const { return rawbuf.get_data(); }
     uint32_t   raw_buf_len() const { return rawbuf.shape(0); }
     
+    void       rshift(int n);
+    void       divide(double n);
+    
     
     uint32_t    host_fnum;
     uint32_t    host_fpixsize;

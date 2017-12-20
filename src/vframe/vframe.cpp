@@ -122,6 +122,33 @@ uint32_t TVFrame::retreive_fnum(uint16_t *p)
            ( (p[3] & 0xff) << 24);
 }
 //------------------------------------------------------------------------------
+//#pragma GCC push_options
+//#pragma GCC optimize ("unroll-lools")
+
+__attribute__((optimize("unroll-loops")))
+void TVFrame::rshift(int n)
+{
+    uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
+    
+    //#pragma omp parallel for
+    for(int i = 0; i < FRAME_SIZE_X*FRAME_SIZE_Y; ++i)
+    {
+        buf[i] >>= n;
+    }
+}
+//------------------------------------------------------------------------------
+__attribute__((optimize("unroll-loops")))
+void TVFrame::divide(double n)
+{
+    uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
+    
+    //#pragma omp parallel for
+    for(int i = 0; i < FRAME_SIZE_X*FRAME_SIZE_Y; ++i)
+    {
+        buf[i] /= n;
+    }
+}
+//------------------------------------------------------------------------------
 uint64_t TVFrame::retreive_tstamp(uint16_t *p)
 {
     uint32_t l = (  p[0] & 0xff)        +
@@ -182,6 +209,8 @@ BOOST_PYTHON_MODULE(vframe)
             .add_property("size_y", &TVFrame::size_y)
             .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
             .add_property("rawbuf", make_getter(&TVFrame::rawbuf))
+            .def("rshift", &TVFrame::rshift)
+            .def("divide", &TVFrame::divide)
             .def("__str__",  vframe_str)
             .def("__repr__", vframe_repr)
         ;

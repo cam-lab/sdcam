@@ -44,13 +44,13 @@ PYTHON_INCLUDE = '/usr/include/python' + PYTHON_VERSION
 PYTHON_LIBPATH = '/usr/lib/python3.5/config-3.5m-x86_64-linux-gnu'
 
 
-env.Append(CCFLAGS = ['-D'+ d for d in DEFINES] )
+env.Append(CCFLAGS = ['-D'+ d for d in DEFINES] + ['-fopenmp'] )
 env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include')])
 env.Append(CPPPATH = [PYTHON_INCLUDE])
 env.Append(LIBPATH = [os.path.join(BOOST_PATH, 'lib')])
 
 #env.Append(SHLINKFLAGS = ['-l:libboost_python3.so', '-Wl,--export-dynamic'])
-env.Append(LIBS     = ['python' + PYTHON_VERSION + 'm', 'boost_numpy3', 'ip_qpipe'])
+env.Append(LIBS = ['python' + PYTHON_VERSION + 'm', 'boost_numpy3', 'ip_qpipe', 'gomp'])
 
 env.EnableQt5Modules(['QtCore']) # should be after project libs
 
