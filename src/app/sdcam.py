@@ -84,7 +84,7 @@ class TVFrameThread(threading.Thread):
     def run(self):
         while True:
             self.frame.display()
-            time.sleep(0.04)
+        #    time.sleep(0.04)
             if self._finish_event.is_set():
                 return
         
