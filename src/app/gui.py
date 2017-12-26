@@ -2,6 +2,7 @@
 
 import sys
 import os
+import queue
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
@@ -15,11 +16,11 @@ from PyQt5.QtGui  import QIcon, QBrush, QImage, QPixmap, QColor, QKeyEvent, QFon
 from PyQt5.QtCore import QSettings, pyqtSignal, QObject, QEvent
 from PyQt5.QtCore import QT_VERSION_STR
 
-import cv2
 
 PROGRAM_NAME = 'Software-Defined Camera'
 VERSION      = '0.1.0'
 
+fqueue = queue.Queue()
 
 #-------------------------------------------------------------------------------
 class TGraphicsView(QGraphicsView):
@@ -30,7 +31,6 @@ class TGraphicsView(QGraphicsView):
         
     def resizeEvent(self, event):
         QGraphicsView.resizeEvent(self, event)
-        
         
 #-------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
@@ -65,7 +65,8 @@ class MainWindow(QMainWindow):
         
     #--------------------------------------------------------------------------------    
     def show_frame_slot(self, frame):
-        img_data = frame  # cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+        pmap= fqueue.get()
+        img_data = pmap 
         img = QImage(img_data, 
                      img_data.shape[1], 
                      img_data.shape[0], 

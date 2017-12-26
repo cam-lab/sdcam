@@ -27,7 +27,7 @@ import gui
 #-------------------------------------------------------------------------------
 class TVFrame(QObject):
     
-    frame_signal = pyqtSignal( np.ndarray )
+    frame_signal = pyqtSignal( int )
     
     def __init__(self):
         super().__init__()
@@ -60,14 +60,14 @@ class TVFrame(QObject):
     
     def read(self):
         vframe.qpipe_get_frame(self._f, self._p)
-            
         self._pmap = np.right_shift( self._f.pixbuf, 4 ).astype(dtype=np.uint8)
-
         return self._pmap
         
     
     def display(self):
-        self.frame_signal.emit(self.read())
+        pmap = self.read()
+        gui.fqueue.put(pmap)
+        self.frame_signal.emit(0)
     
 #-------------------------------------------------------------------------------
 class TVFrameThread(threading.Thread):
@@ -84,10 +84,8 @@ class TVFrameThread(threading.Thread):
     def run(self):
         while True:
             self.frame.display()
-        #    time.sleep(0.04)
             if self._finish_event.is_set():
                 return
-        
             
 #-------------------------------------------------------------------------------
 class TSDCam:
@@ -97,24 +95,22 @@ class TSDCam:
         
         self.vfthread = TVFrameThread()
         self.vfthread.start()
-        
+                
         self.mwin.close_signal.connect(self.finish)
-        self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot)
-        
+        self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
+                                                 Qt.QueuedConnection)
         
     def finish(self):
         print('self::finish')
         self.vfthread.finish()
         self.vfthread.join()
-        
-        
+
     def generate_frame(self):
         self.frame
         
     
 #-------------------------------------------------------------------------------
-if __name__ == '__main__':
-
+def main():
     print('Qt Version: ' + QT_VERSION_STR)
 
     app  = QApplication(sys.argv)
@@ -127,6 +123,11 @@ if __name__ == '__main__':
     sdcam = TSDCam()
 
     sys.exit( app.exec_() )
+
+#-------------------------------------------------------------------------------
+if __name__ == '__main__':
+    main()
+    
 #-------------------------------------------------------------------------------
 
 
