@@ -27,6 +27,38 @@ VERSION      = '0.1.0'
 fqueue = queue.Queue()
 
 #-------------------------------------------------------------------------------
+class TIPythonWidget(RichJupyterWidget):
+    """ Convenience class for a live IPython console widget. 
+        We can replace the standard banner using the customBanner argument"""
+    def __init__(self,customBanner=None,*args,**kwargs):
+        super(TIPythonWidget, self).__init__(*args,**kwargs)
+        if customBanner!=None: self.banner=customBanner
+        self.kernel_manager = kernel_manager = QtInProcessKernelManager()
+        kernel_manager.start_kernel()
+        kernel_manager.kernel.gui = 'qt'
+        self.kernel_client = kernel_client = self._kernel_manager.client()
+        kernel_client.start_channels()
+
+        def stop():
+            kernel_client.stop_channels()
+            kernel_manager.shutdown_kernel()
+            get_app_qt5().exit()            
+        self.exit_requested.connect(stop)
+
+    def pushVariables(self,variableDict):
+        """ Given a dictionary containing name:value pairs, 
+            push those variables to the IPython console widget """
+        self.kernel_manager.kernel.shell.push(variableDict)
+    def clearTerminal(self):
+        """ Clears the terminal """
+        self._control.clear()    
+    def printText(self,text):
+        """ Prints some plain text to the console """
+        self._append_plain_text(text)        
+    def executeCommand(self,command):
+        """ Execute a command in the frame of the console widget """
+        self._execute(command,False)
+#-------------------------------------------------------------------------------
 class TGraphicsView(QGraphicsView):
     
     def __init__(self, scene, parent):
@@ -42,10 +74,10 @@ class MainWindow(QMainWindow):
     close_signal = pyqtSignal()
     
     #--------------------------------------------------------------------------------    
-    def __init__(self):
+    def __init__(self, context):
         super().__init__()
 
-        self.initUI()
+        self.initUI(context)
         
     #--------------------------------------------------------------------------------    
     def set_title(self, text = ''):
@@ -85,7 +117,7 @@ class MainWindow(QMainWindow):
         self.PixmapItem.setPixmap(pmap)
     
     #--------------------------------------------------------------------------------    
-    def initUI(self):
+    def initUI(self, context):
 
         #----------------------------------------------------
         #
@@ -96,6 +128,10 @@ class MainWindow(QMainWindow):
         self.ipy.setObjectName('IPython QtConsole')
         self.ipy.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
         self.ipy.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        
+        ipy = TIPythonWidget(customBanner='Embedded IPython console')
+        ipy.pushVariables({'sdcam':context})
+        self.ipy.setWidget(ipy)
         
         self.MainScene = QGraphicsScene(self)
         self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))

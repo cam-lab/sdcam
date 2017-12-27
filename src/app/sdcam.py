@@ -101,7 +101,7 @@ class TVFrameThread(threading.Thread):
 class TSDCam:
 
     def __init__(self):
-        self.mwin = gui.MainWindow()
+        self.mwin = gui.MainWindow(self)
         
         self.vfthread = TVFrameThread()
         self.vfthread.start()
