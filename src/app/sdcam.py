@@ -25,6 +25,16 @@ import vframe
 import gui
 
 #-------------------------------------------------------------------------------
+def get_app_qt5(*args, **kwargs):
+    """Create a new qt5 app or return an existing one."""
+    app = QApplication.instance()
+    if app is None:
+        if not args:
+            args = ([''],)
+        app = QApplication(*args, **kwargs)
+    return app
+
+#-------------------------------------------------------------------------------
 class TVFrame(QObject):
     
     frame_signal = pyqtSignal( int )
@@ -113,7 +123,8 @@ class TSDCam:
 def main():
     print('Qt Version: ' + QT_VERSION_STR)
 
-    app  = QApplication(sys.argv)
+    #app  = QApplication(sys.argv)
+    app = get_app_qt5(sys.argv)
 
     with open( os.path.join(resources_path, 'sdcam.qss'), 'rb') as fqss:
         qss = fqss.read().decode()

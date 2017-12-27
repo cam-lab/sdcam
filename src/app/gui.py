@@ -7,7 +7,7 @@ import queue
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
                              QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, QFrame,
-                             QGraphicsPixmapItem, QGraphicsItem,
+                             QGraphicsPixmapItem, QGraphicsItem, QDockWidget,
                              QAction)
 
 
@@ -15,6 +15,10 @@ from PyQt5.Qt     import QShortcut, QKeySequence
 from PyQt5.QtGui  import QIcon, QBrush, QImage, QPixmap, QColor, QKeyEvent, QFont, QResizeEvent
 from PyQt5.QtCore import QSettings, pyqtSignal, QObject, QEvent
 from PyQt5.QtCore import QT_VERSION_STR
+
+# Import the console machinery from ipython
+from qtconsole.rich_ipython_widget import RichJupyterWidget
+from qtconsole.inprocess import QtInProcessKernelManager
 
 
 PROGRAM_NAME = 'Software-Defined Camera'
@@ -51,7 +55,8 @@ class MainWindow(QMainWindow):
     #--------------------------------------------------------------------------------    
     def closeEvent(self, event):
         Settings = QSettings('cam-lab', 'pysdcam')
-        Settings.setValue( 'geometry', self.saveGeometry() )
+        Settings.setValue('main-window/geometry', self.saveGeometry() )
+        Settings.setValue('main-window/state',    self.saveState());
         self.close_signal.emit()
         QWidget.closeEvent(self, event)
 
@@ -86,6 +91,12 @@ class MainWindow(QMainWindow):
         #
         #    Main Window
         #
+        
+        self.ipy = QDockWidget('IPy', self, Qt.WindowCloseButtonHint)
+        self.ipy.setObjectName('IPython QtConsole')
+        self.ipy.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
+        self.ipy.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        
         self.MainScene = QGraphicsScene(self)
         self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))
         self.NoVStreamPixmap = QPixmap(1280, 960)
@@ -95,16 +106,18 @@ class MainWindow(QMainWindow):
         
         self.MainView = TGraphicsView(self.MainScene, self)
         self.MainView.setFrameStyle(QFrame.NoFrame)
+
+        self.addDockWidget(Qt.RightDockWidgetArea, self.ipy)
         self.setCentralWidget(self.MainView)
         
         self.set_title()
         
         Settings = QSettings('cam-lab', 'pysdcam')
-        if Settings.contains('geometry'):
-            self.restoreGeometry( Settings.value('geometry') )
+        if Settings.contains('main-window/geometry'):
+            self.restoreGeometry( Settings.value('main-window/geometry') )
+            self.restoreState( Settings.value('main-window/state') )
         else:
             self.setGeometry(100, 100, 1024, 768)
-
         
         #--------------------------------------------------------------------------------    
 
