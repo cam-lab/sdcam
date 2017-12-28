@@ -25,6 +25,16 @@ import vframe
 import gui
 
 #-------------------------------------------------------------------------------
+def get_app_qt5(*args, **kwargs):
+    """Create a new qt5 app or return an existing one."""
+    app = QApplication.instance()
+    if app is None:
+        if not args:
+            args = ([''],)
+        app = QApplication(*args, **kwargs)
+    return app
+
+#-------------------------------------------------------------------------------
 class TVFrame(QObject):
     
     frame_signal = pyqtSignal( int )
@@ -33,6 +43,7 @@ class TVFrame(QObject):
         super().__init__()
         self._pixmap = self.init_frame()
         self._roll_line = 1000
+        self._k = 1
         
         vframe.init_numpy()
     
@@ -49,6 +60,7 @@ class TVFrame(QObject):
         return np.tile(np.arange(4095, step=32, dtype=np.uint16), [960, 10])
     
     def generate(self):
+        time.sleep(0.04)
         self._pmap = np.right_shift( self._pixmap, 4 ).astype(dtype=np.uint8)
         self._pmap[:, self._roll_line] = 255
         if self._roll_line < 1280-1:
@@ -61,11 +73,13 @@ class TVFrame(QObject):
     def read(self):
         vframe.qpipe_get_frame(self._f, self._p)
         self._pmap = np.right_shift( self._f.pixbuf, 4 ).astype(dtype=np.uint8)
+        self._pmap = self._pmap*self._k
         return self._pmap
         
     
     def display(self):
-        pmap = self.read()
+        #pmap = self.read()
+        pmap = self.generate()
         gui.fqueue.put(pmap)
         self.frame_signal.emit(0)
     
@@ -91,7 +105,7 @@ class TVFrameThread(threading.Thread):
 class TSDCam:
 
     def __init__(self):
-        self.mwin = gui.MainWindow()
+        self.mwin = gui.MainWindow(self)
         
         self.vfthread = TVFrameThread()
         self.vfthread.start()
@@ -113,7 +127,8 @@ class TSDCam:
 def main():
     print('Qt Version: ' + QT_VERSION_STR)
 
-    app  = QApplication(sys.argv)
+    #app  = QApplication(sys.argv)
+    app = get_app_qt5(sys.argv)
 
     with open( os.path.join(resources_path, 'sdcam.qss'), 'rb') as fqss:
         qss = fqss.read().decode()
