@@ -82,10 +82,8 @@ class TVFrame(QObject):
         
     
     def display(self):
-        #pmap = self.read()
-        pmap = self.generate()
-        print('slon')
-        sys.stdout.write('mamont')
+        pmap = self.read()
+        #pmap = self.generate()
         gui.fqueue.put(pmap)
         self.frame_signal.emit(0)
     
