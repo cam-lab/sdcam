@@ -37,7 +37,7 @@ Target = os.path.join(env['BINDIR'], ProductName)
 
 DEFINES = ['ENA_FW_QT']
 
-BOOST_PATH = '/opt/cad/boost/1_65_1'
+BOOST_PATH = os.environ['BOOST_PATH']
 
 PYTHON_VERSION = '3.5'
 PYTHON_INCLUDE = '/usr/include/python' + PYTHON_VERSION

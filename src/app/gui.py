@@ -20,6 +20,8 @@ from PyQt5.QtCore import QT_VERSION_STR
 from qtconsole.rich_ipython_widget import RichJupyterWidget
 from qtconsole.inprocess import QtInProcessKernelManager
 
+from internal_ipkernel import InternalIPKernel
+
 
 PROGRAM_NAME = 'Software-Defined Camera'
 VERSION      = '0.1.0'
@@ -69,15 +71,21 @@ class TGraphicsView(QGraphicsView):
         QGraphicsView.resizeEvent(self, event)
         
 #-------------------------------------------------------------------------------
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, InternalIPKernel):
 
     close_signal = pyqtSignal()
     
     #--------------------------------------------------------------------------------    
-    def __init__(self, context):
+    def __init__(self, app, context):
         super().__init__()
 
+        self.app = app
+        self.init_ipkernel('qt', context)
+
         self.initUI(context)
+
+        self.app.lastWindowClosed.connect(self.app.quit)
+        self.app.aboutToQuit.connect(self.cleanup_consoles)
         
     #--------------------------------------------------------------------------------    
     def set_title(self, text = ''):
@@ -124,14 +132,14 @@ class MainWindow(QMainWindow):
         #    Main Window
         #
         
-        self.ipy = QDockWidget('IPy', self, Qt.WindowCloseButtonHint)
-        self.ipy.setObjectName('IPython QtConsole')
-        self.ipy.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
-        self.ipy.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        #self.ipy = QDockWidget('IPy', self, Qt.WindowCloseButtonHint)
+        #self.ipy.setObjectName('IPython QtConsole')
+        #self.ipy.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
+        #self.ipy.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
         
-        ipy = TIPythonWidget(customBanner='Embedded IPython console')
-        ipy.pushVariables({'sdcam':context})
-        self.ipy.setWidget(ipy)
+        #ipy = TIPythonWidget(customBanner='Embedded IPython console')
+        #ipy.pushVariables({'sdcam':context})
+        #self.ipy.setWidget(ipy)
         
         self.MainScene = QGraphicsScene(self)
         self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))
@@ -143,7 +151,7 @@ class MainWindow(QMainWindow):
         self.MainView = TGraphicsView(self.MainScene, self)
         self.MainView.setFrameStyle(QFrame.NoFrame)
 
-        self.addDockWidget(Qt.RightDockWidgetArea, self.ipy)
+    #    self.addDockWidget(Qt.RightDockWidgetArea, self.ipy)
         self.setCentralWidget(self.MainView)
         
         self.set_title()

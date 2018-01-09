@@ -21,6 +21,10 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore    import QObject, pyqtSignal
 from PyQt5.QtCore    import QT_VERSION_STR, pyqtSignal
 
+
+from IPython.utils.frame import extract_module_locals
+from ipykernel.kernelapp import IPKernelApp
+
 import vframe
 import gui
 
@@ -78,8 +82,8 @@ class TVFrame(QObject):
         
     
     def display(self):
-        #pmap = self.read()
-        pmap = self.generate()
+        pmap = self.read()
+        #pmap = self.generate()
         gui.fqueue.put(pmap)
         self.frame_signal.emit(0)
     
@@ -104,8 +108,8 @@ class TVFrameThread(threading.Thread):
 #-------------------------------------------------------------------------------
 class TSDCam:
 
-    def __init__(self):
-        self.mwin = gui.MainWindow(self)
+    def __init__(self, app):
+        self.mwin = gui.MainWindow(app, { 'sdcam' : self })
         
         self.vfthread = TVFrameThread()
         self.vfthread.start()
@@ -113,6 +117,7 @@ class TSDCam:
         self.mwin.close_signal.connect(self.finish)
         self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
                                                  Qt.QueuedConnection)
+        
         
     def finish(self):
         print('self::finish')
@@ -135,15 +140,15 @@ def main():
         qss = re.sub(os.linesep, '', qss )
     app.setStyleSheet(qss)
 
-    sdcam = TSDCam()
+    sdcam = TSDCam(app)
 
-    sys.exit( app.exec_() )
+    #sys.exit( app.exec_() )
+    sdcam.mwin.ipkernel.start()
 
 #-------------------------------------------------------------------------------
 if __name__ == '__main__':
     main()
     
 #-------------------------------------------------------------------------------
-
 
 

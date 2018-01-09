@@ -16,7 +16,7 @@ from helpers import *
 QTDIR      = os.environ['QT5DIR']
 INCDIR     = ['#inc', '#src/include']
 BINDIR     = '#bin'
-BUILDROOT  = '#build'
+BUILDPATH  = '#build'
 LIBDIR     = '#lib'
 DEFINES    = []
 env        = Environment()
@@ -74,7 +74,7 @@ qtEnv.Append(CCFLAGS   = CCFLAGS + OPTFLAGS)
 qtEnv.Append(CXXFLAGS  = CXXFLAGS)
 qtEnv.Append(INCDIR    = INCDIR)
 qtEnv.Append(BINDIR    = os.path.join(BINDIR, Variant))
-qtEnv.Append(BUILDROOT = os.path.join(BUILDROOT, Variant))
+qtEnv.Append(BUILDPATH = os.path.join(BUILDPATH, Variant))
 qtEnv.Append(LIBPATH   = os.path.join(LIBDIR, Variant))
 qtEnv.Tool('qt5')
 
