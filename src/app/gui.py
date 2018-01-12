@@ -8,7 +8,7 @@ from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
                              QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, QFrame,
                              QGraphicsPixmapItem, QGraphicsItem, QDockWidget,
-                             QAction)
+                             QAction, QPlainTextEdit)
 
 
 from PyQt5.Qt     import QShortcut, QKeySequence
@@ -81,6 +81,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
 
         self.app = app
         self.init_ipkernel('qt', context)
+        #self.ipkernel.connection_file
 
         self.initUI(context)
 
@@ -152,6 +153,15 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.MainView.setFrameStyle(QFrame.NoFrame)
 
     #    self.addDockWidget(Qt.RightDockWidgetArea, self.ipy)
+    
+        self.Log = QDockWidget('Log', self, Qt.WindowCloseButtonHint)
+        self.Log.setObjectName('Log Window')
+        self.Log.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
+        self.Log.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        self.LogWidget = QPlainTextEdit(self)
+        self.Log.setWidget(self.LogWidget)
+
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.Log)
         self.setCentralWidget(self.MainView)
         
         self.set_title()

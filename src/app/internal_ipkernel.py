@@ -4,8 +4,7 @@
 
 import sys
 
-from IPython.lib.kernel import connect_qtconsole
-#from IPython.kernel.zmq.kernelapp import IPKernelApp
+from IPython.lib.kernel  import connect_qtconsole
 from ipykernel.kernelapp import IPKernelApp
 
 #-----------------------------------------------------------------------------
@@ -53,3 +52,4 @@ class InternalIPKernel(object):
     def cleanup_consoles(self, evt=None):
         for c in self.consoles:
             c.kill()
+

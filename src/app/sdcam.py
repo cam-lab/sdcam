@@ -106,6 +106,16 @@ class TVFrameThread(threading.Thread):
                 return
             
 #-------------------------------------------------------------------------------
+class TLogger(QObject):
+    log_signal = pyqtSignal( str )
+    
+    def __init__(self):
+        super().__init__()
+        
+    def info(self, s):
+        self.log_signal.emit(s)
+    
+#-------------------------------------------------------------------------------
 class TSDCam:
 
     def __init__(self, app):
