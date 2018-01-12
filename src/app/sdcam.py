@@ -7,6 +7,8 @@ import re
 
 import threading
 import time
+import subprocess
+import shlex
 
 import numpy as np
 
@@ -116,6 +118,38 @@ class TLogger(QObject):
         self.log_signal.emit(s)
     
 #-------------------------------------------------------------------------------
+class TConsoleLaunchThread(threading.Thread):
+
+    
+    def __init__(self, connection_file, name='Jupyter Console Launch Thread' ):
+        super().__init__()
+        self.connection_file = connection_file
+        
+        self.logger = TLogger()
+        
+    def run(self):
+
+        self.logger.info('waiting for start Jupyter kernel...')
+        
+        while True:
+            if os.path.exists(self.connection_file):
+                break
+            time.sleep(0.3)
+        
+        console = 'jupyter console --existing ' + self.connection_file
+        cmd = 'terminator -T "IPython Console" --new-tab -e "' + console + '"'
+        
+        self.logger.info('launching Jupyter console...')
+        self.logger.info(cmd)
+             
+        p = subprocess.Popen( shlex.split(cmd), universal_newlines = True,
+                     stdin  = subprocess.PIPE,
+                     stdout = subprocess.PIPE,
+                     stderr = subprocess.PIPE )
+        
+        self.logger.info('Jupyter Console has launched')
+
+#-------------------------------------------------------------------------------
 class TSDCam:
 
     def __init__(self, app):
@@ -123,12 +157,18 @@ class TSDCam:
         
         self.vfthread = TVFrameThread()
         self.vfthread.start()
+        
+        self.clthread = TConsoleLaunchThread(self.mwin.ipkernel.abs_connection_file)
+        self.clthread.start()
                 
         self.mwin.close_signal.connect(self.finish)
         self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
                                                  Qt.QueuedConnection)
         
+        self.clthread.logger.log_signal.connect(self.mwin.LogWidget.appendPlainText,
+                                                Qt.QueuedConnection)
         
+                
     def finish(self):
         print('self::finish')
         self.vfthread.finish()
