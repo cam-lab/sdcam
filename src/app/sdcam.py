@@ -9,6 +9,7 @@ import threading
 import time
 import subprocess
 import shlex
+import argparse
 
 import numpy as np
 
@@ -121,9 +122,10 @@ class TLogger(QObject):
 class TConsoleLaunchThread(threading.Thread):
 
     
-    def __init__(self, connection_file, name='Jupyter Console Launch Thread' ):
+    def __init__(self, connection_file, args, name='Jupyter Console Launch Thread' ):
         super().__init__()
         self.connection_file = connection_file
+        self.args = args
         
         self.logger = TLogger()
         
@@ -136,8 +138,14 @@ class TConsoleLaunchThread(threading.Thread):
                 break
             time.sleep(0.3)
         
-        console = 'jupyter console --existing ' + self.connection_file
-        cmd = 'terminator -T "IPython Console" --new-tab -e "' + console + '"'
+        if self.args.console == 'shell':
+            console = 'jupyter console --existing ' + self.connection_file
+            cmd = 'terminator -T "IPython Console" --new-tab -e "' + console + '"'
+        elif self.args.console == 'qt':
+            cmd = 'jupyter qtconsole --style=monokai --existing ' + self.connection_file
+        else:
+            self.logger.info('E: invalid console type: ' + self.args.console)
+            return
         
         self.logger.info('launching Jupyter console...')
         self.logger.info(cmd)
@@ -152,23 +160,23 @@ class TConsoleLaunchThread(threading.Thread):
 #-------------------------------------------------------------------------------
 class TSDCam:
 
-    def __init__(self, app):
+    def __init__(self, app, args):
         self.mwin = gui.MainWindow(app, { 'sdcam' : self })
         
         self.vfthread = TVFrameThread()
         self.vfthread.start()
         
-        self.clthread = TConsoleLaunchThread(self.mwin.ipkernel.abs_connection_file)
-        self.clthread.start()
+        if args.console:
+            self.clthread = TConsoleLaunchThread(self.mwin.ipkernel.abs_connection_file, args)
+            self.clthread.start()
+            self.clthread.logger.log_signal.connect(self.mwin.LogWidget.appendPlainText,
+                                                    Qt.QueuedConnection)
                 
         self.mwin.close_signal.connect(self.finish)
         self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
                                                  Qt.QueuedConnection)
         
-        self.clthread.logger.log_signal.connect(self.mwin.LogWidget.appendPlainText,
-                                                Qt.QueuedConnection)
-        
-                
+
     def finish(self):
         print('self::finish')
         self.vfthread.finish()
@@ -182,6 +190,16 @@ class TSDCam:
 def main():
     print('Qt Version: ' + QT_VERSION_STR)
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--console', 
+                        const='shell',
+                        nargs='?',
+                        help='launch jupyter console on program start')
+    
+    args = parser.parse_args()
+#   print(args)
+#   sys.exit(0)
+    
     #app  = QApplication(sys.argv)
     app = get_app_qt5(sys.argv)
 
@@ -190,7 +208,7 @@ def main():
         qss = re.sub(os.linesep, '', qss )
     app.setStyleSheet(qss)
 
-    sdcam = TSDCam(app)
+    sdcam = TSDCam(app, args)
 
     #sys.exit( app.exec_() )
     sdcam.mwin.ipkernel.start()
