@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
 
 
 from PyQt5.Qt     import QShortcut, QKeySequence
-from PyQt5.QtGui  import QIcon, QBrush, QImage, QPixmap, QColor, QKeyEvent, QFont, QResizeEvent
+from PyQt5.QtGui  import QIcon, QBrush, QImage, QPixmap, QColor, QKeyEvent, QFont, QResizeEvent, QTransform
 from PyQt5.QtCore import QSettings, pyqtSignal, QObject, QEvent
 from PyQt5.QtCore import QT_VERSION_STR
 
@@ -68,6 +68,20 @@ class TGraphicsView(QGraphicsView):
         self.parent = parent
         
     def resizeEvent(self, event):
+        newSize   = event.size();
+        dX        = 20;
+        dY        = 20;
+        viewScale = 1.0;
+        width     = 1280;
+        height    = 960;
+        
+        if (newSize.width() > (width + dX)) and (newSize.height() > ( + dY)):
+            scaleX = (self.contentsRect().width()  - dX)/float(width);
+            scaleY = (self.contentsRect().height() - dY)/float(height);
+            viewScale = min(scaleX,scaleY);
+        
+        self.setTransform(QTransform.fromScale(viewScale,viewScale), False);
+        
         QGraphicsView.resizeEvent(self, event)
         
 #-------------------------------------------------------------------------------
