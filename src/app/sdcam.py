@@ -32,6 +32,20 @@ import vframe
 import gui
 
 #-------------------------------------------------------------------------------
+class TLogger(QObject):
+    log_signal = pyqtSignal( str )
+
+    def __init__(self):
+        super().__init__()
+
+    def info(self, s):
+        self.log_signal.emit(s)
+
+#-------------------------------------------------------------------------------
+
+Logger = TLogger()
+
+#-------------------------------------------------------------------------------
 def get_app_qt5(*args, **kwargs):
     """Create a new qt5 app or return an existing one."""
     app = QApplication.instance()
@@ -109,74 +123,68 @@ class TVFrameThread(threading.Thread):
                 return
             
 #-------------------------------------------------------------------------------
-class TLogger(QObject):
-    log_signal = pyqtSignal( str )
-    
-    def __init__(self):
-        super().__init__()
-        
-    def info(self, s):
-        self.log_signal.emit(s)
-    
-#-------------------------------------------------------------------------------
 class TConsoleLaunchThread(threading.Thread):
 
     
-    def __init__(self, connection_file, args, name='Jupyter Console Launch Thread' ):
+    def __init__(self, connection_file, console, name='Jupyter Console Launch Thread' ):
         super().__init__()
         self.connection_file = connection_file
-        self.args = args
+        self.console = console
         
-        self.logger = TLogger()
+        #self.logger = TLogger()
         
     def run(self):
 
-        self.logger.info('waiting for start Jupyter kernel...')
+        Logger.info('waiting for start Jupyter kernel...')
         
         while True:
             if os.path.exists(self.connection_file):
                 break
             time.sleep(0.3)
         
-        if self.args.console == 'shell':
+        if self.console == 'shell':
             console = 'jupyter console --existing ' + self.connection_file
             cmd = 'terminator -T "IPython Console" --new-tab -e "' + console + '"'
-        elif self.args.console == 'qt':
+        elif self.console == 'qt':
             cmd = 'jupyter qtconsole --style=monokai --existing ' + self.connection_file
         else:
-            self.logger.info('E: invalid console type: ' + self.args.console)
+            Logger.info('E: invalid console type: ' + self.console)
             return
         
-        self.logger.info('launching Jupyter console...')
-        self.logger.info(cmd)
+        Logger.info('launching Jupyter console...')
+        Logger.info(cmd)
              
         p = subprocess.Popen( shlex.split(cmd), universal_newlines = True,
                      stdin  = subprocess.PIPE,
                      stdout = subprocess.PIPE,
                      stderr = subprocess.PIPE )
         
-        self.logger.info('Jupyter Console has launched')
+        Logger.info('Jupyter Console has launched')
 
+#-------------------------------------------------------------------------------
+def create_jupyter_console(cfile, ctype):
+    clthread = TConsoleLaunchThread(cfile, ctype)
+    clthread.start()
+    
 #-------------------------------------------------------------------------------
 class TSDCam:
 
     def __init__(self, app, args):
         self.mwin = gui.MainWindow(app, { 'sdcam' : self })
         
+        Logger.log_signal.connect(self.mwin.LogWidget.appendPlainText,
+                                  Qt.QueuedConnection)
+                
         self.vfthread = TVFrameThread()
         self.vfthread.start()
-        
+                
         if args.console:
-            self.clthread = TConsoleLaunchThread(self.mwin.ipkernel.abs_connection_file, args)
-            self.clthread.start()
-            self.clthread.logger.log_signal.connect(self.mwin.LogWidget.appendPlainText,
-                                                    Qt.QueuedConnection)
+            create_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
                 
         self.mwin.close_signal.connect(self.finish)
         self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
                                                  Qt.QueuedConnection)
         
-
     def finish(self):
         print('self::finish')
         self.vfthread.finish()
