@@ -22,6 +22,10 @@ from qtconsole.inprocess import QtInProcessKernelManager
 
 from internal_ipkernel import InternalIPKernel
 
+import ipycon
+
+run_path, filename = os.path.split(  os.path.abspath(__file__) )
+ico_path = os.path.join( run_path, 'ico' )
 
 PROGRAM_NAME = 'Software-Defined Camera'
 VERSION      = '0.1.0'
@@ -140,12 +144,55 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.PixmapItem.setPixmap(pmap)
     
     #--------------------------------------------------------------------------------    
+    def launch_jupyter_console_slot(self):
+        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'shell')
+        
+    #--------------------------------------------------------------------------------    
+    def launch_jupyter_qtconsole_slot(self):
+        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'qt')
+
+    #--------------------------------------------------------------------------------    
     def initUI(self, context):
 
         #----------------------------------------------------
         #
         #    Main Window
         #
+        exitAction = QAction(QIcon( os.path.join(ico_path, 'exit24.png') ), 'Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(self.close)
+        
+        ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
+        ipyConsoleAction.setShortcut('Alt+S')
+        ipyConsoleAction.setStatusTip('Launch Jupyter Console')
+        ipyConsoleAction.triggered.connect(self.launch_jupyter_console_slot)
+        
+        ipyQtConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-qtconsole-24.png') ), 'Jupyter QtConsole', self)
+        ipyQtConsoleAction.setShortcut('Alt+T')
+        ipyQtConsoleAction.setStatusTip('Launch Jupyter QtConsole')
+        ipyQtConsoleAction.triggered.connect(self.launch_jupyter_qtconsole_slot)
+
+        #--------------------------------------------
+        #
+        #    Main Menu
+        #
+        menubar = self.menuBar()
+        controlMenu = menubar.addMenu('&Control')
+        controlMenu.addAction(ipyConsoleAction)
+        controlMenu.addAction(ipyQtConsoleAction)
+        controlMenu.addAction(exitAction)
+        
+        #--------------------------------------------
+        #
+        #    Toolbar
+        #
+        toolbar = self.addToolBar('MainToolbar')
+        toolbar.setObjectName('main-toolbar')
+        toolbar.addAction(exitAction)        
+        toolbar.addAction(ipyConsoleAction)        
+        toolbar.addAction(ipyQtConsoleAction)        
+        
         
         #self.ipy = QDockWidget('IPy', self, Qt.WindowCloseButtonHint)
         #self.ipy.setObjectName('IPython QtConsole')

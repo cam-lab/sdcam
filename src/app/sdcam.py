@@ -30,22 +30,15 @@ from ipykernel.kernelapp import IPKernelApp
 
 import vframe
 import gui
-
-#-------------------------------------------------------------------------------
-class TLogger(QObject):
-    log_signal = pyqtSignal( str )
-
-    def __init__(self):
-        super().__init__()
-
-    def info(self, s):
-        self.log_signal.emit(s)
+import logger
+import ipycon
 
 #-------------------------------------------------------------------------------
 
-Logger = TLogger()
+Logger = logger.Logger
 
 #-------------------------------------------------------------------------------
+
 def get_app_qt5(*args, **kwargs):
     """Create a new qt5 app or return an existing one."""
     app = QApplication.instance()
@@ -123,50 +116,11 @@ class TVFrameThread(threading.Thread):
                 return
             
 #-------------------------------------------------------------------------------
-class TConsoleLaunchThread(threading.Thread):
+import logging
 
-    
-    def __init__(self, connection_file, console, name='Jupyter Console Launch Thread' ):
-        super().__init__()
-        self.connection_file = connection_file
-        self.console = console
-        
-        #self.logger = TLogger()
-        
-    def run(self):
-
-        Logger.info('waiting for start Jupyter kernel...')
-        
-        while True:
-            if os.path.exists(self.connection_file):
-                break
-            time.sleep(0.3)
-        
-        if self.console == 'shell':
-            console = 'jupyter console --existing ' + self.connection_file
-            cmd = 'terminator -T "IPython Console" --new-tab -e "' + console + '"'
-        elif self.console == 'qt':
-            cmd = 'jupyter qtconsole --style=monokai --existing ' + self.connection_file
-        else:
-            Logger.info('E: invalid console type: ' + self.console)
-            return
-        
-        Logger.info('launching Jupyter console...')
-        Logger.info(cmd)
-             
-        p = subprocess.Popen( shlex.split(cmd), universal_newlines = True,
-                     stdin  = subprocess.PIPE,
-                     stdout = subprocess.PIPE,
-                     stderr = subprocess.PIPE )
-        
-        Logger.info('Jupyter Console has launched')
-
-#-------------------------------------------------------------------------------
-def create_jupyter_console(cfile, ctype):
-    clthread = TConsoleLaunchThread(cfile, ctype)
-    clthread.start()
-    
-#-------------------------------------------------------------------------------
+logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+            
+            
 class TSDCam:
 
     def __init__(self, app, args):
@@ -179,7 +133,7 @@ class TSDCam:
         self.vfthread.start()
                 
         if args.console:
-            create_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
+            ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
                 
         self.mwin.close_signal.connect(self.finish)
         self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
