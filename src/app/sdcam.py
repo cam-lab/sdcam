@@ -30,12 +30,12 @@ from ipykernel.kernelapp import IPKernelApp
 
 import vframe
 import gui
-import logger
 import ipycon
+from logger import logger as lg
 
 #-------------------------------------------------------------------------------
 
-Logger = logger.Logger
+#Logger = logger.Logger
 
 #-------------------------------------------------------------------------------
 
@@ -116,22 +116,18 @@ class TVFrameThread(threading.Thread):
                 return
             
 #-------------------------------------------------------------------------------
-import logging
-
-logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-            
-            
 class TSDCam:
 
     def __init__(self, app, args):
         self.mwin = gui.MainWindow(app, { 'sdcam' : self })
         
-        Logger.log_signal.connect(self.mwin.LogWidget.appendPlainText,
-                                  Qt.QueuedConnection)
+#       Logger.log_signal.connect(self.mwin.LogWidget.appendPlainText,
+#                                 Qt.QueuedConnection)
                 
         self.vfthread = TVFrameThread()
         self.vfthread.start()
                 
+        lg.error('slon')
         if args.console:
             ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
                 

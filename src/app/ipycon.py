@@ -5,12 +5,8 @@ import threading
 import subprocess
 import shlex
 
+from logger import logger as lg
 
-import logging
-
-logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-logging.debug(os.linesep*2)
 
 #-------------------------------------------------------------------------------
 class TConsoleLaunchThread(threading.Thread):
@@ -25,8 +21,9 @@ class TConsoleLaunchThread(threading.Thread):
 
     def run(self):
 
-        logging.info('waiting for start Jupyter kernel...')
-        logging.info('Connection file: ' + self.connection_file)
+        lg.info('waiting for start Jupyter kernel...')
+        lg.warning('slon = [mamont] @kot, (slonick&). Kotick: {gray}, ^slon ~= $kot')
+        lg.info('Connection file: ' + self.connection_file)
         #Logger.info('waiting for start Jupyter kernel...')
         
         while True:
@@ -34,7 +31,7 @@ class TConsoleLaunchThread(threading.Thread):
                 break
             time.sleep(0.3)
             
-        logging.info('Console type: ' + self.console)
+        lg.info('Console type: ' + self.console)
 
         if self.console == 'shell':
             console = 'jupyter console --existing ' + self.connection_file
@@ -42,11 +39,11 @@ class TConsoleLaunchThread(threading.Thread):
         elif self.console == 'qt':
             cmd = 'jupyter qtconsole --style=monokai --existing ' + self.connection_file
         else:
-            logging.warning('E: invalid console type: ' + self.console)
+            lg.warning('E: invalid console type: ' + self.console)
             #Logger.info('E: invalid console type: ' + self.console)
             return
 
-        logging.debug(cmd)
+        lg.debug(cmd)
 
        # Logger.info('launching Jupyter console...')
        # Logger.info(cmd)
