@@ -37,7 +37,7 @@ class TConsoleLaunchThread(threading.Thread):
             console = 'jupyter console --existing ' + self.connection_file
             cmd = 'terminator -T "IPython Console" --new-tab -e "' + console + '"'
         elif self.console == 'qt':
-            cmd = 'jupyter qtconsole --style=monokai --existing ' + self.connection_file
+            cmd = 'jupyter qtconsole --existing ' + self.connection_file
         else:
             lg.warning('E: invalid console type: ' + self.console)
             #Logger.info('E: invalid console type: ' + self.console)
