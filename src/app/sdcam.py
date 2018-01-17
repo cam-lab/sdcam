@@ -67,7 +67,7 @@ class TVFrame(QObject):
         self._p.key = 2307
 
         vframe.qpipe_cfg(self._p)
-        print(self._p)
+        lg.info(os.linesep +  str(self._p))
         
             
     def init_frame(self):
