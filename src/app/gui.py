@@ -76,10 +76,23 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.setWindowTitle(PROGRAM_NAME + ' v' + VERSION + text)
         
     #--------------------------------------------------------------------------------    
-    def closeEvent(self, event):
+    def save_settings(self):
         Settings = QSettings('cam-lab', 'pysdcam')
         Settings.setValue('main-window/geometry', self.saveGeometry() )
         Settings.setValue('main-window/state',    self.saveState());
+        
+    #--------------------------------------------------------------------------------    
+    def restore_settings(self):
+        Settings = QSettings('cam-lab', 'pysdcam')
+        if Settings.contains('main-window/geometry'):
+            self.restoreGeometry( Settings.value('main-window/geometry') )
+            self.restoreState( Settings.value('main-window/state') )
+        else:
+            self.setGeometry(100, 100, 1024, 768)
+        
+    #--------------------------------------------------------------------------------    
+    def closeEvent(self, event):
+        self.save_settings()
         self.close_signal.emit()
         QWidget.closeEvent(self, event)
 
@@ -116,75 +129,78 @@ class MainWindow(QMainWindow, InternalIPKernel):
         ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'qt')
 
     #--------------------------------------------------------------------------------    
-    def initUI(self, context):
+    def setup_actions(self):
+        self.exitAction = QAction(QIcon( os.path.join(ico_path, 'exit24.png') ), 'Exit', self)
+        self.exitAction.setShortcut('Ctrl+Q')
+        self.exitAction.setStatusTip('Exit application')
+        self.exitAction.triggered.connect(self.close)
 
-        #----------------------------------------------------
-        #
-        #    Main Window
-        #
-        exitAction = QAction(QIcon( os.path.join(ico_path, 'exit24.png') ), 'Exit', self)
-        exitAction.setShortcut('Ctrl+Q')
-        exitAction.setStatusTip('Exit application')
-        exitAction.triggered.connect(self.close)
-        
-        ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
-        ipyConsoleAction.setShortcut('Alt+S')
-        ipyConsoleAction.setStatusTip('Launch Jupyter Console')
-        ipyConsoleAction.triggered.connect(self.launch_jupyter_console_slot)
-        
-        ipyQtConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-qtconsole-24.png') ), 'Jupyter QtConsole', self)
-        ipyQtConsoleAction.setShortcut('Alt+T')
-        ipyQtConsoleAction.setStatusTip('Launch Jupyter QtConsole')
-        ipyQtConsoleAction.triggered.connect(self.launch_jupyter_qtconsole_slot)
+        self.ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
+        self.ipyConsoleAction.setShortcut('Alt+S')
+        self.ipyConsoleAction.setStatusTip('Launch Jupyter Console')
+        self.ipyConsoleAction.triggered.connect(self.launch_jupyter_console_slot)
 
-        #--------------------------------------------
-        #
-        #    Main Menu
-        #
-        menubar = self.menuBar()
-        controlMenu = menubar.addMenu('&Control')
-        controlMenu.addAction(ipyConsoleAction)
-        controlMenu.addAction(ipyQtConsoleAction)
-        controlMenu.addAction(exitAction)
+        self.ipyQtConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-qtconsole-24.png') ), 'Jupyter QtConsole', self)
+        self.ipyQtConsoleAction.setShortcut('Alt+T')
+        self.ipyQtConsoleAction.setStatusTip('Launch Jupyter QtConsole')
+        self.ipyQtConsoleAction.triggered.connect(self.launch_jupyter_qtconsole_slot)
         
-        #--------------------------------------------
-        #
-        #    Toolbar
-        #
-        toolbar = self.addToolBar('MainToolbar')
-        toolbar.setObjectName('main-toolbar')
-        toolbar.addAction(exitAction)        
-        toolbar.addAction(ipyConsoleAction)        
-        toolbar.addAction(ipyQtConsoleAction)        
+    #--------------------------------------------------------------------------------    
+    def setup_menu(self):
+        self.menubar = self.menuBar()
+        self.controlMenu = self.menubar.addMenu('&Control')
+        self.controlMenu.addAction(self.ipyConsoleAction)
+        self.controlMenu.addAction(self.ipyQtConsoleAction)
+        self.controlMenu.addAction(self.exitAction)
         
+    #--------------------------------------------------------------------------------    
+    def setup_toolbar(self):
+        self.toolbar = self.addToolBar('MainToolbar')
+        self.toolbar.setObjectName('main-toolbar')
+        self.toolbar.addAction(self.exitAction)        
+        self.toolbar.addAction(self.ipyConsoleAction)        
+        self.toolbar.addAction(self.ipyQtConsoleAction)        
+        
+    #--------------------------------------------------------------------------------    
+    def setup_main_scene(self):
         self.MainScene = QGraphicsScene(self)
         self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))
         self.NoVStreamPixmap = QPixmap(1280, 960)
         self.NoVStreamPixmap.fill(QColor(0x00,0x00,0x40,255))
         self.PixmapItem = self.init_pixmap_item(1280, 960, self.NoVStreamPixmap, 1)
         self.MainScene.addItem(self.PixmapItem)
-        
+
         self.MainView = TGraphicsView(self.MainScene, self)
         self.MainView.setFrameStyle(QFrame.NoFrame)
-
+        
+    #--------------------------------------------------------------------------------    
+    def create_log_window(self):
         self.Log = QDockWidget('Log', self, Qt.WindowCloseButtonHint)
         self.Log.setObjectName('Log Window')
         self.Log.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
         self.Log.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
         self.LogWidget = QPlainTextEdit(self)
         self.Log.setWidget(self.LogWidget)
+        
+    #--------------------------------------------------------------------------------    
+    def initUI(self, context):
+
+        #----------------------------------------------------
+        #
+        #    Main Window
+        #
+        self.setup_actions()
+        self.setup_menu()
+        self.setup_toolbar()
+        self.setup_main_scene()
+        self.create_log_window()
 
         self.addDockWidget(Qt.BottomDockWidgetArea, self.Log)
         self.setCentralWidget(self.MainView)
         
         self.set_title()
         
-        Settings = QSettings('cam-lab', 'pysdcam')
-        if Settings.contains('main-window/geometry'):
-            self.restoreGeometry( Settings.value('main-window/geometry') )
-            self.restoreState( Settings.value('main-window/state') )
-        else:
-            self.setGeometry(100, 100, 1024, 768)
+        self.restore_settings()
         
         #--------------------------------------------------------------------------------    
 
