@@ -24,7 +24,6 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore    import QObject, pyqtSignal
 from PyQt5.QtCore    import QT_VERSION_STR, pyqtSignal
 
-
 from IPython.utils.frame import extract_module_locals
 from ipykernel.kernelapp import IPKernelApp
 
@@ -34,11 +33,6 @@ import ipycon
 from logger import logger as lg
 
 #-------------------------------------------------------------------------------
-
-#Logger = logger.Logger
-
-#-------------------------------------------------------------------------------
-
 def get_app_qt5(*args, **kwargs):
     """Create a new qt5 app or return an existing one."""
     app = QApplication.instance()
@@ -107,7 +101,7 @@ class TVFrameThread(threading.Thread):
         
     def finish(self):
         self._finish_event.set()
-        print('VFrame Thread pending to finish')
+        lg.info('VFrame Thread pending to finish')
         
     def run(self):
         while True:
@@ -119,15 +113,13 @@ class TVFrameThread(threading.Thread):
 class TSDCam:
 
     def __init__(self, app, args):
+        lg.info('start main window')
         self.mwin = gui.MainWindow(app, { 'sdcam' : self })
-        
-#       Logger.log_signal.connect(self.mwin.LogWidget.appendPlainText,
-#                                 Qt.QueuedConnection)
                 
+        lg.info('start video frame thread')
         self.vfthread = TVFrameThread()
         self.vfthread.start()
                 
-        lg.error('slon')
         if args.console:
             ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
                 
@@ -136,9 +128,10 @@ class TSDCam:
                                                  Qt.QueuedConnection)
         
     def finish(self):
-        print('self::finish')
+        lg.info('sdcam finishing...')
         self.vfthread.finish()
         self.vfthread.join()
+        lg.info('sdcam has finished')
 
     def generate_frame(self):
         self.frame
@@ -147,6 +140,7 @@ class TSDCam:
 #-------------------------------------------------------------------------------
 def main():
     print('Qt Version: ' + QT_VERSION_STR)
+    QApplication.setDesktopSettingsAware(False)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--console', 
@@ -155,11 +149,7 @@ def main():
                         help='launch jupyter console on program start')
     
     args = parser.parse_args()
-#   print(args)
-#   sys.exit(0)
-    
-    #app  = QApplication(sys.argv)
-    app = get_app_qt5(sys.argv)
+    app  = get_app_qt5(sys.argv)
 
     with open( os.path.join(resources_path, 'sdcam.qss'), 'rb') as fqss:
         qss = fqss.read().decode()

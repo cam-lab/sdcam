@@ -159,3 +159,12 @@ QListView::item:alternate {
 QTextBrowser {
     font-size: 14px;
 }
+QMainMenu::item {
+    font-size: 12pt;
+}
+QMenu {
+    font-size: 12pt;
+}
+QMenu::item {
+    font-size: 12pt;
+}

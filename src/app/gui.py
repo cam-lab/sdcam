@@ -16,10 +16,6 @@ from PyQt5.QtGui  import QIcon, QBrush, QImage, QPixmap, QColor, QKeyEvent, QFon
 from PyQt5.QtCore import QSettings, pyqtSignal, QObject, QEvent
 from PyQt5.QtCore import QT_VERSION_STR
 
-# Import the console machinery from ipython
-from qtconsole.rich_ipython_widget import RichJupyterWidget
-from qtconsole.inprocess import QtInProcessKernelManager
-
 from internal_ipkernel import InternalIPKernel
 
 import ipycon
@@ -32,38 +28,6 @@ VERSION      = '0.1.0'
 
 fqueue = queue.Queue()
 
-#-------------------------------------------------------------------------------
-class TIPythonWidget(RichJupyterWidget):
-    """ Convenience class for a live IPython console widget. 
-        We can replace the standard banner using the customBanner argument"""
-    def __init__(self,customBanner=None,*args,**kwargs):
-        super(TIPythonWidget, self).__init__(*args,**kwargs)
-        if customBanner!=None: self.banner=customBanner
-        self.kernel_manager = kernel_manager = QtInProcessKernelManager()
-        kernel_manager.start_kernel()
-        kernel_manager.kernel.gui = 'qt'
-        self.kernel_client = kernel_client = self._kernel_manager.client()
-        kernel_client.start_channels()
-
-        def stop():
-            kernel_client.stop_channels()
-            kernel_manager.shutdown_kernel()
-            get_app_qt5().exit()            
-        self.exit_requested.connect(stop)
-
-    def pushVariables(self,variableDict):
-        """ Given a dictionary containing name:value pairs, 
-            push those variables to the IPython console widget """
-        self.kernel_manager.kernel.shell.push(variableDict)
-    def clearTerminal(self):
-        """ Clears the terminal """
-        self._control.clear()    
-    def printText(self,text):
-        """ Prints some plain text to the console """
-        self._append_plain_text(text)        
-    def executeCommand(self,command):
-        """ Execute a command in the frame of the console widget """
-        self._execute(command,False)
 #-------------------------------------------------------------------------------
 class TGraphicsView(QGraphicsView):
     
@@ -193,16 +157,6 @@ class MainWindow(QMainWindow, InternalIPKernel):
         toolbar.addAction(ipyConsoleAction)        
         toolbar.addAction(ipyQtConsoleAction)        
         
-        
-        #self.ipy = QDockWidget('IPy', self, Qt.WindowCloseButtonHint)
-        #self.ipy.setObjectName('IPython QtConsole')
-        #self.ipy.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
-        #self.ipy.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
-        
-        #ipy = TIPythonWidget(customBanner='Embedded IPython console')
-        #ipy.pushVariables({'sdcam':context})
-        #self.ipy.setWidget(ipy)
-        
         self.MainScene = QGraphicsScene(self)
         self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))
         self.NoVStreamPixmap = QPixmap(1280, 960)
@@ -213,8 +167,6 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.MainView = TGraphicsView(self.MainScene, self)
         self.MainView.setFrameStyle(QFrame.NoFrame)
 
-    #    self.addDockWidget(Qt.RightDockWidgetArea, self.ipy)
-    
         self.Log = QDockWidget('Log', self, Qt.WindowCloseButtonHint)
         self.Log.setObjectName('Log Window')
         self.Log.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)

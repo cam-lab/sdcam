@@ -23,7 +23,7 @@ Logger = TLogger()
 
 logging.basicConfig(filename='sdcam.log', 
                     filemode='w',
-                    level=logging.DEBUG, 
+                    level=logging.INFO, 
                     format='%(asctime)s %(module)-6s %(levelname)-7s : %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 
