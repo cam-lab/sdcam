@@ -20,6 +20,8 @@ from internal_ipkernel import InternalIPKernel
 
 import ipycon
 
+from logger import logger as lg
+
 run_path, filename = os.path.split(  os.path.abspath(__file__) )
 ico_path = os.path.join( run_path, 'ico' )
 
@@ -172,14 +174,15 @@ class MainWindow(QMainWindow, InternalIPKernel):
 
         self.MainView = TGraphicsView(self.MainScene, self)
         self.MainView.setFrameStyle(QFrame.NoFrame)
-        
+    
     #--------------------------------------------------------------------------------    
     def create_log_window(self):
         self.Log = QDockWidget('Log', self, Qt.WindowCloseButtonHint)
         self.Log.setObjectName('Log Window')
         self.Log.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
         self.Log.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
-        self.LogWidget = QPlainTextEdit(self)
+        #self.LogWidget = QPlainTextEdit(self)
+        self.LogWidget = TTextEdit(self)
         self.Log.setWidget(self.LogWidget)
         
     #--------------------------------------------------------------------------------    
@@ -199,12 +202,19 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.setCentralWidget(self.MainView)
         
         self.set_title()
-        
         self.restore_settings()
         
         #--------------------------------------------------------------------------------    
-
         self.show()
         
 #-------------------------------------------------------------------------------
-
+class TTextEdit(QPlainTextEdit):
+    def __init__(self, parent):
+        super().__init__(parent)
+        
+    def append_text_slot(self, s):
+        with open(s, 'rb') as f:
+            text = f.read().decode()
+            
+        self.clear()
+        self.appendPlainText(text)

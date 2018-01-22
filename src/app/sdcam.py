@@ -21,7 +21,7 @@ sys.path.append('bin/release')
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore    import QObject, pyqtSignal
+from PyQt5.QtCore    import QObject, pyqtSignal, QFileSystemWatcher
 from PyQt5.QtCore    import QT_VERSION_STR, pyqtSignal
 
 from IPython.utils.frame import extract_module_locals
@@ -31,6 +31,7 @@ import vframe
 import gui
 import ipycon
 from logger import logger as lg
+from logger import LOG_FILE
 
 #-------------------------------------------------------------------------------
 def get_app_qt5(*args, **kwargs):
@@ -110,9 +111,12 @@ class TVFrameThread(threading.Thread):
                 return
             
 #-------------------------------------------------------------------------------
-class TSDCam:
+class TSDCam(QObject):
 
     def __init__(self, app, args):
+        
+        super().__init__()
+        
         lg.info('start main window')
         self.mwin = gui.MainWindow(app, { 'sdcam' : self })
                 
@@ -123,9 +127,15 @@ class TSDCam:
         if args.console:
             ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
                 
+        self.log_watcher =  QFileSystemWatcher(self)
+        self.log_watcher.addPath(os.path.abspath(LOG_FILE))
+            
         self.mwin.close_signal.connect(self.finish)
         self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
                                                  Qt.QueuedConnection)
+        
+        self.log_watcher.fileChanged.connect(self.mwin.LogWidget.append_text_slot,
+                                             Qt.QueuedConnection)
         
     def finish(self):
         lg.info('sdcam finishing...')

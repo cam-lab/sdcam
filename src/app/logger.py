@@ -1,5 +1,6 @@
 
 
+import os
 import logging
 
 from PyQt5.QtCore    import QObject, pyqtSignal
@@ -16,14 +17,14 @@ class TLogger(QObject):
 
 #-------------------------------------------------------------------------------
 
-Logger = TLogger()
+#Logger = TLogger()
+
+LOG_FILE = 'sdcam.log'
 
 #-------------------------------------------------------------------------------
-
-
-logging.basicConfig(filename='sdcam.log', 
+logging.basicConfig(filename=LOG_FILE,
                     filemode='w',
-                    level=logging.INFO, 
+                    level=logging.DEBUG, 
                     format='%(asctime)s %(module)-6s %(levelname)-7s : %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 
