@@ -16,11 +16,12 @@ QGroupBox::title {
 QTableWidget {
     font-size: 14pt;
     font-family: Terminus Re33;
-    alternate-background-color: #B6DEEA;
-    background-color: #F0EFF4;
+    alternate-background-color: #262624;
+    background-color: #17140C;
+
 }
 QTableWidget::item {
-    border: 0px;
+    #border : 1px solid gray;
     padding: 0px;
 }
 QLineEdit{

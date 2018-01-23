@@ -117,9 +117,16 @@ class TSDCam(QObject):
         
         super().__init__()
         
+        self.log_watcher =  QFileSystemWatcher(self)
+        self.log_watcher.addPath(os.path.abspath(LOG_FILE))
+
         lg.info('start main window')
         self.mwin = gui.MainWindow(app, { 'sdcam' : self })
                 
+        self.log_watcher.fileChanged.connect(self.mwin.LogWidget.update_slot,
+                                             Qt.QueuedConnection)
+        
+                        
         lg.info('start video frame thread')
         self.vfthread = TVFrameThread()
         self.vfthread.start()
@@ -127,15 +134,11 @@ class TSDCam(QObject):
         if args.console:
             ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
                 
-        self.log_watcher =  QFileSystemWatcher(self)
-        self.log_watcher.addPath(os.path.abspath(LOG_FILE))
             
         self.mwin.close_signal.connect(self.finish)
         self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
                                                  Qt.QueuedConnection)
         
-        self.log_watcher.fileChanged.connect(self.mwin.LogWidget.update_slot,
-                                             Qt.QueuedConnection)
         
     def finish(self):
         lg.info('sdcam finishing...')

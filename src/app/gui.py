@@ -228,6 +228,12 @@ class TLogWidget(QTableWidget):
         self.setTabKeyNavigation(False)   
         self.setAlternatingRowColors(True) 
         self.setHorizontalHeaderLabels( ['Timestamp', 'Module', 'Status', 'Message'] )
+        
+        self.StatusDictColor = { 'INFO'    : '#00FF00',
+                                 'DEBUG'   : '#00FFFF',
+                                 'WARNING' : '#FFFF00',
+                                 'ERROR'   : '#FF0000'
+                                }
 
     def update_slot(self, s):
         with open(s, 'rb') as f:
@@ -241,10 +247,26 @@ class TLogWidget(QTableWidget):
             tstamp = logitem[0]
             p = '(\\w+)\\s+(\\w+)\\s+\\:\\s((?:.|\n)+)'
             module, status, message = re.search(p, logitem[1]).groups()
-            self.setItem(idx, 0, QTableWidgetItem(tstamp))
-            self.setItem(idx, 1, QTableWidgetItem(module))
-            self.setItem(idx, 2, QTableWidgetItem(status))
-            self.setItem(idx, 3, QTableWidgetItem(message.strip(os.linesep)))
+            
+            tstamp_item  = QTableWidgetItem(tstamp)
+            module_item  = QTableWidgetItem(module)
+            status_item  = QTableWidgetItem(status)
+            message_item = QTableWidgetItem(message.strip(os.linesep))
+
+            tstamp_item.setForeground(QColor('#F0F0F0'))
+            module_item.setForeground(QColor('#E3B449'))
+            status_item.setForeground(QColor(self.StatusDictColor[status]))
+            message_item.setForeground(QColor('#D0D0D0'))
+            
+            tstamp_item.setTextAlignment(Qt.AlignTop)
+            module_item.setTextAlignment(Qt.AlignTop)
+            status_item.setTextAlignment(Qt.AlignTop)
+            message_item.setTextAlignment(Qt.AlignTop)
+            
+            self.setItem(idx, 0, tstamp_item )
+            self.setItem(idx, 1, module_item )
+            self.setItem(idx, 2, status_item )
+            self.setItem(idx, 3, message_item)
             
         self.scrollToBottom()
             
