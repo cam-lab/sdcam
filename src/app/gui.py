@@ -3,16 +3,20 @@
 import sys
 import os
 import queue
+import re
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
                              QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, QFrame,
                              QGraphicsPixmapItem, QGraphicsItem, QDockWidget,
-                             QAction, QPlainTextEdit)
+                             QAction)
+
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView
+
 
 
 from PyQt5.Qt     import QShortcut, QKeySequence
-from PyQt5.QtGui  import QIcon, QBrush, QImage, QPixmap, QColor, QKeyEvent, QFont, QResizeEvent, QTransform
+from PyQt5.QtGui  import QIcon, QBrush, QImage, QPixmap, QColor, QKeyEvent, QFont, QResizeEvent, QTransform, QStandardItemModel
 from PyQt5.QtCore import QSettings, pyqtSignal, QObject, QEvent
 from PyQt5.QtCore import QT_VERSION_STR
 
@@ -181,8 +185,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.Log.setObjectName('Log Window')
         self.Log.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
         self.Log.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
-        #self.LogWidget = QPlainTextEdit(self)
-        self.LogWidget = TTextEdit(self)
+        self.LogWidget = TLogWidget(self)
         self.Log.setWidget(self.LogWidget)
         
     #--------------------------------------------------------------------------------    
@@ -207,14 +210,44 @@ class MainWindow(QMainWindow, InternalIPKernel):
         #--------------------------------------------------------------------------------    
         self.show()
         
-#-------------------------------------------------------------------------------
-class TTextEdit(QPlainTextEdit):
-    def __init__(self, parent):
-        super().__init__(parent)
+        self.LogWidget.update_slot('sdcam.1.log')
         
-    def append_text_slot(self, s):
+#-------------------------------------------------------------------------------
+class TLogWidget(QTableWidget):
+    def __init__(self, parent):
+        super().__init__(0, 4, parent)
+        
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
+        self.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.horizontalHeader().resizeSection(0, 200)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.verticalHeader().setDefaultSectionSize(20)
+        self.setTabKeyNavigation(False)   
+        self.setAlternatingRowColors(True)  
+        
+    def update_slot(self, s):
+        self.clear()
         with open(s, 'rb') as f:
             text = f.read().decode()
             
-        self.clear()
-        self.appendPlainText(text)
+        l = re.split('(\d\d\d\d-\d\d-\d\d\s\d\d\:\d\d\:\d\d)\s+', text)[1:]
+        loglist = list(zip(l[::2], l[1::2]))
+        self.setRowCount(len(loglist))
+        
+        for idx, logitem in enumerate(loglist):
+            tstamp = logitem[0]
+            p = '(\\w+)\\s+(\\w+)\\s+\\:\\s((?:.|\n)+)'
+            module, status, message = re.search(p, logitem[1]).groups()
+            self.setItem(idx, 0, QTableWidgetItem(tstamp))
+            self.setItem(idx, 1, QTableWidgetItem(module))
+            self.setItem(idx, 2, QTableWidgetItem(status))
+            self.setItem(idx, 3, QTableWidgetItem(message.strip(os.linesep)))
+            
+        self.scrollToBottom()
+        self.setHorizontalHeaderLabels( ['Timestamp', 'Module', 'Status', 'Message'] )
+            
+#-------------------------------------------------------------------------------
+        

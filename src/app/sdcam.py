@@ -134,7 +134,7 @@ class TSDCam(QObject):
         self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
                                                  Qt.QueuedConnection)
         
-        self.log_watcher.fileChanged.connect(self.mwin.LogWidget.append_text_slot,
+        self.log_watcher.fileChanged.connect(self.mwin.LogWidget.update_slot,
                                              Qt.QueuedConnection)
         
     def finish(self):

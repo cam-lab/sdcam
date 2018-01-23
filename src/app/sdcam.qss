@@ -13,19 +13,15 @@ QGroupBox::title {
    padding: 0px;
    left: 20px;
 }
-QTableWidget::item:selected {
-    color: white;
-    background-color: green;
-    border: 1px solid #567dbc;
+QTableWidget {
+    font-size: 14pt;
+    font-family: Terminus Re33;
+    alternate-background-color: #B6DEEA;
+    background-color: #F0EFF4;
 }
-QTableWidget::item:selected:active{
-    color: white;
-    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6ea1f1, stop: 1 #567dbc);
-    background: navy;
-}
-QTableWidget::item:selected:!active {
-    color: black;
-    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #BECFD5, stop: 1 #D8ECF3);
+QTableWidget::item {
+    border: 0px;
+    padding: 0px;
 }
 QLineEdit{
     /*color: white;*/
