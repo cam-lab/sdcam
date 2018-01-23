@@ -226,10 +226,10 @@ class TLogWidget(QTableWidget):
         self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.verticalHeader().setDefaultSectionSize(20)
         self.setTabKeyNavigation(False)   
-        self.setAlternatingRowColors(True)  
-        
+        self.setAlternatingRowColors(True) 
+        self.setHorizontalHeaderLabels( ['Timestamp', 'Module', 'Status', 'Message'] )
+
     def update_slot(self, s):
-        self.clear()
         with open(s, 'rb') as f:
             text = f.read().decode()
             
@@ -247,7 +247,6 @@ class TLogWidget(QTableWidget):
             self.setItem(idx, 3, QTableWidgetItem(message.strip(os.linesep)))
             
         self.scrollToBottom()
-        self.setHorizontalHeaderLabels( ['Timestamp', 'Module', 'Status', 'Message'] )
             
 #-------------------------------------------------------------------------------
         
