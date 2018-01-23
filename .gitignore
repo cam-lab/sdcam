@@ -8,3 +8,5 @@ bin
 build
 lib
 .sconsign.dblite
+*.log
+
