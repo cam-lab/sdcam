@@ -210,8 +210,6 @@ class MainWindow(QMainWindow, InternalIPKernel):
         #--------------------------------------------------------------------------------    
         self.show()
         
-        self.LogWidget.update_slot('sdcam.1.log')
-        
 #-------------------------------------------------------------------------------
 class TLogWidget(QTableWidget):
     def __init__(self, parent):
