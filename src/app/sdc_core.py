@@ -47,19 +47,22 @@ class TVFrame(QObject):
         return self._pmap
 
     def read(self):
-        vframe.qpipe_get_frame(self._f, self._p)
-        self._pmap = np.right_shift( self._f.pixbuf, 4 ).astype(dtype=np.uint8)
-        self._pmap = self._pmap*self._k
-        return self._pmap
+        return vframe.qpipe_get_frame(self._f, self._p)
 
-
-    def display(self):
-        pmap = self.read()
-        #pmap = self.generate()
+    def display(self, pmap):
         if gui.fqueue.qsize() < 10:
-            gui.fqueue.put(pmap)
+            gui.fqueue.put(pmap.astype(np.uint8))
             self.frame_signal.emit(0)
+        else:
+            lg.warning('video frame queue exceeds limit, seems GUI does not read from the queue')
 
+        
+    def processing(self):
+        vframe.qpipe_get_frame(self._f, self._p)
+        self._pmap = np.right_shift( self._f.pixbuf, 4 )
+        self._pmap = self._pmap*self._k
+        self.display(self._pmap)
+            
 #-------------------------------------------------------------------------------
 class TVFrameThread(threading.Thread):
 
@@ -74,7 +77,7 @@ class TVFrameThread(threading.Thread):
 
     def run(self):
         while True:
-            self.frame.display()
+            self.frame.processing()
             if self._finish_event.is_set():
                 return
 

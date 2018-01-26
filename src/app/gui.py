@@ -112,8 +112,10 @@ class MainWindow(QMainWindow, InternalIPKernel):
         
     #--------------------------------------------------------------------------------    
     def show_frame_slot(self, frame):
-        pmap= fqueue.get()
-        img_data = pmap 
+        if fqueue.empty():
+            return 
+
+        img_data = fqueue.get()
         img = QImage(img_data, 
                      img_data.shape[1], 
                      img_data.shape[0], 
