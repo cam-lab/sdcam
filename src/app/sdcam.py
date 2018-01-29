@@ -32,6 +32,7 @@ import gui
 import ipycon
 from logger import logger as lg
 from logger import LOG_FILE
+from logger import setup_logger
 
 #-------------------------------------------------------------------------------
 def get_app_qt5(*args, **kwargs):
@@ -94,17 +95,22 @@ def main():
                         nargs='?',
                         help='launch jupyter console on program start')
     
-    args = parser.parse_args()
-    app  = get_app_qt5(sys.argv)
+    parser.add_argument('-l', '--log-level', 
+                        default='info',
+                        help='specify log level: debug, info, warning, error, defult: info')
 
+    args = parser.parse_args()
+    setup_logger(args.log_level)
+
+    app  = get_app_qt5(sys.argv)
+    
     with open( os.path.join(resources_path, 'sdcam.qss'), 'rb') as fqss:
         qss = fqss.read().decode()
-        qss = re.sub(os.linesep, '', qss )
+        qss = re.sub(os.linesep, ' ', qss )
     app.setStyleSheet(qss)
 
     sdcam = TSDCam(app, args)
 
-    #sys.exit( app.exec_() )
     sdcam.mwin.ipkernel.start()
 
 #-------------------------------------------------------------------------------
