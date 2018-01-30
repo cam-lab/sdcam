@@ -131,7 +131,7 @@ class TVFrameThread(threading.Thread):
 
     def run(self):
         while True:
-            self.frame.processing()
+            self.core.processing()
             if self._finish_event.is_set():
                 return
 

@@ -73,8 +73,8 @@ class TSDCam(QObject):
             ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
             
         self.mwin.close_signal.connect(self.finish)
-        self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
-                                                 Qt.QueuedConnection)
+        self.vfthread.core.frame_signal.connect(self.mwin.show_frame_slot,
+                                                Qt.QueuedConnection)
         
     def finish(self):
         lg.info('sdcam finishing...')
