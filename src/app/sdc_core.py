@@ -12,17 +12,35 @@ import gui
 
 from udp import command_queue
 
-WRITE_MMR = 0x0001
-READ_MMR  = 0x0002
-DELAY     = 0x0003
-
 #-------------------------------------------------------------------------------
-class TVFrame(QObject):
+class TSDC_Core(QObject):
 
     frame_signal = pyqtSignal( int )
     
     def __init__(self):
         super().__init__()
+        self.WRITE_MMR = 0x0001
+        self.READ_MMR  = 0x0002
+        self.DELAY     = 0x0003
+        
+        self.SPI_DR    = 0x30
+        self.SPI_CSR   = 0x31
+        
+        self.RD        = 0xA000
+        self.WR        = 0xB000
+        
+        self.CR        = 0x0
+        self.CR_S      = 0x01
+        self.CR_C      = 0x02
+        self.IEXP      = 0x04
+        self.FEXP      = 0x06
+        self.PGA       = 0x08
+        self.NPULSES   = 0x0A
+        self.PINCH     = 0x0C
+        self.DEPTH     = 0x0E
+        self.TRIM      = 0x10
+        self.PWIDTH    = 0x12
+        
         self._pixmap = self.init_frame()
         self._roll_line = 1000
         self._k = 1
@@ -73,14 +91,31 @@ class TVFrame(QObject):
         command_queue.put(item)
         
     def rmmr(self, addr):
-        data = np.array( [0x55aa, READ_MMR, addr, 0], dtype=np.uint16 )
+        data = np.array( [0x55aa, self.READ_MMR, addr, 0], dtype=np.uint16 )
         data[3] = np.bitwise_xor.reduce(data)
         self.send_udp(data)
     
     def wmmr(self, addr, data):
-        data = np.array( [0x55aa, WRITE_MMR, addr, data, 0], dtype=np.uint16 )
+        data = np.array( [0x55aa, self.WRITE_MMR, addr, data, 0], dtype=np.uint16 )
         data[4] = np.bitwise_xor.reduce(data)
         self.send_udp(data)
+        
+    def wcam(self, addr, data):
+        cmd = self.WR | addr
+        
+        self.wmmr(self.SPI_CSR,  0x1); # nCS -> 0
+        self.wmmr(self.SPI_DR,   cmd); # send cmd to camera
+        self.wmmr(self.SPI_DR,  data); # send value to write
+        self.wmmr(self.SPI_CSR,  0x0); # nCS -> 1
+        
+    def rcam(self, addr):
+        cmd = self.RD | addr;
+    
+        self.wmmr(self.SPI_CSR,  0x1); # nCS -> 0
+        self.wmmr(self.SPI_DR,   cmd); # send cmd to camera
+        self.wmmr(self.SPI_DR,     0); # transaction to take data from camera
+        self.wmmr(self.SPI_CSR,  0x0); # nCS -> 1
+        self.rmmr(self.SPI_DR);
          
 #-------------------------------------------------------------------------------
 class TVFrameThread(threading.Thread):
@@ -88,7 +123,7 @@ class TVFrameThread(threading.Thread):
     def __init__(self, name='VFrame Thread' ):
         super().__init__()
         self._finish_event = threading.Event()
-        self.frame = TVFrame()
+        self.core = TSDC_Core()
 
     def finish(self):
         self._finish_event.set()

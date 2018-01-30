@@ -229,8 +229,7 @@ class TLogWidget(QTableWidget):
         self.StatusDictColor = { 'INFO'    : '#00FF00',
                                  'DEBUG'   : '#00FFFF',
                                  'WARNING' : '#FFFF00',
-                                 'ERROR'   : '#FF0000'
-                                }
+                                 'ERROR'   : '#FF0000' }
 
     def update_slot(self, s):
         with open(s, 'rb') as f:
