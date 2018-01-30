@@ -7,18 +7,15 @@ import re
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
-                             QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, QFrame,
-                             QGraphicsPixmapItem, QGraphicsItem, QDockWidget,
-                             QAction)
+                             QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, 
+                             QFrame, QGraphicsPixmapItem, QGraphicsItem, 
+                             QDockWidget, QAction)
 
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView
-
-
-
-from PyQt5.Qt     import QShortcut, QKeySequence
-from PyQt5.QtGui  import QIcon, QBrush, QImage, QPixmap, QColor, QKeyEvent, QFont, QResizeEvent, QTransform, QStandardItemModel
-from PyQt5.QtCore import QSettings, pyqtSignal, QObject, QEvent
-from PyQt5.QtCore import QT_VERSION_STR
+from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
+                             QHeaderView)
+from PyQt5.QtGui     import QIcon, QImage, QPixmap, QColor, QTransform
+from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent
+from PyQt5.QtCore    import QT_VERSION_STR
 
 from internal_ipkernel import InternalIPKernel
 

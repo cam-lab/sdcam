@@ -86,6 +86,7 @@
             <F N="src/app/sdcam.qss"/>
             <F N="src/vframe/streamlink.cpp"/>
             <F N="src/app/test.py"/>
+            <F N="src/app/udp.py"/>
             <F N="src/vframe/vframe.cpp"/>
             <F N="src/vframe/vframe.h"/>
         </Folder>
