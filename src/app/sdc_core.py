@@ -17,6 +17,7 @@ class TSDC_Core(QObject):
 
     frame_signal = pyqtSignal( int )
     
+    #-------------------------------------------------------
     def __init__(self):
         super().__init__()
         self.WRITE_MMR = 0x0001
@@ -56,9 +57,11 @@ class TSDC_Core(QObject):
         lg.info(os.linesep +  str(self._p))
 
 
+    #-------------------------------------------------------
     def init_frame(self):
         return np.tile(np.arange(4095, step=32, dtype=np.uint16), [960, 10])
 
+    #-------------------------------------------------------
     def generate(self):
         time.sleep(0.04)
         self._pmap = np.right_shift( self._pixmap, 4 ).astype(dtype=np.uint8)
@@ -70,9 +73,11 @@ class TSDC_Core(QObject):
 
         return self._pmap
 
+    #-------------------------------------------------------
     def read(self):
         return vframe.qpipe_get_frame(self._f, self._p)
 
+    #-------------------------------------------------------
     def display(self, pmap):
         if gui.fqueue.qsize() < 10:
             gui.fqueue.put(pmap.astype(np.uint8))
@@ -80,26 +85,31 @@ class TSDC_Core(QObject):
         else:
             lg.warning('video frame queue exceeds limit, seems GUI does not read from the queue')
 
+    #-------------------------------------------------------
     def processing(self):
         vframe.qpipe_get_frame(self._f, self._p)
         self._pmap = np.right_shift( self._f.pixbuf, 4 )
         self._pmap = self._pmap*self._k
         self.display(self._pmap)
            
+    #-------------------------------------------------------
     def send_udp(self, data):
         item = [data, self]
         command_queue.put(item)
         
+    #-------------------------------------------------------
     def rmmr(self, addr):
         data = np.array( [0x55aa, self.READ_MMR, addr, 0], dtype=np.uint16 )
         data[3] = np.bitwise_xor.reduce(data)
         self.send_udp(data)
-    
+        
+    #-------------------------------------------------------
     def wmmr(self, addr, data):
         data = np.array( [0x55aa, self.WRITE_MMR, addr, data, 0], dtype=np.uint16 )
         data[4] = np.bitwise_xor.reduce(data)
         self.send_udp(data)
         
+    #-------------------------------------------------------
     def wcam(self, addr, data):
         cmd = self.WR | addr
         
@@ -108,6 +118,7 @@ class TSDC_Core(QObject):
         self.wmmr(self.SPI_DR,  data); # send value to write
         self.wmmr(self.SPI_CSR,  0x0); # nCS -> 1
         
+    #-------------------------------------------------------
     def rcam(self, addr):
         cmd = self.RD | addr;
     
@@ -120,15 +131,18 @@ class TSDC_Core(QObject):
 #-------------------------------------------------------------------------------
 class TVFrameThread(threading.Thread):
 
+    #-------------------------------------------------------
     def __init__(self, name='VFrame Thread' ):
         super().__init__()
         self._finish_event = threading.Event()
         self.core = TSDC_Core()
 
+    #-------------------------------------------------------
     def finish(self):
         self._finish_event.set()
         lg.info('VFrame Thread pending to finish')
 
+    #-------------------------------------------------------
     def run(self):
         while True:
             self.core.processing()
