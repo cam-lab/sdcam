@@ -3,11 +3,11 @@
 import threading
 from   socket import *
 import queue
+
 import numpy as np
+from   PyQt5.QtCore import QObject, pyqtSignal
 
-from PyQt5.QtCore import QObject, pyqtSignal
-
-from logger import logger as lg
+from   logger import logger as lg
 
 
 host_ip   = '192.168.10.1'
@@ -32,16 +32,17 @@ class TSocket(QObject):
         self.sock.sendto(data, (device_ip, udp_port))
         try:
             res = np.frombuffer( self.sock.recv(1472), dtype=np.uint16)
-            lg.info(vhex(res))
+            lg.debug(vhex(res))
+            return res
         except timeout:
-            lg.info('socket timeout')
+            lg.warning('socket timeout')
+            return None
 
 #-------------------------------------------------------------------------------
 class TSocketThread(threading.Thread):
 
     def __init__(self, name='Socket Thread' ):
         super().__init__()
-        self._sock = TSocket()
 
     def finish(self):
         lg.info('Socket Thread pending to finish')
@@ -52,7 +53,9 @@ class TSocketThread(threading.Thread):
         while True:
             item = command_queue.get()
             if item:
-                self._sock.processing(item[0])
+                fun  = item[0]
+                args = item[1]
+                fun(*args)
             else:
                 return
             

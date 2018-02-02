@@ -10,7 +10,8 @@ from logger import logger as lg
 import vframe
 import gui
 
-from udp import command_queue
+from udp import command_queue, TSocket
+ 
 
 #-------------------------------------------------------------------------------
 class TSDC_Core(QObject):
@@ -55,8 +56,14 @@ class TSDC_Core(QObject):
 
         vframe.qpipe_cfg(self._p)
         lg.info(os.linesep +  str(self._p))
+        
+        self._sock = TSocket()
 
-
+    #-------------------------------------------------------
+    def deinit(self):
+        self._sock.shutdown()
+        self._sock.close()
+    
     #-------------------------------------------------------
     def init_frame(self):
         return np.tile(np.arange(4095, step=32, dtype=np.uint16), [960, 10])
@@ -93,41 +100,69 @@ class TSDC_Core(QObject):
         self.display(self._pmap)
            
     #-------------------------------------------------------
+    def _sock_transaction(self, fun, args):
+        command_queue.put( [fun, args] )
+    #-------------------------------------------------------
     def send_udp(self, data):
-        item = [data, self]
-        command_queue.put(item)
+        return self._sock.processing(data)
         
     #-------------------------------------------------------
-    def rmmr(self, addr):
+    def _rmmr(self, *args):
+        addr = args[0]
         data = np.array( [0x55aa, self.READ_MMR, addr, 0], dtype=np.uint16 )
         data[3] = np.bitwise_xor.reduce(data)
-        self.send_udp(data)
+        res = self._sock.processing(data)
+        cs  = np.bitwise_xor.reduce(res)
+        if cs:
+            lg.error('incorrect udp responce')
+            
+        return res[3]
+        
+    def rmmr(self, addr):
+        self._sock_transaction(self._rmmr, [addr])
         
     #-------------------------------------------------------
-    def wmmr(self, addr, data):
+    def _wmmr(self, *args):
+        addr = args[0]
+        data = args[1]
         data = np.array( [0x55aa, self.WRITE_MMR, addr, data, 0], dtype=np.uint16 )
         data[4] = np.bitwise_xor.reduce(data)
-        self.send_udp(data)
+        res = self._sock.processing(data)
+        cs  = np.bitwise_xor.reduce(res)
+        if cs:
+            lg.error('incorrect udp responce')
+        
+    def wmmr(self, addr, data):
+        self._sock_transaction(self._wmmr, [addr, data])
         
     #-------------------------------------------------------
-    def wcam(self, addr, data):
+    def _wcam(self, *args):
+        addr = args[0]
+        data = args[1]
         cmd = self.WR | addr
         
-        self.wmmr(self.SPI_CSR,  0x1); # nCS -> 0
-        self.wmmr(self.SPI_DR,   cmd); # send cmd to camera
-        self.wmmr(self.SPI_DR,  data); # send value to write
-        self.wmmr(self.SPI_CSR,  0x0); # nCS -> 1
+        self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
+        self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
+        self._wmmr(self.SPI_DR,  data); # send value to write
+        self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
+        
+    def wcam(self, addr, data):
+        self._sock_transaction(self._wcam, [addr, data])
         
     #-------------------------------------------------------
-    def rcam(self, addr):
+    def _rcam(self, *args):
+        addr = args[0]
         cmd = self.RD | addr;
     
-        self.wmmr(self.SPI_CSR,  0x1); # nCS -> 0
-        self.wmmr(self.SPI_DR,   cmd); # send cmd to camera
-        self.wmmr(self.SPI_DR,     0); # transaction to take data from camera
-        self.wmmr(self.SPI_CSR,  0x0); # nCS -> 1
-        self.rmmr(self.SPI_DR);
+        self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
+        self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
+        self._wmmr(self.SPI_DR,     0); # transaction to take data from camera
+        self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
+        self._rmmr(self.SPI_DR);
          
+    def rcam(self, addr):
+        self._sock_transaction(self._rcam, [addr])
+                 
 #-------------------------------------------------------------------------------
 class TVFrameThread(threading.Thread):
 
@@ -147,6 +182,7 @@ class TVFrameThread(threading.Thread):
         while True:
             self.core.processing()
             if self._finish_event.is_set():
+                self.core.deinit()
                 return
 
 #-------------------------------------------------------------------------------
