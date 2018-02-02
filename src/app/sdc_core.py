@@ -81,6 +81,10 @@ class TSDC_Core(QObject):
         return self._pmap
 
     #-------------------------------------------------------
+    def init_cam(self):
+        self._wmmr( 0x41, 0x2)  # move video pipeline to bypass mode
+        
+    #-------------------------------------------------------
     def read(self):
         return vframe.qpipe_get_frame(self._f, self._p)
 
@@ -95,10 +99,16 @@ class TSDC_Core(QObject):
     #-------------------------------------------------------
     def processing(self):
         vframe.qpipe_get_frame(self._f, self._p)
-        self._pmap = np.right_shift( self._f.pixbuf, 4 )
+        pbuf = self._f.pixbuf
+        
+        self._pmap = np.right_shift( pbuf, 4 )
         self._pmap = self._pmap*self._k
         self.display(self._pmap)
            
+    #-----------------------------------------------------------------
+    #
+    #    MMR command API
+    #
     #-------------------------------------------------------
     def _sock_transaction(self, fun, args):
         command_queue.put( [fun, args] )
@@ -158,7 +168,7 @@ class TSDC_Core(QObject):
         self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
         self._wmmr(self.SPI_DR,     0); # transaction to take data from camera
         self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
-        self._rmmr(self.SPI_DR);
+        return self._rmmr(self.SPI_DR);
          
     def rcam(self, addr):
         self._sock_transaction(self._rcam, [addr])
@@ -179,6 +189,7 @@ class TVFrameThread(threading.Thread):
 
     #-------------------------------------------------------
     def run(self):
+        self.core.init_cam()
         while True:
             self.core.processing()
             if self._finish_event.is_set():
