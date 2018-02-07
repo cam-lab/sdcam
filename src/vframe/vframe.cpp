@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <iostream>
+#include <cmath>
 
 #include "timing.h"
 #include <unistd.h>
@@ -200,6 +201,43 @@ std::string vframe_repr(TVFrame & r)
     return out.str();
 }
 //------------------------------------------------------------------------------
+__attribute__((optimize("unroll-loops")))
+bp::tuple histogram(np::ndarray  &data, np::ndarray &hist, uint16_t threshold)
+{
+    int scale = log2((1 << 12ul)/hist.shape(0));
+    int count = data.shape(0)*data.shape(1);
+    uint16_t *pixbuf  = reinterpret_cast<uint16_t*>( data.get_data() );
+    uint32_t *histbuf = reinterpret_cast<uint32_t *>(hist.get_data());
+    
+    //#pragma omp parallel for
+    for(int i = 0; i < count; ++i)
+    {
+        int pix = pixbuf[i] >> scale;
+        histbuf[pix] += 1;
+    }
+
+    uint16_t min;
+    uint16_t max;
+    
+    for(int i = 0; i < hist.shape(0); ++i)
+    {
+        if(histbuf[i] >= threshold)
+        {
+            min = i;
+            break;
+        }
+    }
+    for(int i = hist.shape(0) - 1; i; --i)
+    {
+        if(histbuf[i] >= threshold)
+        {
+            max = i;
+            break;
+        }
+    }
+    return bp::make_tuple(min, max);
+}
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
@@ -273,6 +311,8 @@ BOOST_PYTHON_MODULE(vframe)
     def("qpipe_get_frame", qpipe_get_frame);
     
     def("pipe_rx_params",  pipe_rx_params);
+    
+    def("hist", hist);
 }
 //------------------------------------------------------------------------------
 

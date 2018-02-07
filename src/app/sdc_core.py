@@ -21,9 +21,13 @@ class TSDC_Core(QObject):
     #-------------------------------------------------------
     def __init__(self):
         super().__init__()
+        
+        #-----------------------------------------
+        #
+        #    MMR 
+        #
         self.WRITE_MMR = 0x0001
         self.READ_MMR  = 0x0002
-        self.DELAY     = 0x0003
         
         self.SPI_DR    = 0x30
         self.SPI_CSR   = 0x31
@@ -43,6 +47,10 @@ class TSDC_Core(QObject):
         self.TRIM      = 0x10
         self.PWIDTH    = 0x12
         
+        #-----------------------------------------
+        #
+        #    Video frame
+        #
         self._pixmap = self.init_frame()
         self._roll_line = 1000
         self._k = 1
@@ -57,6 +65,10 @@ class TSDC_Core(QObject):
         vframe.qpipe_cfg(self._p)
         lg.info(os.linesep +  str(self._p))
         
+        #-----------------------------------------
+        #
+        #    UDP socket
+        #
         self._sock = TSocket()
 
     #-------------------------------------------------------
@@ -80,6 +92,10 @@ class TSDC_Core(QObject):
 
         return self._pmap
 
+    #-----------------------------------------------------------------
+    #
+    #    Video frame
+    #
     #-------------------------------------------------------
     def init_cam(self):
         self._wmmr( 0x41, 0x2)  # move video pipeline to bypass mode
@@ -118,11 +134,11 @@ class TSDC_Core(QObject):
         
     #-------------------------------------------------------
     def _rmmr(self, *args):
-        addr = args[0]
-        data = np.array( [0x55aa, self.READ_MMR, addr, 0], dtype=np.uint16 )
+        addr    = args[0]
+        data    = np.array( [0x55aa, self.READ_MMR, addr, 0], dtype=np.uint16 )
         data[3] = np.bitwise_xor.reduce(data)
-        res = self._sock.processing(data)
-        cs  = np.bitwise_xor.reduce(res)
+        res     = self._sock.processing(data)
+        cs      = np.bitwise_xor.reduce(res)
         if cs:
             lg.error('incorrect udp responce')
             
@@ -133,12 +149,12 @@ class TSDC_Core(QObject):
         
     #-------------------------------------------------------
     def _wmmr(self, *args):
-        addr = args[0]
-        data = args[1]
-        data = np.array( [0x55aa, self.WRITE_MMR, addr, data, 0], dtype=np.uint16 )
+        addr    = args[0]
+        data    = args[1]
+        data    = np.array( [0x55aa, self.WRITE_MMR, addr, data, 0], dtype=np.uint16 )
         data[4] = np.bitwise_xor.reduce(data)
-        res = self._sock.processing(data)
-        cs  = np.bitwise_xor.reduce(res)
+        res     = self._sock.processing(data)
+        cs      = np.bitwise_xor.reduce(res)
         if cs:
             lg.error('incorrect udp responce')
         
@@ -149,7 +165,7 @@ class TSDC_Core(QObject):
     def _wcam(self, *args):
         addr = args[0]
         data = args[1]
-        cmd = self.WR | addr
+        cmd  = self.WR | addr
         
         self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
         self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
@@ -162,7 +178,7 @@ class TSDC_Core(QObject):
     #-------------------------------------------------------
     def _rcam(self, *args):
         addr = args[0]
-        cmd = self.RD | addr;
+        cmd  = self.RD | addr;
     
         self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
         self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
