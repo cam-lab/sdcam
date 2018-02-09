@@ -61,9 +61,27 @@ class TSDC_Core(QObject):
         self._p = vframe.TPipeRxParams()
 
         self._p.key = 2307
-
+        
         vframe.qpipe_cfg(self._p)
         lg.info(os.linesep +  str(self._p))
+        
+        self._agc_ena = True
+        
+        self._kf = 0.1
+        self._kp = 1.0
+        self._ka = 0.2
+        
+        self._stim = 0
+        
+        self.IEXP_MIN = 0
+        self.IEXP_MAX = 978
+        self.FEXP_MIN = 3
+        self.FEXP_MAX = 1599
+        
+        self._iexp = self.IEXP_MIN
+        self._fexp = self.FEXP_MIN
+        
+        self._top_ref = 3800.0;
         
         #-----------------------------------------
         #
@@ -99,6 +117,9 @@ class TSDC_Core(QObject):
     #-------------------------------------------------------
     def init_cam(self):
         self._wmmr( 0x41, 0x2)  # move video pipeline to bypass mode
+        self._wcam( self.IEXP, self._iexp )
+        self._wcam( self.FEXP, self._fexp )
+        self._wcam( self.PGA, 2 )
         
     #-------------------------------------------------------
     def read(self):
@@ -116,6 +137,52 @@ class TSDC_Core(QObject):
     def processing(self):
         vframe.qpipe_get_frame(self._f, self._p)
         pbuf = self._f.pixbuf
+        self.histo = np.zeros( (1024), dtype=np.uint32)
+        org, top, scale = vframe.histogram(pbuf, self.histo, 30)
+
+        kp        = self._kp
+        ka        = self._ka
+        iexp      = self._iexp
+        fexp      = self._fexp
+        IEXP_MAX  = self.IEXP_MAX
+        IEXP_MIN  = self.IEXP_MIN
+        FEXP_MAX  = self.FEXP_MAX
+        FEXP_MIN  = self.FEXP_MIN
+        stim      = self._stim
+        f         = self._f
+        top_ref   = self._top_ref 
+        
+        
+        if top > 4000:
+            top_ref = 0
+        
+        if self._agc_ena:
+            s = kp*top_ref/top*(f.iexp + f.fexp/FEXP_MAX)
+            stim = stim + ka*(s - stim)
+            if stim < 0:
+                stim = 0
+                
+            iexp = int(stim)
+            fexp = int((stim - iexp)*FEXP_MAX)
+            
+            if iexp > IEXP_MAX:
+                iexp = IEXP_MAX
+                
+            if fexp < FEXP_MIN:
+                fexp = FEXP_MIN
+            
+            if fexp > FEXP_MAX:
+                fexp = FEXP_MAX
+                
+            self.wcam( self.IEXP, iexp )
+            self.wcam( self.FEXP, fexp )
+            
+            self._stim = stim
+            self._iexp = iexp
+            self._fexp = fexp
+            
+        #self.wcam( c.)
+        
         
         self._pmap = np.right_shift( pbuf, 4 )
         self._pmap = self._pmap*self._k

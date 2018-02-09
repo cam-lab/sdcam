@@ -202,24 +202,25 @@ std::string vframe_repr(TVFrame & r)
 }
 //------------------------------------------------------------------------------
 __attribute__((optimize("unroll-loops")))
-bp::tuple histogram(np::ndarray  &data, np::ndarray &hist, uint16_t threshold)
+bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
 {
-    int scale = log2((1 << 12ul)/hist.shape(0));
+    int scale = (1 << 12ul)/histo.shape(0); 
+    int shift = log2(scale);
     int count = data.shape(0)*data.shape(1);
-    uint16_t *pixbuf  = reinterpret_cast<uint16_t*>( data.get_data() );
-    uint32_t *histbuf = reinterpret_cast<uint32_t *>(hist.get_data());
+    uint16_t *pixbuf  = reinterpret_cast<uint16_t *>( data.get_data() );
+    uint32_t *histbuf = reinterpret_cast<uint32_t *>( histo.get_data() );
     
     //#pragma omp parallel for
     for(int i = 0; i < count; ++i)
     {
-        int pix = pixbuf[i] >> scale;
+        int pix = pixbuf[i] >> shift;
         histbuf[pix] += 1;
     }
 
-    uint16_t min;
-    uint16_t max;
+    uint16_t min = 0;
+    uint16_t max = 0;
     
-    for(int i = 0; i < hist.shape(0); ++i)
+    for(int i = 0; i < histo.shape(0); ++i) 
     {
         if(histbuf[i] >= threshold)
         {
@@ -227,7 +228,7 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &hist, uint16_t threshold)
             break;
         }
     }
-    for(int i = hist.shape(0) - 1; i; --i)
+    for(int i = histo.shape(0) - 1; i; --i) 
     {
         if(histbuf[i] >= threshold)
         {
@@ -235,7 +236,7 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &hist, uint16_t threshold)
             break;
         }
     }
-    return bp::make_tuple(min, max);
+    return bp::make_tuple(min*scale, max*scale, scale);
 }
 //------------------------------------------------------------------------------
 
@@ -256,6 +257,8 @@ BOOST_PYTHON_MODULE(vframe)
             .add_property("tstamp", &TVFrame::tstamp)
             .add_property("size_x", &TVFrame::size_x)
             .add_property("size_y", &TVFrame::size_y)
+            .add_property("iexp",   &TVFrame::det_iexp)
+            .add_property("fexp",   &TVFrame::det_fexp)
             .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
             .add_property("rawbuf", make_getter(&TVFrame::rawbuf))
             .def("rshift", &TVFrame::rshift)
@@ -312,7 +315,7 @@ BOOST_PYTHON_MODULE(vframe)
     
     def("pipe_rx_params",  pipe_rx_params);
     
-    def("hist", hist);
+    def("histogram", histogram);
 }
 //------------------------------------------------------------------------------
 
