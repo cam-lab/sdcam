@@ -38,6 +38,9 @@ class TSocket(QObject):
             lg.warning('socket timeout')
             return None
 
+    def close(self):
+        self.sock.close()
+        
 #-------------------------------------------------------------------------------
 class TSocketThread(threading.Thread):
 

@@ -91,13 +91,16 @@ class TSDC_Core(QObject):
 
     #-------------------------------------------------------
     def deinit(self):
-        self._sock.shutdown()
         self._sock.close()
     
     #-------------------------------------------------------
     def init_frame(self):
         return np.tile(np.arange(4095, step=32, dtype=np.uint16), [960, 10])
-
+    
+    #-------------------------------------------------------
+    def agc_slot(self, checked):
+        self._agc_ena = checked
+        
     #-------------------------------------------------------
     def generate(self):
         time.sleep(0.04)
@@ -181,9 +184,6 @@ class TSDC_Core(QObject):
             self._iexp = iexp
             self._fexp = fexp
             
-        #self.wcam( c.)
-        
-        
         self._pmap = np.right_shift( pbuf, 4 )
         self._pmap = self._pmap*self._k
         self.display(self._pmap)

@@ -66,7 +66,6 @@ class MainWindow(QMainWindow, InternalIPKernel):
 
         self.app = app
         self.init_ipkernel('qt', context)
-        #self.ipkernel.connection_file
 
         self.initUI(context)
 
@@ -150,12 +149,19 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.ipyQtConsoleAction.setStatusTip('Launch Jupyter QtConsole')
         self.ipyQtConsoleAction.triggered.connect(self.launch_jupyter_qtconsole_slot)
         
+        self.agcAction = QAction(QIcon( os.path.join(ico_path, 'agc-24.png') ), 'Automatic Gain Control', self)
+        self.agcAction.setShortcut('Alt+G')
+        self.agcAction.setStatusTip('Automatic Gain Control')
+        self.agcAction.setCheckable(True)
+        self.agcAction.setChecked(True)
+                
     #--------------------------------------------------------------------------------    
     def setup_menu(self):
         self.menubar = self.menuBar()
         self.controlMenu = self.menubar.addMenu('&Control')
         self.controlMenu.addAction(self.ipyConsoleAction)
         self.controlMenu.addAction(self.ipyQtConsoleAction)
+        self.controlMenu.addAction(self.agcAction)
         self.controlMenu.addAction(self.exitAction)
         
     #--------------------------------------------------------------------------------    
@@ -165,6 +171,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.toolbar.addAction(self.exitAction)        
         self.toolbar.addAction(self.ipyConsoleAction)        
         self.toolbar.addAction(self.ipyQtConsoleAction)        
+        self.toolbar.addAction(self.agcAction)        
         
     #--------------------------------------------------------------------------------    
     def setup_main_scene(self):
