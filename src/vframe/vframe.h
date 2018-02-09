@@ -25,6 +25,9 @@ const uint32_t RAWBUF_SIZE = FRAME_SIZE_X*FRAME_SIZE_Y*2 + 2*1024;
 
 const uint32_t HOST_METABUF_SIZE = 4 + 1024;
 
+const uint32_t VIDEO_DATA_WIDTH  = 12;
+const uint32_t VIDEO_DATA_MAX    = (1 << VIDEO_DATA_WIDTH) - 1;
+
 //------------------------------------------------------------------------------
 struct TVFrame
 {
@@ -41,12 +44,12 @@ struct TVFrame
     static const int DET_FEXP_OFFSET         = DET_IEXP_OFFSET + 1; 
     static const int DET_PGA_CODE_OFFSET     = DET_FEXP_OFFSET + 1; 
 
-    static const int NPULSES_OFFSET          = DET_PGA_CODE_OFFSET+ 1; 
-    static const int PINCH_OFFSET            = NPULSES_OFFSET     + 1; 
-    static const int DEPTH_OFFSET            = PINCH_OFFSET       + 1; 
-    static const int TRIM_OFFSET             = DEPTH_OFFSET       + 1; 
-
-    static const int PWIDTH_OFFSET           = TRIM_OFFSET        + 1; 
+    static const int NPULSES_OFFSET          = DET_PGA_CODE_OFFSET + 1; 
+    static const int PINCH_OFFSET            = NPULSES_OFFSET      + 1; 
+    static const int DEPTH_OFFSET            = PINCH_OFFSET        + 1; 
+    static const int TRIM_OFFSET             = DEPTH_OFFSET        + 1; 
+                                                                   
+    static const int PWIDTH_OFFSET           = TRIM_OFFSET         + 1; 
     
     TVFrame();
     

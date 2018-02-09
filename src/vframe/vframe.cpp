@@ -204,7 +204,7 @@ std::string vframe_repr(TVFrame & r)
 __attribute__((optimize("unroll-loops")))
 bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
 {
-    int scale = (1 << 12ul)/histo.shape(0); 
+    int scale = (1 << VIDEO_DATA_WIDTH)/histo.shape(0); 
     int shift = log2(scale);
     int count = data.shape(0)*data.shape(1);
     uint16_t *pixbuf  = reinterpret_cast<uint16_t *>( data.get_data() );
@@ -237,6 +237,32 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
         }
     }
     return bp::make_tuple(min*scale, max*scale, scale);
+}
+//------------------------------------------------------------------------------
+__attribute__((optimize("unroll-loops")))
+void scale(np::ndarray& pixbuf, int sub, double k)
+{
+    int count = pixbuf.shape(0)*pixbuf.shape(1);
+    uint16_t *buf  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
+    
+    //#pragma omp parallel for
+    for(int i = 0; i < count; ++i)
+    {
+        int val = buf[i];
+        if(val - sub < 0)
+        {
+            buf[i] = 0;
+        }
+        else
+        {
+            val -= sub;
+            uint32_t res = val*k;
+            if(res > VIDEO_DATA_MAX) 
+                buf[i] = VIDEO_DATA_MAX;
+            else 
+                buf[i] = res;
+        }
+    }
 }
 //------------------------------------------------------------------------------
 
@@ -316,6 +342,7 @@ BOOST_PYTHON_MODULE(vframe)
     def("pipe_rx_params",  pipe_rx_params);
     
     def("histogram", histogram);
+    def("scale",     scale);
 }
 //------------------------------------------------------------------------------
 
