@@ -7,18 +7,15 @@ import re
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
-                             QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, QFrame,
-                             QGraphicsPixmapItem, QGraphicsItem, QDockWidget,
-                             QAction)
+                             QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, 
+                             QFrame, QGraphicsPixmapItem, QGraphicsItem, 
+                             QDockWidget, QAction)
 
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView
-
-
-
-from PyQt5.Qt     import QShortcut, QKeySequence
-from PyQt5.QtGui  import QIcon, QBrush, QImage, QPixmap, QColor, QKeyEvent, QFont, QResizeEvent, QTransform, QStandardItemModel
-from PyQt5.QtCore import QSettings, pyqtSignal, QObject, QEvent
-from PyQt5.QtCore import QT_VERSION_STR
+from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
+                             QHeaderView)
+from PyQt5.QtGui     import QIcon, QImage, QPixmap, QColor, QTransform
+from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent
+from PyQt5.QtCore    import QT_VERSION_STR
 
 from internal_ipkernel import InternalIPKernel
 
@@ -69,7 +66,6 @@ class MainWindow(QMainWindow, InternalIPKernel):
 
         self.app = app
         self.init_ipkernel('qt', context)
-        #self.ipkernel.connection_file
 
         self.initUI(context)
 
@@ -112,8 +108,10 @@ class MainWindow(QMainWindow, InternalIPKernel):
         
     #--------------------------------------------------------------------------------    
     def show_frame_slot(self, frame):
-        pmap= fqueue.get()
-        img_data = pmap 
+        if fqueue.empty():
+            return 
+
+        img_data = fqueue.get()
         img = QImage(img_data, 
                      img_data.shape[1], 
                      img_data.shape[0], 
@@ -151,12 +149,19 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.ipyQtConsoleAction.setStatusTip('Launch Jupyter QtConsole')
         self.ipyQtConsoleAction.triggered.connect(self.launch_jupyter_qtconsole_slot)
         
+        self.agcAction = QAction(QIcon( os.path.join(ico_path, 'agc-24.png') ), 'Automatic Gain Control', self)
+        self.agcAction.setShortcut('Alt+G')
+        self.agcAction.setStatusTip('Automatic Gain Control')
+        self.agcAction.setCheckable(True)
+        self.agcAction.setChecked(True)
+                
     #--------------------------------------------------------------------------------    
     def setup_menu(self):
         self.menubar = self.menuBar()
         self.controlMenu = self.menubar.addMenu('&Control')
         self.controlMenu.addAction(self.ipyConsoleAction)
         self.controlMenu.addAction(self.ipyQtConsoleAction)
+        self.controlMenu.addAction(self.agcAction)
         self.controlMenu.addAction(self.exitAction)
         
     #--------------------------------------------------------------------------------    
@@ -166,6 +171,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.toolbar.addAction(self.exitAction)        
         self.toolbar.addAction(self.ipyConsoleAction)        
         self.toolbar.addAction(self.ipyQtConsoleAction)        
+        self.toolbar.addAction(self.agcAction)        
         
     #--------------------------------------------------------------------------------    
     def setup_main_scene(self):
@@ -210,8 +216,6 @@ class MainWindow(QMainWindow, InternalIPKernel):
         #--------------------------------------------------------------------------------    
         self.show()
         
-        self.LogWidget.update_slot('sdcam.1.log')
-        
 #-------------------------------------------------------------------------------
 class TLogWidget(QTableWidget):
     def __init__(self, parent):
@@ -232,8 +236,7 @@ class TLogWidget(QTableWidget):
         self.StatusDictColor = { 'INFO'    : '#00FF00',
                                  'DEBUG'   : '#00FFFF',
                                  'WARNING' : '#FFFF00',
-                                 'ERROR'   : '#FF0000'
-                                }
+                                 'ERROR'   : '#FF0000' }
 
     def update_slot(self, s):
         with open(s, 'rb') as f:

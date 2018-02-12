@@ -27,11 +27,13 @@ from PyQt5.QtCore    import QT_VERSION_STR, pyqtSignal
 from IPython.utils.frame import extract_module_locals
 from ipykernel.kernelapp import IPKernelApp
 
-import vframe
+from sdc_core import *
 import gui
 import ipycon
 from logger import logger as lg
 from logger import LOG_FILE
+from logger import setup_logger
+from udp    import TSocketThread, TSocket
 
 #-------------------------------------------------------------------------------
 def get_app_qt5(*args, **kwargs):
@@ -43,73 +45,6 @@ def get_app_qt5(*args, **kwargs):
         app = QApplication(*args, **kwargs)
     return app
 
-#-------------------------------------------------------------------------------
-class TVFrame(QObject):
-    
-    frame_signal = pyqtSignal( int )
-    
-    def __init__(self):
-        super().__init__()
-        self._pixmap = self.init_frame()
-        self._roll_line = 1000
-        self._k = 1
-        
-        vframe.init_numpy()
-    
-        self._f = vframe.TVFrame()
-        self._p = vframe.TPipeRxParams()
-
-        self._p.key = 2307
-
-        vframe.qpipe_cfg(self._p)
-        lg.info(os.linesep +  str(self._p))
-        
-            
-    def init_frame(self):
-        return np.tile(np.arange(4095, step=32, dtype=np.uint16), [960, 10])
-    
-    def generate(self):
-        time.sleep(0.04)
-        self._pmap = np.right_shift( self._pixmap, 4 ).astype(dtype=np.uint8)
-        self._pmap[:, self._roll_line] = 255
-        if self._roll_line < 1280-1:
-            self._roll_line += 1
-        else:
-            self._roll_line = 0
-        
-        return self._pmap
-    
-    def read(self):
-        vframe.qpipe_get_frame(self._f, self._p)
-        self._pmap = np.right_shift( self._f.pixbuf, 4 ).astype(dtype=np.uint8)
-        self._pmap = self._pmap*self._k
-        return self._pmap
-        
-    
-    def display(self):
-        pmap = self.read()
-        #pmap = self.generate()
-        gui.fqueue.put(pmap)
-        self.frame_signal.emit(0)
-    
-#-------------------------------------------------------------------------------
-class TVFrameThread(threading.Thread):
-    
-    def __init__(self, name='VFrame Thread' ):
-        super().__init__()
-        self._finish_event = threading.Event()
-        self.frame = TVFrame()
-        
-    def finish(self):
-        self._finish_event.set()
-        lg.info('VFrame Thread pending to finish')
-        
-    def run(self):
-        while True:
-            self.frame.display()
-            if self._finish_event.is_set():
-                return
-            
 #-------------------------------------------------------------------------------
 class TSDCam(QObject):
 
@@ -126,29 +61,34 @@ class TSDCam(QObject):
         self.log_watcher.fileChanged.connect(self.mwin.LogWidget.update_slot,
                                              Qt.QueuedConnection)
         
-                        
         lg.info('start video frame thread')
         self.vfthread = TVFrameThread()
         self.vfthread.start()
                 
+        lg.info('start udp socket thread')
+        self.usthread = TSocketThread()
+        self.usthread.start()
+        
         if args.console:
             ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
-                
             
         self.mwin.close_signal.connect(self.finish)
-        self.vfthread.frame.frame_signal.connect(self.mwin.show_frame_slot,
-                                                 Qt.QueuedConnection)
+        self.mwin.agcAction.triggered.connect(self.vfthread.core.agc_slot, 
+                                              Qt.QueuedConnection) 
+        self.vfthread.core.frame_signal.connect(self.mwin.show_frame_slot,
+                                                Qt.QueuedConnection)
         
         
     def finish(self):
         lg.info('sdcam finishing...')
+        self.usthread.finish()
+        self.usthread.join()
         self.vfthread.finish()
         self.vfthread.join()
         lg.info('sdcam has finished')
 
     def generate_frame(self):
         self.frame
-        
     
 #-------------------------------------------------------------------------------
 def main():
@@ -161,17 +101,22 @@ def main():
                         nargs='?',
                         help='launch jupyter console on program start')
     
-    args = parser.parse_args()
-    app  = get_app_qt5(sys.argv)
+    parser.add_argument('-l', '--log-level', 
+                        default='info',
+                        help='specify log level: debug, info, warning, error, defult: info')
 
+    args = parser.parse_args()
+    setup_logger(args.log_level)
+
+    app  = get_app_qt5(sys.argv)
+    
     with open( os.path.join(resources_path, 'sdcam.qss'), 'rb') as fqss:
         qss = fqss.read().decode()
-        qss = re.sub(os.linesep, '', qss )
+        qss = re.sub(os.linesep, ' ', qss )
     app.setStyleSheet(qss)
 
     sdcam = TSDCam(app, args)
 
-    #sys.exit( app.exec_() )
     sdcam.mwin.ipkernel.start()
 
 #-------------------------------------------------------------------------------

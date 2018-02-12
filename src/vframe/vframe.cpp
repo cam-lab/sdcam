@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <iostream>
+#include <cmath>
 
 #include "timing.h"
 #include <unistd.h>
@@ -41,12 +42,16 @@ TVFrame::TVFrame()
     , pixwidth       ( 0 )
                      
     , det_cr         ( 0 )
-    , det_exp        ( 0 )
-    , det_gain       ( 0 )
+    , det_iexp       ( 0 )
+    , det_fexp       ( 0 )
+    , det_pga_code   ( 0 )
                      
-    , pulse_count    ( 0 )
-    , pulse_delay    ( 0 )
-    , resp_int_time  ( 0 )
+    , npulses        ( 0 )
+    , pinch          ( 0 )
+    , depth          ( 0 )
+    , trim           ( 0 )
+
+    , pwidth         ( 0 )
      
     , pixbuf(np::empty(bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X), np::dtype::get_builtin<uint16_t>()))
     , rawbuf(np::empty(bp::make_tuple(RAWBUF_SIZE/sizeof(uint32_t)), np::dtype::get_builtin<uint32_t>()))
@@ -79,19 +84,23 @@ bool TVFrame::fill(uint8_t *src, uint32_t len)
     
     uint16_t *minfo = reinterpret_cast<uint16_t *>(buf + META_INFO_DATA_OFFSET);
     
-    fnum     = retreive_fnum(minfo);
-    tstamp   = retreive_tstamp(minfo + TSTAMP_OFFSET); 
-    size_x   = minfo[SIZE_X_OFFSET];
-    size_y   = minfo[SIZE_Y_OFFSET];
-    pixwidth = minfo[PIXWIDTH_OFFSET];
-   
-    det_cr   = minfo[DET_CR_OFFSET];
-    det_exp  = minfo[DET_EXP_OFFSET]; 
-    det_gain = minfo[DET_GAIN_OFFSET]; 
+    fnum          = retreive_fnum(minfo);
+    tstamp        = retreive_tstamp(minfo + TSTAMP_OFFSET); 
+    size_x        = minfo[SIZE_X_OFFSET];
+    size_y        = minfo[SIZE_Y_OFFSET];
+    pixwidth      = minfo[PIXWIDTH_OFFSET];
+                  
+    det_cr        = minfo[DET_CR_OFFSET];
+    det_iexp      = minfo[DET_IEXP_OFFSET]; 
+    det_fexp      = minfo[DET_FEXP_OFFSET]; 
+    det_pga_code  = minfo[DET_PGA_CODE_OFFSET]; 
 
-    pulse_count   = minfo[PULSE_COUNT_OFFSET]; 
-    pulse_delay   = minfo[PULSE_DELAY_OFFSET]; 
-    resp_int_time = minfo[RESP_INT_TIME_OFFSET]; 
+    npulses       = minfo[NPULSES_OFFSET]; 
+    pinch         = minfo[PINCH_OFFSET]; 
+    depth         = minfo[DEPTH_OFFSET]; 
+    trim          = minfo[TRIM_OFFSET];
+    
+    pwidth        = minfo[PWIDTH_OFFSET];
     
     //--------------------------------------------------------------------------
     //
@@ -173,11 +182,14 @@ std::string vframe_str(TVFrame & r)
         << "    size_y        : " << r.size_y        << std::endl
         << "    pixwidth      : " << r.pixwidth      << std::endl
         << "    det_cr        : " << r.det_cr        << std::endl
-        << "    det_exp       : " << r.det_exp       << std::endl
-        << "    det_gain      : " << r.det_gain      << std::endl
-        << "    pulse_count   : " << r.pulse_count   << std::endl
-        << "    pulse_delay   : " << r.pulse_delay   << std::endl
-        << "    resp_int_time : " << r.resp_int_time << std::endl;
+        << "    det_iexp      : " << r.det_iexp      << std::endl
+        << "    det_fexp      : " << r.det_fexp      << std::endl
+        << "    det_pga_code  : " << r.det_pga_code  << std::endl
+        << "    npulses       : " << r.npulses       << std::endl
+        << "    pinch         : " << r.pinch         << std::endl
+        << "    depth         : " << r.depth         << std::endl
+        << "    trim          : " << r.trim          << std::endl
+        << "    pwidth        : " << r.pwidth        << std::endl; 
 
     return out.str();
 }
@@ -187,6 +199,70 @@ std::string vframe_repr(TVFrame & r)
     std::stringstream out;
     out << "class 'TVFrame': { " << std::endl << vframe_str(r) << "}";
     return out.str();
+}
+//------------------------------------------------------------------------------
+__attribute__((optimize("unroll-loops")))
+bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
+{
+    int scale = (1 << VIDEO_DATA_WIDTH)/histo.shape(0); 
+    int shift = log2(scale);
+    int count = data.shape(0)*data.shape(1);
+    uint16_t *pixbuf  = reinterpret_cast<uint16_t *>( data.get_data() );
+    uint32_t *histbuf = reinterpret_cast<uint32_t *>( histo.get_data() );
+    
+    //#pragma omp parallel for
+    for(int i = 0; i < count; ++i)
+    {
+        int pix = pixbuf[i] >> shift;
+        histbuf[pix] += 1;
+    }
+
+    uint16_t min = 0;
+    uint16_t max = 0;
+    
+    for(int i = 0; i < histo.shape(0); ++i) 
+    {
+        if(histbuf[i] >= threshold)
+        {
+            min = i;
+            break;
+        }
+    }
+    for(int i = histo.shape(0) - 1; i; --i) 
+    {
+        if(histbuf[i] >= threshold)
+        {
+            max = i;
+            break;
+        }
+    }
+    return bp::make_tuple(min*scale, max*scale, scale);
+}
+//------------------------------------------------------------------------------
+__attribute__((optimize("unroll-loops")))
+void scale(np::ndarray& pixbuf, int sub, double k)
+{
+    int count = pixbuf.shape(0)*pixbuf.shape(1);
+    uint16_t *buf  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
+    
+    //#pragma omp parallel for
+    for(int i = 0; i < count; ++i)
+    {
+        int val = buf[i];
+        if(val - sub < 0)
+        {
+            buf[i] = 0;
+        }
+        else
+        {
+            val -= sub;
+            uint32_t res = val*k;
+            if(res > VIDEO_DATA_MAX) 
+                buf[i] = VIDEO_DATA_MAX;
+            else 
+                buf[i] = res;
+        }
+    }
 }
 //------------------------------------------------------------------------------
 
@@ -207,6 +283,8 @@ BOOST_PYTHON_MODULE(vframe)
             .add_property("tstamp", &TVFrame::tstamp)
             .add_property("size_x", &TVFrame::size_x)
             .add_property("size_y", &TVFrame::size_y)
+            .add_property("iexp",   &TVFrame::det_iexp)
+            .add_property("fexp",   &TVFrame::det_fexp)
             .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
             .add_property("rawbuf", make_getter(&TVFrame::rawbuf))
             .def("rshift", &TVFrame::rshift)
@@ -262,6 +340,9 @@ BOOST_PYTHON_MODULE(vframe)
     def("qpipe_get_frame", qpipe_get_frame);
     
     def("pipe_rx_params",  pipe_rx_params);
+    
+    def("histogram", histogram);
+    def("scale",     scale);
 }
 //------------------------------------------------------------------------------
 

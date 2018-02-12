@@ -22,11 +22,18 @@ class TLogger(QObject):
 LOG_FILE = 'sdcam.log'
 
 #-------------------------------------------------------------------------------
-logging.basicConfig(filename=LOG_FILE,
-                    filemode='w',
-                    level=logging.DEBUG, 
-                    format='%(asctime)s %(module)-6s %(levelname)-7s : %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+def setup_logger(lvl):
+    levels = {
+        'debug'    : logging.DEBUG,
+        'info'     : logging.INFO,
+        'warning'  : logging.WARNING,
+        'error'    : logging.ERROR
+    }
+    logging.basicConfig(filename=LOG_FILE,
+                        filemode='w',
+                        level=levels[lvl], 
+                        format='%(asctime)s %(module)-9s %(levelname)-7s : %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S')
 
 logger = logging.getLogger('default')
 #-------------------------------------------------------------------------------

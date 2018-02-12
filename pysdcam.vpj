@@ -81,10 +81,12 @@
             <F N="src/app/logger.py"/>
             <F N="src/vframe/qpipe_cfg.cpp"/>
             <F N="src/vframe/qpipe_cfg.h"/>
+            <F N="src/app/sdc_core.py"/>
             <F N="src/app/sdcam.py"/>
             <F N="src/app/sdcam.qss"/>
             <F N="src/vframe/streamlink.cpp"/>
             <F N="src/app/test.py"/>
+            <F N="src/app/udp.py"/>
             <F N="src/vframe/vframe.cpp"/>
             <F N="src/vframe/vframe.h"/>
         </Folder>

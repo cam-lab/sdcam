@@ -25,6 +25,9 @@ const uint32_t RAWBUF_SIZE = FRAME_SIZE_X*FRAME_SIZE_Y*2 + 2*1024;
 
 const uint32_t HOST_METABUF_SIZE = 4 + 1024;
 
+const uint32_t VIDEO_DATA_WIDTH  = 12;
+const uint32_t VIDEO_DATA_MAX    = (1 << VIDEO_DATA_WIDTH) - 1;
+
 //------------------------------------------------------------------------------
 struct TVFrame
 {
@@ -37,12 +40,16 @@ struct TVFrame
     static const int PIXWIDTH_OFFSET         = SIZE_Y_OFFSET + 1;
                                              
     static const int DET_CR_OFFSET           = PIXWIDTH_OFFSET + 1; 
-    static const int DET_EXP_OFFSET          = DET_CR_OFFSET   + 1; 
-    static const int DET_GAIN_OFFSET         = DET_EXP_OFFSET  + 1; 
+    static const int DET_IEXP_OFFSET         = DET_CR_OFFSET   + 1; 
+    static const int DET_FEXP_OFFSET         = DET_IEXP_OFFSET + 1; 
+    static const int DET_PGA_CODE_OFFSET     = DET_FEXP_OFFSET + 1; 
 
-    static const int PULSE_COUNT_OFFSET      = DET_GAIN_OFFSET    + 2; 
-    static const int PULSE_DELAY_OFFSET      = PULSE_COUNT_OFFSET + 1; 
-    static const int RESP_INT_TIME_OFFSET    = PULSE_DELAY_OFFSET + 1; 
+    static const int NPULSES_OFFSET          = DET_PGA_CODE_OFFSET + 1; 
+    static const int PINCH_OFFSET            = NPULSES_OFFSET      + 1; 
+    static const int DEPTH_OFFSET            = PINCH_OFFSET        + 1; 
+    static const int TRIM_OFFSET             = DEPTH_OFFSET        + 1; 
+                                                                   
+    static const int PWIDTH_OFFSET           = TRIM_OFFSET         + 1; 
     
     TVFrame();
     
@@ -76,12 +83,16 @@ struct TVFrame
     uint16_t    pixwidth;
 
     uint16_t    det_cr;
-    uint16_t    det_exp;
-    uint16_t    det_gain;
+    uint16_t    det_iexp;
+    uint16_t    det_fexp;
+    uint16_t    det_pga_code;
 
-    uint16_t    pulse_count;
-    uint16_t    pulse_delay;
-    uint16_t    resp_int_time;
+    uint16_t    npulses;
+    uint16_t    pinch;
+    uint16_t    depth;
+    uint16_t    trim;
+
+    uint16_t    pwidth;
     
     
     np::ndarray pixbuf;
