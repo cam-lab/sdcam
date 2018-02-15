@@ -72,7 +72,7 @@ class TSDC_Core(QObject):
         
         self._kf = 0.1
         self._kp = 1.0
-        self._ka = 0.2
+        self._ka = 0.5
         
         self._stim = 0
         
@@ -162,8 +162,8 @@ class TSDC_Core(QObject):
         top_ref   = self._top_ref 
         
         
-        if top > 4000:
-            top_ref = 0
+        #if top > 4000:
+        #    top_ref = 0
         
         if self._agc_ena:
             s = kp*top_ref/top*(f.iexp + f.fexp/FEXP_MAX)
@@ -183,8 +183,8 @@ class TSDC_Core(QObject):
             if fexp > FEXP_MAX:
                 fexp = FEXP_MAX
                 
-            self.wcam( self.IEXP, iexp )
-            self.wcam( self.FEXP, fexp )
+            self._wcam( self.IEXP, iexp )
+            self._wcam( self.FEXP, fexp )
             
             self._stim = stim
             self._iexp = iexp
