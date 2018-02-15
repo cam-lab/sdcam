@@ -37,23 +37,41 @@ class TGraphicsView(QGraphicsView):
     def __init__(self, scene, parent):
         super().__init__(scene)
         self.parent = parent
+        self.setDragMode(QGraphicsView.ScrollHandDrag)
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.NoAnchor)
+                
+#   def resizeEvent(self, event):
+#       newSize   = event.size();
+#       dX        = 20;
+#       dY        = 20;
+#       viewScale = 1.0;
+#       width     = 1280;
+#       height    = 960;
+#
+#       if (newSize.width() > (width + dX)) and (newSize.height() > (height + dY)):
+#           scaleX = (self.contentsRect().width()  - dX)/float(width);
+#           scaleY = (self.contentsRect().height() - dY)/float(height);
+#           viewScale = min(scaleX,scaleY);
+#
+#       self.setTransform(QTransform.fromScale(viewScale,viewScale), False);
+#       #self.scale(viewScale,viewScale)
+#
+#       QGraphicsView.resizeEvent(self, event)
         
-    def resizeEvent(self, event):
-        newSize   = event.size();
-        dX        = 20;
-        dY        = 20;
-        viewScale = 1.0;
-        width     = 1280;
-        height    = 960;
         
-        if (newSize.width() > (width + dX)) and (newSize.height() > ( + dY)):
-            scaleX = (self.contentsRect().width()  - dX)/float(width);
-            scaleY = (self.contentsRect().height() - dY)/float(height);
-            viewScale = min(scaleX,scaleY);
+    def wheelEvent(self, event):
+        steps = 1 if event.angleDelta().y() > 0 else -1
+        factor = 1 + 0.25*steps
         
-        self.setTransform(QTransform.fromScale(viewScale,viewScale), False);
-        
-        QGraphicsView.resizeEvent(self, event)
+        oldPos = self.mapToScene(event.pos())
+        hsbar = self.horizontalScrollBar().value()
+        vsbar = self.verticalScrollBar().value()
+        if (factor > 1 and hsbar < 128000 and vsbar < 128000) or (factor < 1 and (hsbar > 0 or vsbar > 0)):
+            self.scale(factor, factor)
+            newPos = self.mapToScene(event.pos())
+            delta  = newPos - oldPos
+            self.translate(delta.x(), delta.y())
         
 #-------------------------------------------------------------------------------
 class MainWindow(QMainWindow, InternalIPKernel):
