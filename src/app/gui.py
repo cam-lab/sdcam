@@ -67,7 +67,8 @@ class TGraphicsView(QGraphicsView):
         oldPos = self.mapToScene(event.pos())
         hsbar = self.horizontalScrollBar().value()
         vsbar = self.verticalScrollBar().value()
-        if (factor > 1 and hsbar < 128000 and vsbar < 128000) or (factor < 1 and (hsbar > 0 or vsbar > 0)):
+        if (factor > 1 and  hsbar < 128000 and vsbar < 128000) or \
+           (factor < 1 and (hsbar > 0      or  vsbar > 0)):
             self.scale(factor, factor)
             newPos = self.mapToScene(event.pos())
             delta  = newPos - oldPos
@@ -236,6 +237,8 @@ class MainWindow(QMainWindow, InternalIPKernel):
         
         self.set_title()
         self.restore_settings()
+        
+        self.statusBar().showMessage('Ready')
         
         #--------------------------------------------------------------------------------    
         self.show()
