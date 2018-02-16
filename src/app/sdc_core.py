@@ -71,7 +71,7 @@ class TSDC_Core(QObject):
         self._agc_ena = True
         
         self._kf = 0.1
-        self._kp = 1.0
+        self._kp = 0.01
         self._ka = 0.5
         
         self._stim = 0
@@ -149,6 +149,8 @@ class TSDC_Core(QObject):
         self.histo = np.zeros( (1024), dtype=np.uint32)
         org, top, scale = vframe.histogram(pbuf, self.histo, 30)
 
+        ovexp = np.sum(self.histo[950:]) # 950 = 3800/4
+        
         kp        = self._kp
         ka        = self._ka
         iexp      = self._iexp
@@ -166,7 +168,7 @@ class TSDC_Core(QObject):
         #    top_ref = 0
         
         if self._agc_ena:
-            s = kp*top_ref/top*(f.iexp + f.fexp/FEXP_MAX)
+            s = top_ref/(top + kp*ovexp)*(f.iexp + f.fexp/FEXP_MAX)
             stim = stim + ka*(s - stim)
             if stim < 0:
                 stim = 0
