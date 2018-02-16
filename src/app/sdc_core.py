@@ -190,9 +190,9 @@ class TSDC_Core(QObject):
             self._iexp = iexp
             self._fexp = fexp
             
-        swing = top - org
-        self._k = 4096.0/swing
-        vframe.scale(pbuf, org, self._k)
+            swing = top - org
+            self._k = 4096.0/swing
+            vframe.scale(pbuf, org, self._k)
             
         self._pmap = np.right_shift( pbuf, 4 )
         self.display(self._pmap)
