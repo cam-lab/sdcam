@@ -5,6 +5,8 @@ import os
 import queue
 import re
 
+from math import sqrt
+
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
                              QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, 
@@ -34,6 +36,7 @@ fqueue = queue.Queue()
 #-------------------------------------------------------------------------------
 class TGraphicsView(QGraphicsView):
     
+    #---------------------------------------------------------------------------
     def __init__(self, scene, parent):
         super().__init__(scene)
         self.parent = parent
@@ -60,6 +63,7 @@ class TGraphicsView(QGraphicsView):
 #       QGraphicsView.resizeEvent(self, event)
         
         
+    #---------------------------------------------------------------------------
     def wheelEvent(self, event):
         steps = 1 if event.angleDelta().y() > 0 else -1
         factor = 1 + 0.25*steps
@@ -73,13 +77,45 @@ class TGraphicsView(QGraphicsView):
             newPos = self.mapToScene(event.pos())
             delta  = newPos - oldPos
             self.translate(delta.x(), delta.y())
+            
+            visible_rect   = self.mapToScene(self.viewport().geometry()).boundingRect()
+            visible_widht  = int(visible_rect.width())
+            visible_height = int(visible_rect.height())
+            
+            ratio_x = self.viewport().width()/visible_rect.width()
+            ratio_y = self.viewport().width()/visible_rect.height()
+            
+            self.parent.set_zoom(ratio_x)
+            
+    #---------------------------------------------------------------------------
+    def mousePressEvent(self, event):
         
+        if event.button() == Qt.RightButton:
+            view_x = event.pos().x()
+            view_y = event.pos().y()
+            scene_pos = self.mapToScene(event.pos())
+            scene_x = int(scene_pos.x())
+            scene_y = int(scene_pos.y())
+            #lg.info('pos: ' + str(view_x) + ', ' + str(view_y) + '| scene: ' + str(scene_x) + ', ' + str(scene_y))
+
+        QGraphicsView.mousePressEvent(self, event)
+       
+    #---------------------------------------------------------------------------
+    def mouseMoveEvent(self, event):
+        view_x = event.pos().x()
+        view_y = event.pos().y()
+        scene_pos = self.mapToScene(event.pos())
+        scene_x = int(scene_pos.x())
+        scene_y = int(scene_pos.y())
+        self.parent.set_cursor_pos(view_x, view_y, scene_x, scene_y)
+        QGraphicsView.mouseMoveEvent(self, event)
+                
 #-------------------------------------------------------------------------------
 class MainWindow(QMainWindow, InternalIPKernel):
 
     close_signal = pyqtSignal()
     
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def __init__(self, app, context):
         super().__init__()
 
@@ -91,18 +127,24 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.app.lastWindowClosed.connect(self.app.quit)
         self.app.aboutToQuit.connect(self.cleanup_consoles)
         
-    #--------------------------------------------------------------------------------    
+        self.zoom         = 1.0
+        self.view_cpos_x  = 0
+        self.view_cpos_y  = 0
+        self.scene_cpos_x = 0
+        self.scene_cpos_y = 0
+        
+    #---------------------------------------------------------------------------
     def set_title(self, text = ''):
         text = ' - ' + text if len(text) > 0 else ''
         self.setWindowTitle(PROGRAM_NAME + ' v' + VERSION + text)
         
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def save_settings(self):
         Settings = QSettings('cam-lab', 'pysdcam')
         Settings.setValue('main-window/geometry', self.saveGeometry() )
         Settings.setValue('main-window/state',    self.saveState());
         
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def restore_settings(self):
         Settings = QSettings('cam-lab', 'pysdcam')
         if Settings.contains('main-window/geometry'):
@@ -111,13 +153,13 @@ class MainWindow(QMainWindow, InternalIPKernel):
         else:
             self.setGeometry(100, 100, 1024, 768)
         
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def closeEvent(self, event):
         self.save_settings()
         self.close_signal.emit()
         QWidget.closeEvent(self, event)
 
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def init_pixmap_item(self, width, heigh, pixmap, zval):
         pixmap_item = QGraphicsPixmapItem(pixmap)
         pixmap_item.setZValue(zval)
@@ -129,7 +171,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
     def log_test_slot(self, s):
         lg.info('!!!!!! log_test_slot: ' + s)
         
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def show_frame_slot(self, frame):
         if fqueue.empty():
             return 
@@ -144,20 +186,20 @@ class MainWindow(QMainWindow, InternalIPKernel):
 
         self.show_image(img)
         
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def show_image(self, img):
         pmap = QPixmap.fromImage(img)
         self.PixmapItem.setPixmap(pmap)
     
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def launch_jupyter_console_slot(self):
         ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'shell')
         
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def launch_jupyter_qtconsole_slot(self):
         ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'qt')
 
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def setup_actions(self):
         self.exitAction = QAction(QIcon( os.path.join(ico_path, 'exit24.png') ), 'Exit', self)
         self.exitAction.setShortcut('Ctrl+Q')
@@ -180,7 +222,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.agcAction.setCheckable(True)
         self.agcAction.setChecked(True)
                 
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def setup_menu(self):
         self.menubar = self.menuBar()
         self.controlMenu = self.menubar.addMenu('&Control')
@@ -189,7 +231,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.controlMenu.addAction(self.agcAction)
         self.controlMenu.addAction(self.exitAction)
         
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def setup_toolbar(self):
         self.toolbar = self.addToolBar('MainToolbar')
         self.toolbar.setObjectName('main-toolbar')
@@ -198,7 +240,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.toolbar.addAction(self.ipyQtConsoleAction)        
         self.toolbar.addAction(self.agcAction)        
         
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def setup_main_scene(self):
         self.MainScene = QGraphicsScene(self)
         self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))
@@ -210,7 +252,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.MainView = TGraphicsView(self.MainScene, self)
         self.MainView.setFrameStyle(QFrame.NoFrame)
     
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def create_log_window(self):
         self.Log = QDockWidget('Log', self, Qt.WindowCloseButtonHint)
         self.Log.setObjectName('Log Window')
@@ -219,7 +261,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.LogWidget = TLogWidget(self)
         self.Log.setWidget(self.LogWidget)
         
-    #--------------------------------------------------------------------------------    
+    #---------------------------------------------------------------------------
     def initUI(self, context):
 
         #----------------------------------------------------
@@ -240,9 +282,29 @@ class MainWindow(QMainWindow, InternalIPKernel):
         
         self.statusBar().showMessage('Ready')
         
-        #--------------------------------------------------------------------------------    
+        #-----------------------------------------------------------------------
         self.show()
         
+    #---------------------------------------------------------------------------
+    def update_status_bar(self):
+        text = 'Zoom: {:.1f} | View: {:d} {:d} | Scene: {:d} {:d}'.format(self.zoom, 
+                                                                          self.view_cpos_x,  self.view_cpos_y,
+                                                                          self.scene_cpos_x, self.scene_cpos_y)
+        self.statusBar().showMessage(text)
+        
+    #---------------------------------------------------------------------------
+    def set_zoom(self, zoom):
+        self.zoom = zoom
+        self.update_status_bar()
+        
+    #---------------------------------------------------------------------------
+    def set_cursor_pos(self, vx, vy, sx, sy):
+        self.view_cpos_x  = vx
+        self.view_cpos_y  = vy
+        self.scene_cpos_x = sx
+        self.scene_cpos_y = sy
+        self.update_status_bar()
+                
 #-------------------------------------------------------------------------------
 class TLogWidget(QTableWidget):
     def __init__(self, parent):
