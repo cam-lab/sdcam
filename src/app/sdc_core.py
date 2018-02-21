@@ -71,7 +71,7 @@ class TSDC_Core(QObject):
         self._agc_ena = True
         
         self._kf = 0.1
-        self._kp = 0.01
+        self._kp = 0.1
         self._ka = 0.5
         
         self._stim = 0
@@ -146,11 +146,9 @@ class TSDC_Core(QObject):
     def processing(self):
         vframe.qpipe_get_frame(self._f, self._p)
         pbuf = self._f.pixbuf
-        self.histo = np.zeros( (1024), dtype=np.uint32)
+        self.histo = np.zeros( (4096), dtype=np.uint32)
         org, top, scale = vframe.histogram(pbuf, self.histo, 30)
 
-        ovexp = np.sum(self.histo[950:]) # 950 = 3800/4
-        
         kp        = self._kp
         ka        = self._ka
         iexp      = self._iexp
@@ -162,12 +160,14 @@ class TSDC_Core(QObject):
         stim      = self._stim
         f         = self._f
         top_ref   = self._top_ref 
-        
-        
-        #if top > 4000:
-        #    top_ref = 0
-        
+                      
         if self._agc_ena:
+
+            if top>top_ref:
+                ovexp = np.sum(self.histo[int(top_ref/scale)+1:int(top/scale)+1])
+            else:
+                ovexp = 0
+
             s = top_ref/(top + kp*ovexp)*(f.iexp + f.fexp/FEXP_MAX)
             stim = stim + ka*(s - stim)
             if stim < 0:
