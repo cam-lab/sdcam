@@ -6,6 +6,8 @@ import numpy as np
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+import sys
+
 from logger import logger as lg
 import vframe
 import gui

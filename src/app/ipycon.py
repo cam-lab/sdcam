@@ -8,6 +8,7 @@ import shlex
 from logger import logger as lg
 
 
+#            cmd = 'd:\\cad\\anaconda\\Scripts\\jupyter-qtconsole.exe --existing ' + self.connection_file
 #-------------------------------------------------------------------------------
 class TConsoleLaunchThread(threading.Thread):
 
@@ -34,16 +35,18 @@ class TConsoleLaunchThread(threading.Thread):
             cmd = 'terminator -T "IPython Console" --new-tab -e "' + console + '"'
         elif self.console == 'qt':
             cmd = 'jupyter qtconsole --existing ' + self.connection_file
+            lg.info('confile: ' + self.connection_file)
         else:
             lg.warning('E: invalid console type: ' + self.console)
             return
+        lg.info('command: ' + cmd)
 
-        lg.debug(cmd)
-
+        f_stdout = open('stdout.log', 'w')
+        f_stderr = open('stderr.log', 'w')
         p = subprocess.Popen( shlex.split(cmd), universal_newlines = True,
                      stdin  = subprocess.PIPE,
-                     stdout = subprocess.PIPE,
-                     stderr = subprocess.PIPE )
+                     stdout = f_stdout,
+                     stderr = f_stderr)
 
         lg.info('Jupyter Console has launched')
 

@@ -105,11 +105,17 @@ class MainWindow(QMainWindow, InternalIPKernel):
         pixmap_item.setCacheMode(QGraphicsItem.NoCache)
         
         return pixmap_item
+
+    #--------------------------------------------------------------------------------    
+    def log_test_slot(self, s):
+        lg.info('!!!!!! log_test_slot: ' + s)
         
     #--------------------------------------------------------------------------------    
     def show_frame_slot(self, frame):
         if fqueue.empty():
             return 
+
+#        lg.info('!!!!!!!! show_frame_slot: ')
 
         img_data = fqueue.get()
         img = QImage(img_data, 

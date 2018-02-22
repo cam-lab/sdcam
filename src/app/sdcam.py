@@ -17,7 +17,7 @@ run_path, filename = os.path.split(  os.path.abspath(__file__) )
 resources_path = run_path
 sys.path.append( resources_path )
 
-sys.path.append('bin/release')
+sys.path.append( os.path.abspath(os.path.join('bin', 'release')))
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import QApplication
@@ -53,13 +53,15 @@ class TSDCam(QObject):
         super().__init__()
         
         self.log_watcher =  QFileSystemWatcher(self)
-        self.log_watcher.addPath(os.path.abspath(LOG_FILE))
+        log_path = os.path.abspath(LOG_FILE)
+        l1 = self.log_watcher.addPath(log_path + 'x')
+        lg.info('log_watcher_files: ' + str(l1) + ''.join(self.log_watcher.files()))
 
         lg.info('start main window')
         self.mwin = gui.MainWindow(app, { 'sdcam' : self })
                 
-        self.log_watcher.fileChanged.connect(self.mwin.LogWidget.update_slot,
-                                             Qt.QueuedConnection)
+#        self.log_watcher.fileChanged.connect(self.mwin.LogWidget.update_slot,Qt.QueuedConnection)
+        self.log_watcher.fileChanged.connect(self.mwin.log_test_slot,Qt.QueuedConnection)
         
         lg.info('start video frame thread')
         self.vfthread = TVFrameThread()
@@ -70,15 +72,13 @@ class TSDCam(QObject):
         self.usthread.start()
         
         if args.console:
-            ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
-            
+            ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file.replace('\\', '/'), args.console)
+
         self.mwin.close_signal.connect(self.finish)
         self.mwin.agcAction.triggered.connect(self.vfthread.core.agc_slot, 
                                               Qt.QueuedConnection) 
         self.vfthread.core.frame_signal.connect(self.mwin.show_frame_slot,
                                                 Qt.QueuedConnection)
-        
-        
     def finish(self):
         lg.info('sdcam finishing...')
         self.usthread.finish()

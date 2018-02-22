@@ -19,7 +19,7 @@ template<
 class array_indexing_suite;
 
 
-namespace detail {
+namespace detail1 {
 
 template<typename Array, bool NoProxy>
 struct final_array_derived_policies
@@ -32,7 +32,7 @@ struct final_array_derived_policies
 template<
   typename Array,
   bool NoProxy = std::is_arithmetic<typename Array::value_type>::value,
-  typename DerivedPolicies = detail::final_array_derived_policies<Array, NoProxy>
+  typename DerivedPolicies = detail1::final_array_derived_policies<Array, NoProxy>
 >
 class array_indexing_suite
   : public boost::python::indexing_suite<Array,

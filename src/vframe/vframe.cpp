@@ -12,7 +12,7 @@
 #include <cmath>
 
 #include "timing.h"
-#include <unistd.h>
+//#include <unistd.h>
 
 #include "qpipe_cfg.h"
 
@@ -134,7 +134,7 @@ uint32_t TVFrame::retreive_fnum(uint16_t *p)
 //#pragma GCC push_options
 //#pragma GCC optimize ("unroll-lools")
 
-__attribute__((optimize("unroll-loops")))
+//__attribute__((optimize("unroll-loops")))
 void TVFrame::rshift(int n)
 {
     uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
@@ -146,7 +146,7 @@ void TVFrame::rshift(int n)
     }
 }
 //------------------------------------------------------------------------------
-__attribute__((optimize("unroll-loops")))
+//__attribute__((optimize("unroll-loops")))
 void TVFrame::divide(double n)
 {
     uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
@@ -201,7 +201,7 @@ std::string vframe_repr(TVFrame & r)
     return out.str();
 }
 //------------------------------------------------------------------------------
-__attribute__((optimize("unroll-loops")))
+//__attribute__((optimize("unroll-loops")))
 bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
 {
     int scale = (1 << VIDEO_DATA_WIDTH)/histo.shape(0); 
@@ -239,7 +239,7 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
     return bp::make_tuple(min*scale, max*scale, scale);
 }
 //------------------------------------------------------------------------------
-__attribute__((optimize("unroll-loops")))
+//__attribute__((optimize("unroll-loops")))
 void scale(np::ndarray& pixbuf, int sub, double k)
 {
     int count = pixbuf.shape(0)*pixbuf.shape(1);
@@ -319,8 +319,8 @@ BOOST_PYTHON_MODULE(vframe)
             .add_property("txReady",   make_getter(&TPipeInfo::txReady),   make_setter(&TPipeInfo::txReady))
             .add_property("rxReady",   
                           // getter that returns an array_ref view into the array
-                          //static_cast< array_ref<uint32_t>(*)(TPipeInfo *) >([](TPipeInfo *obj)
-                          (+[](TPipeInfo *obj)
+                          static_cast< array_ref<uint32_t>(*)(TPipeInfo *) >([](TPipeInfo *obj)
+                          //(+[](TPipeInfo *obj)
                           {
                               return array_ref<uint32_t>(obj->rxReady);
                           }),
