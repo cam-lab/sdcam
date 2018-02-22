@@ -61,6 +61,7 @@ class TSDCam(QObject):
                 
         self.wdthread.watcher.file_changed_signal.connect(self.mwin.LogWidget.update_slot,
                                                           Qt.QueuedConnection)
+
         lg.info('start video frame thread')
         self.vfthread = TVFrameThread()
         self.vfthread.start()
@@ -77,6 +78,7 @@ class TSDCam(QObject):
                                               Qt.QueuedConnection) 
         self.vfthread.core.frame_signal.connect(self.mwin.show_frame_slot,
                                                 Qt.QueuedConnection)
+        
     def finish(self):
         lg.info('sdcam finishing...')
         self.usthread.finish()

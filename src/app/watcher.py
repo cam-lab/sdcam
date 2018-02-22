@@ -32,7 +32,11 @@ class TWatcherThread(threading.Thread):
 
     #-------------------------------------------------------
     def __init__(self, log_file, name='Watcher Thread' ):
+<<<<<<< HEAD
         super().__init__(daemon=True)
+=======
+        super().__init__()
+>>>>>>> redesign logging handling
         self._finish_event = threading.Event()
         self.watcher = TWatcher(log_file)
 
