@@ -250,9 +250,12 @@ class TLogWidget(QTableWidget):
             
         l = re.split('(\d\d\d\d-\d\d-\d\d\s\d\d\:\d\d\:\d\d)\s+', text)[1:]
         loglist = list(zip(l[::2], l[1::2]))
-        self.setRowCount(len(loglist))
+        ll_len  = len(loglist)
+        count   = ll_len if ll_len < 30 else 30
         
-        for idx, logitem in enumerate(loglist):
+        self.setRowCount(count)
+        
+        for idx, logitem in enumerate(loglist[ll_len-count:]):
             tstamp = logitem[0]
             p = '(\\w+)\\s+(\\w+)\\s+\\:\\s((?:.|\n)+)'
             module, status, message = re.search(p, logitem[1]).groups()

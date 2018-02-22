@@ -30,10 +30,11 @@ from ipykernel.kernelapp import IPKernelApp
 from sdc_core import *
 import gui
 import ipycon
-from logger import logger as lg
-from logger import LOG_FILE
-from logger import setup_logger
-from udp    import TSocketThread, TSocket
+from logger   import logger as lg
+from logger   import LOG_FILE
+from logger   import setup_logger
+from udp      import TSocketThread
+from watcher  import TWatcherThread
 
 #-------------------------------------------------------------------------------
 def get_app_qt5(*args, **kwargs):
@@ -52,17 +53,14 @@ class TSDCam(QObject):
         
         super().__init__()
         
-        self.log_watcher =  QFileSystemWatcher(self)
-        log_path = os.path.abspath(LOG_FILE)
-        l1 = self.log_watcher.addPath(log_path + 'x')
-        lg.info('log_watcher_files: ' + str(l1) + ''.join(self.log_watcher.files()))
+        self.wdthread = TWatcherThread(os.path.abspath(LOG_FILE))
+        self.wdthread.start()
 
         lg.info('start main window')
         self.mwin = gui.MainWindow(app, { 'sdcam' : self })
                 
-#        self.log_watcher.fileChanged.connect(self.mwin.LogWidget.update_slot,Qt.QueuedConnection)
-        self.log_watcher.fileChanged.connect(self.mwin.log_test_slot,Qt.QueuedConnection)
-        
+        self.wdthread.watcher.file_changed_signal.connect(self.mwin.LogWidget.update_slot,
+                                                          Qt.QueuedConnection)
         lg.info('start video frame thread')
         self.vfthread = TVFrameThread()
         self.vfthread.start()
@@ -85,6 +83,9 @@ class TSDCam(QObject):
         self.usthread.join()
         self.vfthread.finish()
         self.vfthread.join()
+        self.wdthread.finish()
+        self.wdthread.join()
+        
         lg.info('sdcam has finished')
 
     def generate_frame(self):
