@@ -35,28 +35,29 @@ Target = os.path.join(env['BINDIR'], ProductName)
 #     Setup local construction environment
 #
 
-#DEFINES = ['ENA_FW_QT']
-#DEFINES = ['ENA_FW_QT', 'BOOST_AUTO_LINK_NOMANGLE']
-DEFINES = ['ENA_FW_QT', 'BOOST_ALL_NO_LIB']
+DEFINES = ['ENA_FW_QT']
+
+if Platform == 'win32':
+    DEFINES  += ['BOOST_ALL_NO_LIB']
+
 
 BOOST_PATH = os.environ['BOOST_PATH']
 
-PYTHON_VERSION = '36'
-PYTHON_INCLUDE = 'D:\\CAD\\anaconda\\include'
-PYTHON_LIBPATH = 'D:\\CAD\\anaconda\\libs'
+PYTHON_VERSION = os.environ['PYTHON_VERSION']
+PYTHON_INCLUDE = os.environ['PYTHON_INCLUDE']
+PYTHON_LIBPATH = os.environ['PYTHON_LIBPATH']
+PYTHON_LIBRARY = os.environ['PYTHON_LIBRARY']
 
 
 env.Append(CCFLAGS = ['-D'+ d for d in DEFINES] )
-#env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include/boost-1_66')])
-env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include/')])
+env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include')])
 env.Append(CPPPATH = [PYTHON_INCLUDE])
 env.Append(LIBPATH = [os.path.join(BOOST_PATH, 'lib')])
 env.Append(LIBPATH = [PYTHON_LIBPATH])
 
 
 #env.Append(SHLINKFLAGS = ['-l:libboost_python3.so', '-Wl,--export-dynamic'])
-env.Append(LIBS = ['python' + PYTHON_VERSION, 'boost_numpy3', 'boost_python3', 'ip_qpipe'])
-#env.Append(LIBS = ['python' + PYTHON_VERSION, 'ip_qpipe'])
+env.Append(LIBS = [PYTHON_LIBRARY, 'boost_numpy3', 'boost_python3', 'ip_qpipe'])
 
 env.EnableQt5Modules(['QtCore']) # should be after project libs
 

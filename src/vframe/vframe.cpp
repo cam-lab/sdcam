@@ -134,24 +134,20 @@ uint32_t TVFrame::retreive_fnum(uint16_t *p)
 //#pragma GCC push_options
 //#pragma GCC optimize ("unroll-lools")
 
-//__attribute__((optimize("unroll-loops")))
 void TVFrame::rshift(int n)
 {
     uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
     
-    //#pragma omp parallel for
     for(int i = 0; i < FRAME_SIZE_X*FRAME_SIZE_Y; ++i)
     {
         buf[i] >>= n;
     }
 }
 //------------------------------------------------------------------------------
-//__attribute__((optimize("unroll-loops")))
 void TVFrame::divide(double n)
 {
     uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
     
-    //#pragma omp parallel for
     for(int i = 0; i < FRAME_SIZE_X*FRAME_SIZE_Y; ++i)
     {
         buf[i] /= n;
@@ -201,7 +197,6 @@ std::string vframe_repr(TVFrame & r)
     return out.str();
 }
 //------------------------------------------------------------------------------
-//__attribute__((optimize("unroll-loops")))
 bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
 {
     int scale = (1 << VIDEO_DATA_WIDTH)/histo.shape(0); 
@@ -210,7 +205,6 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
     uint16_t *pixbuf  = reinterpret_cast<uint16_t *>( data.get_data() );
     uint32_t *histbuf = reinterpret_cast<uint32_t *>( histo.get_data() );
     
-    //#pragma omp parallel for
     for(int i = 0; i < count; ++i)
     {
         int pix = pixbuf[i] >> shift;
@@ -239,13 +233,11 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
     return bp::make_tuple(min*scale, max*scale, scale);
 }
 //------------------------------------------------------------------------------
-//__attribute__((optimize("unroll-loops")))
 void scale(np::ndarray& pixbuf, int sub, double k)
 {
     int count = pixbuf.shape(0)*pixbuf.shape(1);
     uint16_t *buf  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
     
-    //#pragma omp parallel for
     for(int i = 0; i < count; ++i)
     {
         int val = buf[i];
