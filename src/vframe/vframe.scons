@@ -38,11 +38,9 @@ Target = os.path.join(env['BINDIR'], ProductName)
 DEFINES = ['ENA_FW_QT']
 
 if Platform == 'win32':
-    DEFINES  += ['BOOST_ALL_NO_LIB']
+    DEFINES += ['BOOST_ALL_NO_LIB']
 
-
-BOOST_PATH = os.environ['BOOST_PATH']
-
+BOOST_PATH     = os.environ['BOOST_PATH']
 PYTHON_VERSION = os.environ['PYTHON_VERSION']
 PYTHON_INCLUDE = os.environ['PYTHON_INCLUDE']
 PYTHON_LIBPATH = os.environ['PYTHON_LIBPATH']
@@ -54,21 +52,19 @@ env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include')])
 env.Append(CPPPATH = [PYTHON_INCLUDE])
 env.Append(LIBPATH = [os.path.join(BOOST_PATH, 'lib')])
 env.Append(LIBPATH = [PYTHON_LIBPATH])
-
-
-#env.Append(SHLINKFLAGS = ['-l:libboost_python3.so', '-Wl,--export-dynamic'])
 env.Append(LIBS = [PYTHON_LIBRARY, 'boost_numpy3', 'boost_python3', 'ip_qpipe'])
 
 env.EnableQt5Modules(['QtCore']) # should be after project libs
 
 
 env['SHLIBPREFIX'] = ''
+if Platform == 'win32':
+    env['SHLIBSUFFIX'] = '.pyd'
 
 #-------------------------------------------------------------------------------
 #
 #     Build the targets
 #
-
 env.SharedLibrary( Target, Sources ) 
 
 #-------------------------------------------------------------------------------
