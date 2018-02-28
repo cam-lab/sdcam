@@ -73,7 +73,8 @@ class TSDCam(QObject):
         if args.console:
             ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file.replace('\\', '/'), args.console)
 
-        self.mwin.close_signal.connect(self.finish)
+        #self.mwin.close_signal.connect(self.finish)
+        app.aboutToQuit.connect(self.finish)
         self.mwin.agcAction.triggered.connect(self.vfthread.core.agc_slot, 
                                               Qt.QueuedConnection) 
         self.vfthread.core.frame_signal.connect(self.mwin.show_frame_slot,

@@ -49,7 +49,8 @@ class TSocketThread(threading.Thread):
 
     #-------------------------------------------------------
     def __init__(self, name='Socket Thread' ):
-        super().__init__(daemon=True)
+        #super().__init__(daemon=True)
+        super().__init__()
 
     #-------------------------------------------------------
     def finish(self):
