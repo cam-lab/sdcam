@@ -271,7 +271,6 @@ class TVFrameThread(threading.Thread):
 
     #-------------------------------------------------------
     def __init__(self, name='VFrame Thread' ):
-        #super().__init__(daemon=True)
         super().__init__()
         self._finish_event = threading.Event()
         self.core = TSDC_Core()
