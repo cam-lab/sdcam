@@ -10,7 +10,16 @@
 
 #elif defined(_MSC_VER)
 
+#pragma warning( push )  
+#pragma warning( disable : 4100 )  //  warning C4100: unreferenced formal parameter
+#pragma warning( disable : 4275 )  //  DLL related warning
+#pragma warning( disable : 4251 )  //  DLL related warning
+#pragma warning( disable : 4800 )  //  
+#pragma warning( disable : 4267 )  //  
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#pragma warning( pop )  
+
+#pragma warning( disable : 4244 )  //  
 
 #else
 
