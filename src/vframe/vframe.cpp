@@ -350,8 +350,6 @@ BOOST_PYTHON_MODULE(vframe)
     def("qpipe_read_data", qpipe_read_data);
     def("qpipe_get_frame", qpipe_get_frame);
     
-    def("pipe_rx_params",  pipe_rx_params);
-    
     def("histogram", histogram);
     def("scale",     scale);
 }

@@ -82,23 +82,4 @@ std::string pipe_rx_params_repr(TPipeRxParams & r)
     return out.str();
 }
 //------------------------------------------------------------------------------
-void pipe_rx_params(TPipeRxParams *p)
-{
-    std::cout << "key: " << p->pipeKey << ", isCreated: " << p->isCreated << ", id: " << p->pipeId << std::endl;
-    std::cout << "chunkSize: "  << p->pipeInfo.chunkSize
-       << ", chumkNum: " << p->pipeInfo.chunkNum
-       << ", txReady: "  << p->pipeInfo.txReady
-       << std::endl;
-    
-    p->pipeKey++;
-    p->isCreated += 2;
-    p->pipeId += 4;
-    
-    for(int i = 0; i < 4; ++i)
-    {
-        std::cout << "rxReady[" << i << "] :" << p->pipeInfo.rxReady[i] << std::endl;
-        p->pipeInfo.rxReady[i]++;
-    }
-}
-//------------------------------------------------------------------------------
 
