@@ -1,10 +1,22 @@
 
 
+#if defined( __GNUG__ )
+        
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #pragma GCC diagnostic pop
+
+#elif defined(_MSC_VER)
+
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+
+#else
+
+#error("E: unsupported compiler. Only GCC and MSVC are supported for now")
+
+#endif //  __GNUC__
 
 
 #include <stdint.h>
@@ -12,8 +24,6 @@
 #include <cmath>
 
 #include "timing.h"
-//#include <unistd.h>
-
 #include "qpipe_cfg.h"
 
 #include <array_ref.h>
