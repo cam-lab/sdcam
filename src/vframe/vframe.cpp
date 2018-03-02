@@ -287,7 +287,7 @@ np::ndarray make_display_frame(np::ndarray &pixbuf)
 
     for(int i = 0; i < count; ++i)
     {
-        int val    = idata[i] >> 4;
+        int val        = idata[i] >> 4;
         odata[i*3 + 0] = val;
         odata[i*3 + 1] = val;
         odata[i*3 + 2] = val;

@@ -25,6 +25,8 @@ import ipycon
 
 from logger import logger as lg
 
+from badpix import TBadPix
+
 run_path, filename = os.path.split(  os.path.abspath(__file__) )
 ico_path = os.path.join( run_path, 'ico' )
 
@@ -97,6 +99,8 @@ class TGraphicsView(QGraphicsView):
             scene_x = int(scene_pos.x())
             scene_y = int(scene_pos.y())
             #lg.info('pos: ' + str(view_x) + ', ' + str(view_y) + '| scene: ' + str(scene_x) + ', ' + str(scene_y))
+            
+            self.parent.bad_pix.toggle_pixel( (scene_x, scene_y) )
 
         QGraphicsView.mousePressEvent(self, event)
        
@@ -132,6 +136,8 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.view_cpos_y  = 0
         self.scene_cpos_x = 0
         self.scene_cpos_y = 0
+        
+        self.bad_pix = TBadPix()
         
     #---------------------------------------------------------------------------
     def set_title(self, text = ''):
@@ -178,8 +184,8 @@ class MainWindow(QMainWindow, InternalIPKernel):
                      img_data.shape[0], 
                      QImage.Format_RGB888)
 
-        self.img1 = img
-        img.setPixelColor(640, 480, QColor(0, 255, 0))
+        for pix in self.bad_pix.pixels():
+            img.setPixelColor(pix[0], pix[1], QColor(0, 255, 0))
         
         self.show_image(img)
         
