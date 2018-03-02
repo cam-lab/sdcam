@@ -276,6 +276,26 @@ void scale(np::ndarray& pixbuf, int sub, double k)
     }
 }
 //------------------------------------------------------------------------------
+np::ndarray make_display_frame(np::ndarray &pixbuf)
+{
+    bp::tuple shape  = bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X, 3); 
+    np::ndarray obuf = np::empty(shape, np::dtype::get_builtin<uint8_t>());
+    
+    int count = pixbuf.shape(0)*pixbuf.shape(1);
+    uint16_t *idata  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
+    uint8_t  *odata  = reinterpret_cast<uint8_t  *>( obuf.get_data() );
+
+    for(int i = 0; i < count; ++i)
+    {
+        int val    = idata[i] >> 4;
+        odata[i*3 + 0] = val;
+        odata[i*3 + 1] = val;
+        odata[i*3 + 2] = val;
+    }
+    
+    return obuf;
+}
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
@@ -345,13 +365,15 @@ BOOST_PYTHON_MODULE(vframe)
     //
     //    Common exposed functions
     //
-    def("init_numpy",      init_numpy);
-    def("qpipe_cfg",       qpipe_cfg);
-    def("qpipe_read_data", qpipe_read_data);
-    def("qpipe_get_frame", qpipe_get_frame);
+    def("init_numpy",         init_numpy);
+    def("qpipe_cfg",          qpipe_cfg);
+    def("qpipe_read_data",    qpipe_read_data);
+    def("qpipe_get_frame",    qpipe_get_frame);
+                              
+    def("histogram",          histogram);
+    def("scale",              scale);
     
-    def("histogram", histogram);
-    def("scale",     scale);
+    def("make_display_frame", make_display_frame);
 }
 //------------------------------------------------------------------------------
 
