@@ -194,7 +194,7 @@ class TSDC_Core(QObject):
             self._k = 4096.0/swing
             vframe.scale(pbuf, org, self._k)
             
-        self._pmap = np.right_shift( pbuf, 4 )
+        self._pmap = vframe.make_display_frame(pbuf)
         self.display(self._pmap)
            
     #-----------------------------------------------------------------

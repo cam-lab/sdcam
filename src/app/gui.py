@@ -173,11 +173,14 @@ class MainWindow(QMainWindow, InternalIPKernel):
             return 
 
         img_data = fqueue.get()
-        img = QImage(img_data, 
+        img = QImage(img_data,
                      img_data.shape[1], 
                      img_data.shape[0], 
-                     QImage.Format_Grayscale8)
+                     QImage.Format_RGB888)
 
+        self.img1 = img
+        img.setPixelColor(640, 480, QColor(0, 255, 0))
+        
         self.show_image(img)
         
     #---------------------------------------------------------------------------
