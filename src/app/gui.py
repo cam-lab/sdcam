@@ -45,25 +45,6 @@ class TGraphicsView(QGraphicsView):
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.NoAnchor)
-                
-#   def resizeEvent(self, event):
-#       newSize   = event.size();
-#       dX        = 20;
-#       dY        = 20;
-#       viewScale = 1.0;
-#       width     = 1280;
-#       height    = 960;
-#
-#       if (newSize.width() > (width + dX)) and (newSize.height() > (height + dY)):
-#           scaleX = (self.contentsRect().width()  - dX)/float(width);
-#           scaleY = (self.contentsRect().height() - dY)/float(height);
-#           viewScale = min(scaleX,scaleY);
-#
-#       self.setTransform(QTransform.fromScale(viewScale,viewScale), False);
-#       #self.scale(viewScale,viewScale)
-#
-#       QGraphicsView.resizeEvent(self, event)
-        
         
     #---------------------------------------------------------------------------
     def wheelEvent(self, event):
