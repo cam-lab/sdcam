@@ -21,6 +21,7 @@ vhex = np.vectorize(hex)
 #-------------------------------------------------------------------------------
 class TSocket(QObject):
 
+    #-------------------------------------------------------
     def __init__(self):
         super().__init__()
 
@@ -28,29 +29,34 @@ class TSocket(QObject):
         self.sock.settimeout(0.5)
         self.sock.bind( (host_ip, udp_port) )
 
+    #-------------------------------------------------------
     def processing(self, data):
         self.sock.sendto(data, (device_ip, udp_port))
         try:
             res = np.frombuffer( self.sock.recv(1472), dtype=np.uint16)
-            lg.debug(vhex(res))
+            #lg.debug(vhex(res))
             return res
         except timeout:
             lg.warning('socket timeout')
             return None
 
+    #-------------------------------------------------------
     def close(self):
         self.sock.close()
         
 #-------------------------------------------------------------------------------
 class TSocketThread(threading.Thread):
 
+    #-------------------------------------------------------
     def __init__(self, name='Socket Thread' ):
         super().__init__()
 
+    #-------------------------------------------------------
     def finish(self):
         lg.info('Socket Thread pending to finish')
         command_queue.put(None)
 
+    #-------------------------------------------------------
     def run(self):
         lg.info('udp socket thread::run')
         while True:

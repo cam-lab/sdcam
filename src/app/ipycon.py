@@ -11,10 +11,9 @@ from logger import logger as lg
 #-------------------------------------------------------------------------------
 class TConsoleLaunchThread(threading.Thread):
 
-
     def __init__(self, connection_file, console, name='Jupyter Console Launch Thread' ):
         super().__init__()
-        self.connection_file = connection_file
+        self.connection_file = connection_file.replace('\\', '/')
         self.console = console
 
     def run(self):

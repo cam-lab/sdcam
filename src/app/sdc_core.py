@@ -6,6 +6,8 @@ import numpy as np
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+import sys
+
 from logger import logger as lg
 import vframe
 import gui
@@ -54,7 +56,8 @@ class TSDC_Core(QObject):
         self._pixmap = self.init_frame()
         self._roll_line = 1000
         self._k = 1
-
+        self._queue_limit_exceed = False
+        
         vframe.init_numpy()
 
         self._f = vframe.TVFrame()
@@ -130,11 +133,14 @@ class TSDC_Core(QObject):
 
     #-------------------------------------------------------
     def display(self, pmap):
-        if gui.fqueue.qsize() < 10:
+        if gui.fqueue.qsize() < 20:
             gui.fqueue.put(pmap.astype(np.uint8))
             self.frame_signal.emit(0)
+            self._queue_limit_exceed = False
         else:
-            lg.warning('video frame queue exceeds limit, seems GUI does not read from the queue')
+            if not self._queue_limit_exceed:
+                lg.warning('video frame queue exceeds limit, seems GUI does not read from the queue')
+            self._queue_limit_exceed = True
 
     #-------------------------------------------------------
     def processing(self):
@@ -184,11 +190,11 @@ class TSDC_Core(QObject):
             self._iexp = iexp
             self._fexp = fexp
             
-        swing = top - org
-        self._k = 4096.0/swing
-        vframe.scale(pbuf, org, self._k)
+            swing = top - org
+            self._k = 4096.0/swing
+            vframe.scale(pbuf, org, self._k)
             
-        self._pmap = np.right_shift( pbuf, 4 )
+        self._pmap = vframe.make_display_frame(pbuf)
         self.display(self._pmap)
            
     #-----------------------------------------------------------------
@@ -256,6 +262,7 @@ class TSDC_Core(QObject):
         self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
         return self._rmmr(self.SPI_DR);
          
+    #-------------------------------------------------------
     def rcam(self, addr):
         self._sock_transaction(self._rcam, [addr])
                  

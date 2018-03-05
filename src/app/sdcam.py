@@ -17,7 +17,7 @@ run_path, filename = os.path.split(  os.path.abspath(__file__) )
 resources_path = run_path
 sys.path.append( resources_path )
 
-sys.path.append('bin/release')
+sys.path.append( os.path.abspath(os.path.join('bin', 'release')))
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import QApplication
@@ -30,10 +30,11 @@ from ipykernel.kernelapp import IPKernelApp
 from sdc_core import *
 import gui
 import ipycon
-from logger import logger as lg
-from logger import LOG_FILE
-from logger import setup_logger
-from udp    import TSocketThread, TSocket
+from logger   import logger as lg
+from logger   import LOG_FILE
+from logger   import setup_logger
+from udp      import TSocketThread
+from watcher  import TWatcherThread
 
 #-------------------------------------------------------------------------------
 def get_app_qt5(*args, **kwargs):
@@ -52,15 +53,15 @@ class TSDCam(QObject):
         
         super().__init__()
         
-        self.log_watcher =  QFileSystemWatcher(self)
-        self.log_watcher.addPath(os.path.abspath(LOG_FILE))
+        self.wdthread = TWatcherThread(os.path.abspath(LOG_FILE))
+        self.wdthread.start()
 
         lg.info('start main window')
         self.mwin = gui.MainWindow(app, { 'sdcam' : self })
                 
-        self.log_watcher.fileChanged.connect(self.mwin.LogWidget.update_slot,
-                                             Qt.QueuedConnection)
-        
+        self.wdthread.watcher.file_changed_signal.connect(self.mwin.LogWidget.update_slot,
+                                                          Qt.QueuedConnection)
+
         lg.info('start video frame thread')
         self.vfthread = TVFrameThread()
         self.vfthread.start()
@@ -70,14 +71,13 @@ class TSDCam(QObject):
         self.usthread.start()
         
         if args.console:
-            ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file, args.console)
-            
-        self.mwin.close_signal.connect(self.finish)
+            ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file.replace('\\', '/'), args.console)
+
+        app.aboutToQuit.connect(self.finish)
         self.mwin.agcAction.triggered.connect(self.vfthread.core.agc_slot, 
                                               Qt.QueuedConnection) 
         self.vfthread.core.frame_signal.connect(self.mwin.show_frame_slot,
                                                 Qt.QueuedConnection)
-        
         
     def finish(self):
         lg.info('sdcam finishing...')
@@ -85,6 +85,9 @@ class TSDCam(QObject):
         self.usthread.join()
         self.vfthread.finish()
         self.vfthread.join()
+        self.wdthread.finish()
+        self.wdthread.join()
+        
         lg.info('sdcam has finished')
 
     def generate_frame(self):

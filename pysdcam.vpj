@@ -89,6 +89,7 @@
             <F N="src/app/udp.py"/>
             <F N="src/vframe/vframe.cpp"/>
             <F N="src/vframe/vframe.h"/>
+            <F N="src/app/watcher.py"/>
         </Folder>
         <Folder
             Name="lib"

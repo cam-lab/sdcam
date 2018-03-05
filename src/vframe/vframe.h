@@ -6,7 +6,25 @@
 #include <iostream>
 #include <sstream>
 
+#if defined( __GNUG__ )
+        
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#elif defined(_MSC_VER)
+
+#pragma warning( push )  
+#pragma warning( disable : 4100 )  //  warning C4100: unreferenced formal parameter
+#pragma warning( disable : 4275 )  //  DLL related warning
+#pragma warning( disable : 4251 )  //  DLL related warning
+#pragma warning( disable : 4800 )  //  
+
+#else
+
+#error("E: unsupported compiler. Only GCC and MSVC are supported for now")
+
+#endif //  __GNUC__
 
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
@@ -107,5 +125,19 @@ inline bool deserialize_frame(void *frameObj, uint8_t *src, uint32_t len)
 std::string vframe_str(TVFrame & r);
 std::string vframe_repr(TVFrame & r);
 //------------------------------------------------------------------------------
+#if defined( __GNUG__ )
+
+#pragma GCC diagnostic pop
+
+#elif defined(_MSC_VER)
+
+#pragma warning( pop )  
+
+#else
+
+#error("E: unsupported compiler. Only GCC and MSVC are supported for now")
+
+#endif //  __GNUC__
+
 #endif // VFRAME_H
 

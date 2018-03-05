@@ -1,10 +1,31 @@
 
 
+#if defined( __GNUG__ )
+        
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #pragma GCC diagnostic pop
+
+#elif defined(_MSC_VER)
+
+#pragma warning( push )  
+#pragma warning( disable : 4100 )  //  warning C4100: unreferenced formal parameter
+#pragma warning( disable : 4275 )  //  DLL related warning
+#pragma warning( disable : 4251 )  //  DLL related warning
+#pragma warning( disable : 4800 )  //  
+#pragma warning( disable : 4267 )  //  
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#pragma warning( pop )  
+
+#pragma warning( disable : 4244 )  //  
+
+#else
+
+#error("E: unsupported compiler. Only GCC and MSVC are supported for now")
+
+#endif //  __GNUC__
 
 
 #include <stdint.h>
@@ -12,8 +33,6 @@
 #include <cmath>
 
 #include "timing.h"
-#include <unistd.h>
-
 #include "qpipe_cfg.h"
 
 #include <array_ref.h>
@@ -134,24 +153,20 @@ uint32_t TVFrame::retreive_fnum(uint16_t *p)
 //#pragma GCC push_options
 //#pragma GCC optimize ("unroll-lools")
 
-__attribute__((optimize("unroll-loops")))
 void TVFrame::rshift(int n)
 {
     uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
     
-    //#pragma omp parallel for
     for(int i = 0; i < FRAME_SIZE_X*FRAME_SIZE_Y; ++i)
     {
         buf[i] >>= n;
     }
 }
 //------------------------------------------------------------------------------
-__attribute__((optimize("unroll-loops")))
 void TVFrame::divide(double n)
 {
     uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
     
-    //#pragma omp parallel for
     for(int i = 0; i < FRAME_SIZE_X*FRAME_SIZE_Y; ++i)
     {
         buf[i] /= n;
@@ -201,7 +216,6 @@ std::string vframe_repr(TVFrame & r)
     return out.str();
 }
 //------------------------------------------------------------------------------
-__attribute__((optimize("unroll-loops")))
 bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
 {
     int scale = (1 << VIDEO_DATA_WIDTH)/histo.shape(0); 
@@ -210,7 +224,6 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
     uint16_t *pixbuf  = reinterpret_cast<uint16_t *>( data.get_data() );
     uint32_t *histbuf = reinterpret_cast<uint32_t *>( histo.get_data() );
     
-    //#pragma omp parallel for
     for(int i = 0; i < count; ++i)
     {
         int pix = pixbuf[i] >> shift;
@@ -239,13 +252,11 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
     return bp::make_tuple(min*scale, max*scale, scale);
 }
 //------------------------------------------------------------------------------
-__attribute__((optimize("unroll-loops")))
 void scale(np::ndarray& pixbuf, int sub, double k)
 {
     int count = pixbuf.shape(0)*pixbuf.shape(1);
     uint16_t *buf  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
     
-    //#pragma omp parallel for
     for(int i = 0; i < count; ++i)
     {
         int val = buf[i];
@@ -263,6 +274,26 @@ void scale(np::ndarray& pixbuf, int sub, double k)
                 buf[i] = res;
         }
     }
+}
+//------------------------------------------------------------------------------
+np::ndarray make_display_frame(np::ndarray &pixbuf)
+{
+    bp::tuple shape  = bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X, 3); 
+    np::ndarray obuf = np::empty(shape, np::dtype::get_builtin<uint8_t>());
+    
+    int count = pixbuf.shape(0)*pixbuf.shape(1);
+    uint16_t *idata  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
+    uint8_t  *odata  = reinterpret_cast<uint8_t  *>( obuf.get_data() );
+
+    for(int i = 0; i < count; ++i)
+    {
+        int val        = idata[i] >> 4;
+        odata[i*3 + 0] = val;
+        odata[i*3 + 1] = val;
+        odata[i*3 + 2] = val;
+    }
+    
+    return obuf;
 }
 //------------------------------------------------------------------------------
 
@@ -319,8 +350,8 @@ BOOST_PYTHON_MODULE(vframe)
             .add_property("txReady",   make_getter(&TPipeInfo::txReady),   make_setter(&TPipeInfo::txReady))
             .add_property("rxReady",   
                           // getter that returns an array_ref view into the array
-                          //static_cast< array_ref<uint32_t>(*)(TPipeInfo *) >([](TPipeInfo *obj)
-                          (+[](TPipeInfo *obj)
+                          static_cast< array_ref<uint32_t>(*)(TPipeInfo *) >([](TPipeInfo *obj)
+                          //(+[](TPipeInfo *obj)
                           {
                               return array_ref<uint32_t>(obj->rxReady);
                           }),
@@ -334,15 +365,15 @@ BOOST_PYTHON_MODULE(vframe)
     //
     //    Common exposed functions
     //
-    def("init_numpy",      init_numpy);
-    def("qpipe_cfg",       qpipe_cfg);
-    def("qpipe_read_data", qpipe_read_data);
-    def("qpipe_get_frame", qpipe_get_frame);
+    def("init_numpy",         init_numpy);
+    def("qpipe_cfg",          qpipe_cfg);
+    def("qpipe_read_data",    qpipe_read_data);
+    def("qpipe_get_frame",    qpipe_get_frame);
+                              
+    def("histogram",          histogram);
+    def("scale",              scale);
     
-    def("pipe_rx_params",  pipe_rx_params);
-    
-    def("histogram", histogram);
-    def("scale",     scale);
+    def("make_display_frame", make_display_frame);
 }
 //------------------------------------------------------------------------------
 

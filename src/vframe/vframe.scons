@@ -37,31 +37,34 @@ Target = os.path.join(env['BINDIR'], ProductName)
 
 DEFINES = ['ENA_FW_QT']
 
-BOOST_PATH = os.environ['BOOST_PATH']
+if Platform == 'win32':
+    DEFINES += ['BOOST_ALL_NO_LIB']
 
-PYTHON_VERSION = '3.5'
-PYTHON_INCLUDE = '/usr/include/python' + PYTHON_VERSION
-PYTHON_LIBPATH = '/usr/lib/python3.5/config-3.5m-x86_64-linux-gnu'
+BOOST_PATH     = os.environ['BOOST_PATH']
+PYTHON_VERSION = os.environ['PYTHON_VERSION']
+PYTHON_INCLUDE = os.environ['PYTHON_INCLUDE']
+PYTHON_LIBPATH = os.environ['PYTHON_LIBPATH']
+PYTHON_LIBRARY = os.environ['PYTHON_LIBRARY']
 
 
-env.Append(CCFLAGS = ['-D'+ d for d in DEFINES] + ['-fopenmp'] )
+env.Append(CCFLAGS = ['-D'+ d for d in DEFINES] )
 env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include')])
 env.Append(CPPPATH = [PYTHON_INCLUDE])
 env.Append(LIBPATH = [os.path.join(BOOST_PATH, 'lib')])
-
-#env.Append(SHLINKFLAGS = ['-l:libboost_python3.so', '-Wl,--export-dynamic'])
-env.Append(LIBS = ['python' + PYTHON_VERSION + 'm', 'boost_numpy3', 'ip_qpipe', 'gomp'])
+env.Append(LIBPATH = [PYTHON_LIBPATH])
+env.Append(LIBS = [PYTHON_LIBRARY, 'boost_numpy3', 'boost_python3', 'ip_qpipe'])
 
 env.EnableQt5Modules(['QtCore']) # should be after project libs
 
 
 env['SHLIBPREFIX'] = ''
+if Platform == 'win32':
+    env['SHLIBSUFFIX'] = '.pyd'
 
 #-------------------------------------------------------------------------------
 #
 #     Build the targets
 #
-
 env.SharedLibrary( Target, Sources ) 
 
 #-------------------------------------------------------------------------------
