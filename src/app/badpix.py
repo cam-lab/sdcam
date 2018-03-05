@@ -13,10 +13,10 @@ class TBadPix(QObject):
         super().__init__()
         self.plist = []
         
-        for i in range(300):
-            x = random.randrange(1280 - 1)
-            y = random.randrange( 960 - 1)
-            self.plist.append( (x, y) )
+#       for i in range(300):
+#           x = random.randrange(1280 - 1)
+#           y = random.randrange( 960 - 1)
+#           self.plist.append( (x, y) )
         
         
     def toggle_pixel(self, pix):
