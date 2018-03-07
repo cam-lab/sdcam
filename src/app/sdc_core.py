@@ -72,6 +72,7 @@ class TSDC_Core(QObject):
         
         self.org_thres = 30
         self.top_thres = 30
+        self.discard   = 0.01
         
         self._kf = 0.1
         self._kp = 0.5
@@ -158,8 +159,8 @@ class TSDC_Core(QObject):
         self.fframe_histo.fill(0)
         self.window_histo.fill(0)
         window = np.copy(pbuf[240:720,320:960])
-        org, top, scale = vframe.histogram(window, self.window_histo, self.org_thres, self.top_thres)
-        fframe_org, fframe_top, fframe_scale = vframe.histogram(pbuf, self.fframe_histo, 30, 30)
+        org, top, scale = vframe.histogram(window, self.window_histo, self.org_thres, self.top_thres, self.discard)
+        fframe_org, fframe_top, fframe_scale = vframe.histogram(pbuf, self.fframe_histo, 30, 30, 0)
         
         kp        = self._kp
         ka        = self._ka
@@ -180,7 +181,7 @@ class TSDC_Core(QObject):
                 ovexp = np.sum(self.window_histo[int(top_ref/scale)+1:int(top/scale)+1])
             else:
                 ovexp = 0
-            
+                
             s = top_ref/(top + kp*ovexp)*(f.iexp + f.fexp/FEXP_MAX)
             stim = stim + ka*(s - stim)
             if stim < 0:
