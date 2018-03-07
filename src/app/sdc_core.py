@@ -70,11 +70,17 @@ class TSDC_Core(QObject):
         
         self._agc_ena = True
         
+        self.org_thres = 5
+        self.top_thres = 5
+        self.discard   = 0.005
+        
         self._kf = 0.1
-        self._kp = 1.0
-        self._ka = 0.2
+        self._kp = 0.5
+        self._ka = 0.5
         
         self._stim = 0
+        
+        self._swing = 4096.0
         
         self.IEXP_MIN = 0
         self.IEXP_MAX = 978
@@ -85,6 +91,9 @@ class TSDC_Core(QObject):
         self._fexp = self.FEXP_MIN
         
         self._top_ref = 3800.0;
+        
+        self.window_histo = np.zeros( (1024), dtype=np.uint32)
+        self.fframe_histo = np.zeros( (1024), dtype=np.uint32)
         
         #-----------------------------------------
         #
@@ -146,9 +155,13 @@ class TSDC_Core(QObject):
     def processing(self):
         vframe.qpipe_get_frame(self._f, self._p)
         pbuf = self._f.pixbuf
-        self.histo = np.zeros( (1024), dtype=np.uint32)
-        org, top, scale = vframe.histogram(pbuf, self.histo, 30)
 
+        self.fframe_histo.fill(0)
+        self.window_histo.fill(0)
+        window = np.copy(pbuf[240:720,320:960])
+        org, top, scale = vframe.histogram(window, self.window_histo, self.org_thres, self.top_thres, self.discard)
+        fframe_org, fframe_top, fframe_scale = vframe.histogram(pbuf, self.fframe_histo, 30, 30, 0)
+        
         kp        = self._kp
         ka        = self._ka
         iexp      = self._iexp
@@ -158,15 +171,18 @@ class TSDC_Core(QObject):
         FEXP_MAX  = self.FEXP_MAX
         FEXP_MIN  = self.FEXP_MIN
         stim      = self._stim
+        swing     = self._swing
         f         = self._f
         top_ref   = self._top_ref 
-        
-        
-        if top > 4000:
-            top_ref = 0
-        
+                      
         if self._agc_ena:
-            s = kp*top_ref/top*(f.iexp + f.fexp/FEXP_MAX)
+
+            if top>top_ref:
+                ovexp = np.sum(self.window_histo[int(top_ref/scale)+1:int(top/scale)+1])
+            else:
+                ovexp = 0
+            
+            s = top_ref/(top + kp*ovexp)*(f.iexp + f.fexp/FEXP_MAX)
             stim = stim + ka*(s - stim)
             if stim < 0:
                 stim = 0
@@ -183,16 +199,17 @@ class TSDC_Core(QObject):
             if fexp > FEXP_MAX:
                 fexp = FEXP_MAX
                 
-            self.wcam( self.IEXP, iexp )
-            self.wcam( self.FEXP, fexp )
+            self._wcam( self.IEXP, iexp )
+            self._wcam( self.FEXP, fexp )
             
-            self._stim = stim
-            self._iexp = iexp
-            self._fexp = fexp
-            
-            swing = top - org
+            swing = swing + 0.1*((fframe_top - fframe_org) - swing)
             self._k = 4096.0/swing
-            vframe.scale(pbuf, org, self._k)
+            vframe.scale(pbuf, fframe_org, self._k)
+            
+            self._stim  = stim
+            self._iexp  = iexp
+            self._fexp  = fexp                      
+            self._swing = swing
             
         self._pmap = vframe.make_display_frame(pbuf)
         self.display(self._pmap)

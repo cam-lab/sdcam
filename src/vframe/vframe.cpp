@@ -216,7 +216,7 @@ std::string vframe_repr(TVFrame & r)
     return out.str();
 }
 //------------------------------------------------------------------------------
-bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
+bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t orgThreshold, uint16_t topThreshold, float discardLevel)
 {
     int scale = (1 << VIDEO_DATA_WIDTH)/histo.shape(0); 
     int shift = log2(scale);
@@ -235,15 +235,29 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t threshold)
     
     for(int i = 0; i < histo.shape(0); ++i) 
     {
-        if(histbuf[i] >= threshold)
+        if(histbuf[i] >= orgThreshold)
         {
             min = i;
             break;
         }
     }
-    for(int i = histo.shape(0) - 1; i; --i) 
+    
+    uint16_t sum = 0;
+    uint16_t upperLimit = histo.shape(0) - 1;
+    
+    for(int i = upperLimit; i; --i)
     {
-        if(histbuf[i] >= threshold)
+        sum += histbuf[i];
+        if(sum > discardLevel*count)
+        {
+            upperLimit = i;
+            break;
+        }
+    }
+
+    for(int i = upperLimit; i; --i) 
+    {
+        if(histbuf[i] >= topThreshold)
         {
             max = i;
             break;
