@@ -70,8 +70,8 @@ class TSDC_Core(QObject):
         
         self._agc_ena = True
         
-        self.org_thres = 30
-        self.top_thres = 30
+        self.org_thres = 5
+        self.top_thres = 5
         self.discard   = 0.01
         
         self._kf = 0.1
