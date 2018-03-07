@@ -72,7 +72,7 @@ class TSDC_Core(QObject):
         
         self.org_thres = 5
         self.top_thres = 5
-        self.discard   = 0.01
+        self.discard   = 0.005
         
         self._kf = 0.1
         self._kp = 0.5
@@ -181,7 +181,7 @@ class TSDC_Core(QObject):
                 ovexp = np.sum(self.window_histo[int(top_ref/scale)+1:int(top/scale)+1])
             else:
                 ovexp = 0
-                
+            
             s = top_ref/(top + kp*ovexp)*(f.iexp + f.fexp/FEXP_MAX)
             stim = stim + ka*(s - stim)
             if stim < 0:
