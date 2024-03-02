@@ -32,7 +32,7 @@ def setup_logger(lvl):
     logging.basicConfig(filename=LOG_FILE,
                         filemode='w',
                         level=levels[lvl], 
-                        format='%(asctime)s %(module)-9s %(levelname)-7s : %(message)s',
+                        format='%(asctime)s %(module)-12s %(levelname)-7s : %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
 
 logger = logging.getLogger('default')
