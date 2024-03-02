@@ -4,8 +4,11 @@
 
 import sys
 
-from IPython.lib.kernel  import connect_qtconsole
+#from IPython.lib.kernel  import connect_qtconsole
+from ipykernel  import connect_qtconsole
 from ipykernel.kernelapp import IPKernelApp
+
+from logger   import logger as lg
 
 #-----------------------------------------------------------------------------
 # Functions and classes
@@ -13,10 +16,16 @@ from ipykernel.kernelapp import IPKernelApp
 def mpl_kernel(gui):
     """Launch and return an IPython kernel with matplotlib support for the desired gui
     """
-    kernel = IPKernelApp.instance()
-    kernel.initialize(['python', '--matplotlib=%s' % gui,
-                       #'--log-level=10'
-                       ])
+    kernel = IPKernelApp.instance(log=lg)
+    try:
+        kernel.initialize(['python', '--matplotlib=%s' % gui,
+                           #'--log-level=10'
+                          ])
+    except Exception:
+        sys.stdout = sys.__stdout__
+        lg.warning('kernelApp.initialize failed!')
+        raise
+        
     return kernel
 
 
@@ -50,6 +59,7 @@ class InternalIPKernel(object):
         self.namespace['app_counter'] += 1
 
     def cleanup_consoles(self, evt=None):
+        lg.warning('cleanup consoles')
         for c in self.consoles:
             c.kill()
 
