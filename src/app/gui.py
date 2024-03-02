@@ -109,9 +109,6 @@ class MainWindow(QMainWindow, InternalIPKernel):
 
         self.initUI(context)
 
-        self.app.lastWindowClosed.connect(self.app.quit)
-        self.app.aboutToQuit.connect(self.cleanup_consoles)
-        
         self.zoom         = 1.0
         self.view_cpos_x  = 0
         self.view_cpos_y  = 0
