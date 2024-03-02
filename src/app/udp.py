@@ -58,7 +58,6 @@ class TSocketThread(threading.Thread):
 
     #-------------------------------------------------------
     def run(self):
-        lg.info('udp socket thread::run')
         while True:
             item = command_queue.get()
             if item:
@@ -66,9 +65,9 @@ class TSocketThread(threading.Thread):
                 args = item[1]
                 fun(*args)
             else:
-                return
+                break
             
-        ld.info('udp socket thread::run exit')
+        lg.info('udp socket thread::run exit')
             
 #-------------------------------------------------------------------------------
     
