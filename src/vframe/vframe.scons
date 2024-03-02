@@ -27,7 +27,7 @@ env['CURDIR'] = CurDir
 #
 #     Setup sources and target
 #
-Sources = [ 'vframe.cpp', 'qpipe_cfg.cpp' ]
+Sources = [ 'vframe.cpp']
 Target = os.path.join(env['BINDIR'], ProductName)
 
 #-------------------------------------------------------------------------------
@@ -41,21 +41,24 @@ if Platform == 'win32':
     DEFINES += ['BOOST_ALL_NO_LIB']
 
 BOOST_PATH     = os.environ['BOOST_PATH']
-PYTHON_VERSION = os.environ['PYTHON_VERSION']
-PYTHON_INCLUDE = os.environ['PYTHON_INCLUDE']
-PYTHON_LIBPATH = os.environ['PYTHON_LIBPATH']
-PYTHON_LIBRARY = os.environ['PYTHON_LIBRARY']
+
+PYTHON_VER_MAJOR = '3'
+PYTHON_VER_MINOR = '10'
+PYTHON_VERSION   = PYTHON_VER_MAJOR + '.' + PYTHON_VER_MINOR
+PYTHON_VER_SFX   = PYTHON_VER_MAJOR + PYTHON_VER_MINOR
+
+PYTHON_INCLUDE = '/usr/include/python' + PYTHON_VERSION
+PYTHON_LIBRARY = 'python' + PYTHON_VERSION
+
+BOOST_PYTHON_LIB = 'boost_python' + PYTHON_VER_SFX
+BOOST_NUMPY_LIB  = 'boost_numpy'  + PYTHON_VER_SFX
 
 
 env.Append(CCFLAGS = ['-D'+ d for d in DEFINES] )
 env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include')])
 env.Append(CPPPATH = [PYTHON_INCLUDE])
 env.Append(LIBPATH = [os.path.join(BOOST_PATH, 'lib')])
-env.Append(LIBPATH = [PYTHON_LIBPATH])
-env.Append(LIBS = [PYTHON_LIBRARY, 'boost_numpy3', 'boost_python3', 'ip_qpipe'])
-
-env.EnableQt5Modules(['QtCore']) # should be after project libs
-
+env.Append(LIBS = [PYTHON_LIBRARY, BOOST_PYTHON_LIB, BOOST_NUMPY_LIB])
 
 env['SHLIBPREFIX'] = ''
 if Platform == 'win32':

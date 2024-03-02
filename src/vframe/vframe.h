@@ -28,10 +28,6 @@
 
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
-    
-
-#include <ip_qpipe_def.h>
-#include <ip_qpipe_lib.h>
 
 namespace bp = boost::python;
 namespace np = boost::python::numpy;

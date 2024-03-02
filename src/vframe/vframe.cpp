@@ -33,7 +33,7 @@
 #include <cmath>
 
 #include "timing.h"
-#include "qpipe_cfg.h"
+#include "vframe.h"
 
 #include <array_ref.h>
 #include <array_indexing_suite.h>
@@ -310,6 +310,34 @@ np::ndarray make_display_frame(np::ndarray &pixbuf)
     return obuf;
 }
 //------------------------------------------------------------------------------
+#include <unistd.h>
+
+int get_frame(TVFrame &f)
+{
+    //sleep(0.04);
+
+    static uint16_t org = 0;
+
+    uint16_t buf[FRAME_SIZE_X][FRAME_SIZE_Y];
+
+    for(size_t y = 0; y < FRAME_SIZE_Y; ++y)
+    {
+        for(size_t x = 0; x < FRAME_SIZE_X; ++x)
+        {
+            buf[x][y] = org + y + x;
+        }
+    }
+    std::memcpy(f.pixbuf.get_data(),
+                reinterpret_cast<uint8_t*>(buf),
+                FRAME_SIZE_X*FRAME_SIZE_Y*sizeof(buf[0][0]));
+
+
+    org += 20;
+
+    return 1;
+}
+
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 BOOST_PYTHON_MODULE(vframe)
@@ -338,55 +366,14 @@ BOOST_PYTHON_MODULE(vframe)
             .def("__repr__", vframe_repr)
         ;
     }
-    
-    //--------------------------------------------------------------------------
-    //
-    //    qpipe parameters wrap definitions
-    //
-    {
-        scope qpipe_rx_params_scope = 
-        class_<TPipeRxParams>("TPipeRxParams")
-            .add_property("key",       make_getter(&TPipeRxParams::pipeKey  ), make_setter(&TPipeRxParams::pipeKey  ))
-            .add_property("isCreated", make_getter(&TPipeRxParams::isCreated), make_setter(&TPipeRxParams::isCreated))
-            .add_property("id",        make_getter(&TPipeRxParams::pipeId   ), make_setter(&TPipeRxParams::pipeId   ))
-            .add_property("info",      make_getter(&TPipeRxParams::pipeInfo ), make_setter(&TPipeRxParams::pipeInfo ))
-            .def("__str__",  pipe_rx_params_str)
-            .def("__repr__", pipe_rx_params_repr)
-        ;
-
-        class_< array_ref<uint32_t> >("uint32_t_array")
-            .def( array_indexing_suite< array_ref<uint32_t> >() )
-        ;
-        
-        class_<TPipeInfo>("TPipeInfo")
-            .add_property("chunkSize", make_getter(&TPipeInfo::chunkSize), make_setter(&TPipeInfo::chunkSize))
-            .add_property("chunkNum",  make_getter(&TPipeInfo::chunkNum),  make_setter(&TPipeInfo::chunkNum))
-            .add_property("txReady",   make_getter(&TPipeInfo::txReady),   make_setter(&TPipeInfo::txReady))
-            .add_property("rxReady",   
-                          // getter that returns an array_ref view into the array
-                          static_cast< array_ref<uint32_t>(*)(TPipeInfo *) >([](TPipeInfo *obj)
-                          //(+[](TPipeInfo *obj)
-                          {
-                              return array_ref<uint32_t>(obj->rxReady);
-                          }),
-                          "Array of 'rxReady'")
-            .def("__str__",  pipe_info_str)
-            .def("__repr__", pipe_info_repr)
-        ;
-    }
-    
     //--------------------------------------------------------------------------
     //
     //    Common exposed functions
     //
     def("init_numpy",         init_numpy);
-    def("qpipe_cfg",          qpipe_cfg);
-    def("qpipe_read_data",    qpipe_read_data);
-    def("qpipe_get_frame",    qpipe_get_frame);
-                              
+    def("get_frame",          get_frame);
     def("histogram",          histogram);
     def("scale",              scale);
-    
     def("make_display_frame", make_display_frame);
 }
 //------------------------------------------------------------------------------
