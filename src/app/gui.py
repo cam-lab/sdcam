@@ -142,6 +142,20 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.save_settings()
         self.close_signal.emit()
         QWidget.closeEvent(self, event)
+        lg.info('Main Window closed')
+
+        #-------------------------------------------------------------
+        #
+        #    Exit Jupyter Kernel Application event loop
+        #
+        import jupyter_client
+
+        cfname = self.ipkernel.connection_file
+        cfile  = jupyter_client.find_connection_file(cfname)
+        client = jupyter_client.AsyncKernelClient(connection_file=cfile)
+        client.load_connection_file()
+        client.start_channels()
+        client.shutdown()
 
     #---------------------------------------------------------------------------
     def init_pixmap_item(self, width, heigh, pixmap, zval):
