@@ -266,7 +266,7 @@ bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t orgThreshol
     return bp::make_tuple(min*scale, max*scale, scale);
 }
 //------------------------------------------------------------------------------
-void scale(np::ndarray& pixbuf, int sub, double k)
+void scale(np::ndarray &pixbuf, int sub, double k)
 {
     int count = pixbuf.shape(0)*pixbuf.shape(1);
     uint16_t *buf  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
@@ -314,23 +314,21 @@ np::ndarray make_display_frame(np::ndarray &pixbuf)
 
 int get_frame(TVFrame &f)
 {
-    //sleep(0.04);
-
     static uint16_t org = 0;
 
-    uint16_t buf[FRAME_SIZE_X][FRAME_SIZE_Y];
+    uint16_t buf[FRAME_SIZE_Y][FRAME_SIZE_X];
 
     for(size_t y = 0; y < FRAME_SIZE_Y; ++y)
     {
         for(size_t x = 0; x < FRAME_SIZE_X; ++x)
         {
-            buf[x][y] = org + y + x;
+            buf[y][x] = (org + y + x) & ( (1 << VIDEO_DATA_WIDTH) - 1);
         }
     }
+
     std::memcpy(f.pixbuf.get_data(),
                 reinterpret_cast<uint8_t*>(buf),
                 FRAME_SIZE_X*FRAME_SIZE_Y*sizeof(buf[0][0]));
-
 
     org += 20;
 
