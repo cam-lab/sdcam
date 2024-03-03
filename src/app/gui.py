@@ -27,6 +27,8 @@ from logger import logger as lg
 
 from badpix import TBadPix
 
+from vframe import FRAME_SIZE_X, FRAME_SIZE_Y
+
 run_path, filename = os.path.split(  os.path.abspath(__file__) )
 ico_path = os.path.join( run_path, 'ico' )
 
@@ -218,9 +220,9 @@ class MainWindow(QMainWindow):
     def setup_main_scene(self):
         self.MainScene = QGraphicsScene(self)
         self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))
-        self.NoVStreamPixmap = QPixmap(1280, 960)
+        self.NoVStreamPixmap = QPixmap(FRAME_SIZE_X, FRAME_SIZE_Y)
         self.NoVStreamPixmap.fill(QColor(0x00,0x00,0x40,255))
-        self.PixmapItem = self.init_pixmap_item(1280, 960, self.NoVStreamPixmap, 1)
+        self.PixmapItem = self.init_pixmap_item(FRAME_SIZE_X, FRAME_SIZE_Y, self.NoVStreamPixmap, 1)
         self.MainScene.addItem(self.PixmapItem)
 
         self.MainView = TGraphicsView(self.MainScene, self)

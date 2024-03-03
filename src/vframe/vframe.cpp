@@ -318,11 +318,16 @@ int get_frame(TVFrame &f)
 
     uint16_t buf[FRAME_SIZE_Y][FRAME_SIZE_X];
 
-    for(size_t y = 0; y < FRAME_SIZE_Y; ++y)
+    for(size_t row = 0; row < FRAME_SIZE_Y; ++row)
     {
-        for(size_t x = 0; x < FRAME_SIZE_X; ++x)
+        for(size_t col = 0; col < FRAME_SIZE_X; ++col)
         {
-            buf[y][x] = (org + y + x) & ( (1 << VIDEO_DATA_WIDTH) - 1);
+            buf[row][col] = (org + row + col) & VIDEO_DATA_MAX;
+            if(row == 100 && col == 100)
+            {
+                buf[row][col] = 4000;
+
+            }
         }
     }
 
@@ -330,7 +335,7 @@ int get_frame(TVFrame &f)
                 reinterpret_cast<uint8_t*>(buf),
                 FRAME_SIZE_X*FRAME_SIZE_Y*sizeof(buf[0][0]));
 
-    org += 20;
+    //org += 20;
 
     return 1;
 }
@@ -341,6 +346,9 @@ int get_frame(TVFrame &f)
 BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
+
+    scope().attr("FRAME_SIZE_X") = FRAME_SIZE_X;
+    scope().attr("FRAME_SIZE_Y") = FRAME_SIZE_Y;
 
     //--------------------------------------------------------------------------
     //
