@@ -1,6 +1,7 @@
 
 
 import os
+import time
 import threading
 import numpy as np
 
@@ -28,26 +29,6 @@ class TSDC_Core(QObject):
         #
         #    MMR 
         #
-        self.WRITE_MMR = 0x0001
-        self.READ_MMR  = 0x0002
-        
-        self.SPI_DR    = 0x30
-        self.SPI_CSR   = 0x31
-        
-        self.RD        = 0xA000
-        self.WR        = 0xB000
-        
-        self.CR        = 0x0
-        self.CR_S      = 0x01
-        self.CR_C      = 0x02
-        self.IEXP      = 0x04
-        self.FEXP      = 0x06
-        self.PGA       = 0x08
-        self.NPULSES   = 0x0A
-        self.PINCH     = 0x0C
-        self.DEPTH     = 0x0E
-        self.TRIM      = 0x10
-        self.PWIDTH    = 0x12
         
         #-----------------------------------------
         #
@@ -61,12 +42,6 @@ class TSDC_Core(QObject):
         vframe.init_numpy()
 
         self._f = vframe.TVFrame()
-        self._p = vframe.TPipeRxParams()
-
-        self._p.key = 2307
-        
-        vframe.qpipe_cfg(self._p)
-        lg.info(os.linesep +  str(self._p))
         
         self._agc_ena = True
         
@@ -137,8 +112,8 @@ class TSDC_Core(QObject):
         self._wcam( self.PGA, 2 )
         
     #-------------------------------------------------------
-    def read(self):
-        return vframe.qpipe_get_frame(self._f, self._p)
+#   def read(self):
+#       return vframe.qpipe_get_frame(self._f, self._p)
 
     #-------------------------------------------------------
     def display(self, pmap):
@@ -153,7 +128,7 @@ class TSDC_Core(QObject):
 
     #-------------------------------------------------------
     def processing(self):
-        vframe.qpipe_get_frame(self._f, self._p)
+        vframe.get_frame(self._f)
         pbuf = self._f.pixbuf
 
         self.fframe_histo.fill(0)
@@ -161,58 +136,11 @@ class TSDC_Core(QObject):
         window = np.copy(pbuf[240:720,320:960])
         org, top, scale = vframe.histogram(window, self.window_histo, self.org_thres, self.top_thres, self.discard)
         fframe_org, fframe_top, fframe_scale = vframe.histogram(pbuf, self.fframe_histo, 30, 30, 0)
-        
-        kp        = self._kp
-        ka        = self._ka
-        iexp      = self._iexp
-        fexp      = self._fexp
-        IEXP_MAX  = self.IEXP_MAX
-        IEXP_MIN  = self.IEXP_MIN
-        FEXP_MAX  = self.FEXP_MAX
-        FEXP_MIN  = self.FEXP_MIN
-        stim      = self._stim
-        swing     = self._swing
-        f         = self._f
-        top_ref   = self._top_ref 
-                      
-        if self._agc_ena:
 
-            if top>top_ref:
-                ovexp = np.sum(self.window_histo[int(top_ref/scale)+1:int(top/scale)+1])
-            else:
-                ovexp = 0
-            
-            s = top_ref/(top + kp*ovexp)*(f.iexp + f.fexp/FEXP_MAX)
-            stim = stim + ka*(s - stim)
-            if stim < 0:
-                stim = 0
-                
-            iexp = int(stim)
-            fexp = int((stim - iexp)*FEXP_MAX)
-            
-            if iexp > IEXP_MAX:
-                iexp = IEXP_MAX
-                
-            if fexp < FEXP_MIN:
-                fexp = FEXP_MIN
-            
-            if fexp > FEXP_MAX:
-                fexp = FEXP_MAX
-                
-            self._wcam( self.IEXP, iexp )
-            self._wcam( self.FEXP, fexp )
-            
-            swing = swing + 0.1*((fframe_top - fframe_org) - swing)
-            self._k = 4096.0/swing
-            vframe.scale(pbuf, fframe_org, self._k)
-            
-            self._stim  = stim
-            self._iexp  = iexp
-            self._fexp  = fexp                      
-            self._swing = swing
-            
         self._pmap = vframe.make_display_frame(pbuf)
-        self.display(self._pmap)
+        pmap = vframe.make_display_frame(pbuf)
+        self.display(pmap)
+        time.sleep(0.04)
            
     #-----------------------------------------------------------------
     #
@@ -287,19 +215,18 @@ class TSDC_Core(QObject):
 class TVFrameThread(threading.Thread):
 
     #-------------------------------------------------------
-    def __init__(self, name='VFrame Thread' ):
+    def __init__(self, sdc, name='VFrame Thread' ):
         super().__init__()
+        self.core          = sdc
         self._finish_event = threading.Event()
-        self.core = TSDC_Core()
 
     #-------------------------------------------------------
     def finish(self):
-        self._finish_event.set()
         lg.info('VFrame Thread pending to finish')
+        self._finish_event.set()
 
     #-------------------------------------------------------
     def run(self):
-        self.core.init_cam()
         while True:
             self.core.processing()
             if self._finish_event.is_set():
