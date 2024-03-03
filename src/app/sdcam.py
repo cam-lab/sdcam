@@ -24,8 +24,9 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore    import QObject, pyqtSignal, QFileSystemWatcher
 from PyQt5.QtCore    import QT_VERSION_STR, pyqtSignal
 
-from IPython.utils.frame import extract_module_locals
-from ipykernel.kernelapp import IPKernelApp
+#from IPython.utils.frame import extract_module_locals
+#from ipykernel.kernelapp import IPKernelApp
+from internal_ipkernel   import InternalIPKernel
 
 from sdc_core import *
 import gui
@@ -47,27 +48,30 @@ def get_app_qt5(*args, **kwargs):
     return app
 
 #-------------------------------------------------------------------------------
-class TSDCam(QObject):
+class TSDCam(QObject, InternalIPKernel):
 
     def __init__(self, app, args):
         
         super().__init__()
-        
+
+        sdc = TSDC_Core()
+        self.init_ipkernel('qt', { 'sdcam' : self, 'sdc' : sdc })
+
         #-------------------------------------------------------------
         #
         #    Main window
         #
-        self.mwin = gui.MainWindow(app, { 'sdcam' : self })
+        self.mwin = gui.MainWindow(app, self)
         lg.info('start main window')
-        
+
         #-------------------------------------------------------------
         #
         #    Thread objects
         #
         self.wdthread = TWatcherThread(os.path.abspath(LOG_FILE))
-        self.vfthread = TVFrameThread()
+        self.vfthread = TVFrameThread(sdc)
         self.usthread = TSocketThread()
-
+        
         #-------------------------------------------------------------
         #
         #    Signal/Slot connections
@@ -76,7 +80,7 @@ class TSDCam(QObject):
                                                           Qt.QueuedConnection)
         
         if args.console:
-            ipycon.launch_jupyter_console(self.mwin.ipkernel.abs_connection_file.replace('\\', '/'),
+            ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file.replace('\\', '/'),
                                           args.console)
 
         app.aboutToQuit.connect(self.finish)
@@ -110,12 +114,33 @@ class TSDCam(QObject):
         self.vfthread.join()
         self.wdthread.finish()
         self.wdthread.join()
-        
+
+        #-------------------------------------------------------------
+        #
+        #    Exit Jupyter Kernel Application event loop
+        #
+        import jupyter_client
+
+        cfname = self.ipkernel.connection_file
+        cfile  = jupyter_client.find_connection_file(cfname)
+        client = jupyter_client.AsyncKernelClient(connection_file=cfile)
+        client.load_connection_file()
+        client.start_channels()
+        client.shutdown()
+
         lg.info('sdcam has finished')
 
     def generate_frame(self):
         self.frame
     
+    #---------------------------------------------------------------------------
+    def launch_jupyter_console_slot(self):
+        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'shell')
+
+    #---------------------------------------------------------------------------
+    def launch_jupyter_qtconsole_slot(self):
+        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'qt')
+
 #-------------------------------------------------------------------------------
 def main():
     print('Qt Version: ' + QT_VERSION_STR)
@@ -145,7 +170,8 @@ def main():
     
     # Very important, IPython-specific step: this gets GUI event loop
     # integration going, and it replaces calling app.exec()
-    sdcam.mwin.ipkernel.start()
+    #sdcam.mwin.ipkernel.start()
+    sdcam.ipkernel.start()
     #sys.exit( app.exec() )
 
 #-------------------------------------------------------------------------------

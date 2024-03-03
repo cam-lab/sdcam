@@ -19,7 +19,7 @@ from PyQt5.QtGui     import QIcon, QImage, QPixmap, QColor, QTransform
 from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent
 from PyQt5.QtCore    import QT_VERSION_STR
 
-from internal_ipkernel import InternalIPKernel
+#from internal_ipkernel import InternalIPKernel
 
 import ipycon
 
@@ -96,18 +96,18 @@ class TGraphicsView(QGraphicsView):
         QGraphicsView.mouseMoveEvent(self, event)
                 
 #-------------------------------------------------------------------------------
-class MainWindow(QMainWindow, InternalIPKernel):
+class MainWindow(QMainWindow):
 
     close_signal = pyqtSignal()
     
     #---------------------------------------------------------------------------
-    def __init__(self, app, context):
+    def __init__(self, app, owner):
         super().__init__()
 
-        self.app = app
-        self.init_ipkernel('qt', context)
+        self.app   = app
+        self.owner = owner
 
-        self.initUI(context)
+        self.initUI()
 
         self.zoom         = 1.0
         self.view_cpos_x  = 0
@@ -144,19 +144,6 @@ class MainWindow(QMainWindow, InternalIPKernel):
         QWidget.closeEvent(self, event)
         lg.info('Main Window closed')
 
-        #-------------------------------------------------------------
-        #
-        #    Exit Jupyter Kernel Application event loop
-        #
-        import jupyter_client
-
-        cfname = self.ipkernel.connection_file
-        cfile  = jupyter_client.find_connection_file(cfname)
-        client = jupyter_client.AsyncKernelClient(connection_file=cfile)
-        client.load_connection_file()
-        client.start_channels()
-        client.shutdown()
-
     #---------------------------------------------------------------------------
     def init_pixmap_item(self, width, heigh, pixmap, zval):
         pixmap_item = QGraphicsPixmapItem(pixmap)
@@ -187,14 +174,6 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.PixmapItem.setPixmap(pmap)
     
     #---------------------------------------------------------------------------
-    def launch_jupyter_console_slot(self):
-        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'shell')
-        
-    #---------------------------------------------------------------------------
-    def launch_jupyter_qtconsole_slot(self):
-        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'qt')
-
-    #---------------------------------------------------------------------------
     def setup_actions(self):
         self.exitAction = QAction(QIcon( os.path.join(ico_path, 'exit24.png') ), 'Exit', self)
         self.exitAction.setShortcut('Ctrl+Q')
@@ -204,12 +183,12 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
         self.ipyConsoleAction.setShortcut('Alt+S')
         self.ipyConsoleAction.setStatusTip('Launch Jupyter Console')
-        self.ipyConsoleAction.triggered.connect(self.launch_jupyter_console_slot)
+        self.ipyConsoleAction.triggered.connect(self.owner.launch_jupyter_console_slot)
 
         self.ipyQtConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-qtconsole-24.png') ), 'Jupyter QtConsole', self)
         self.ipyQtConsoleAction.setShortcut('Alt+T')
         self.ipyQtConsoleAction.setStatusTip('Launch Jupyter QtConsole')
-        self.ipyQtConsoleAction.triggered.connect(self.launch_jupyter_qtconsole_slot)
+        self.ipyQtConsoleAction.triggered.connect(self.owner.launch_jupyter_qtconsole_slot)
         
         self.agcAction = QAction(QIcon( os.path.join(ico_path, 'agc-24.png') ), 'Automatic Gain Control', self)
         self.agcAction.setShortcut('Alt+G')
@@ -257,7 +236,7 @@ class MainWindow(QMainWindow, InternalIPKernel):
         self.Log.setWidget(self.LogWidget)
         
     #---------------------------------------------------------------------------
-    def initUI(self, context):
+    def initUI(self): #, context):
 
         #----------------------------------------------------
         #

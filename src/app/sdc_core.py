@@ -112,8 +112,8 @@ class TSDC_Core(QObject):
         self._wcam( self.PGA, 2 )
         
     #-------------------------------------------------------
-    def read(self):
-        return vframe.qpipe_get_frame(self._f, self._p)
+#   def read(self):
+#       return vframe.qpipe_get_frame(self._f, self._p)
 
     #-------------------------------------------------------
     def display(self, pmap):
@@ -136,9 +136,10 @@ class TSDC_Core(QObject):
         window = np.copy(pbuf[240:720,320:960])
         org, top, scale = vframe.histogram(window, self.window_histo, self.org_thres, self.top_thres, self.discard)
         fframe_org, fframe_top, fframe_scale = vframe.histogram(pbuf, self.fframe_histo, 30, 30, 0)
-        
+
         self._pmap = vframe.make_display_frame(pbuf)
-        self.display(self._pmap)
+        pmap = vframe.make_display_frame(pbuf)
+        self.display(pmap)
         time.sleep(0.04)
            
     #-----------------------------------------------------------------
@@ -214,10 +215,10 @@ class TSDC_Core(QObject):
 class TVFrameThread(threading.Thread):
 
     #-------------------------------------------------------
-    def __init__(self, name='VFrame Thread' ):
+    def __init__(self, sdc, name='VFrame Thread' ):
         super().__init__()
+        self.core          = sdc
         self._finish_event = threading.Event()
-        self.core = TSDC_Core()
 
     #-------------------------------------------------------
     def finish(self):
