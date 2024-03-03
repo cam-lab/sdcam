@@ -326,7 +326,6 @@ int get_frame(TVFrame &f)
             if(row == 100 && col == 100)
             {
                 buf[row][col] = 4000;
-
             }
         }
     }

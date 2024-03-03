@@ -14,9 +14,9 @@ from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
                              QDockWidget, QAction)
 
 from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
-                             QHeaderView)
+                             QHeaderView, QRubberBand)
 from PyQt5.QtGui     import QIcon, QImage, QPixmap, QColor, QTransform
-from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent
+from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QPoint, QSize
 from PyQt5.QtCore    import QT_VERSION_STR
 
 #from internal_ipkernel import InternalIPKernel
@@ -40,6 +40,9 @@ fqueue = queue.Queue()
 #-------------------------------------------------------------------------------
 class TGraphicsView(QGraphicsView):
     
+    #  for rect selection
+    #rectChanged = pyqtSignal(QRect)
+    
     #---------------------------------------------------------------------------
     def __init__(self, scene, parent):
         super().__init__(scene)
@@ -50,6 +53,13 @@ class TGraphicsView(QGraphicsView):
         
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        #  for rect selection
+#       self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
+#       self.setMouseTracking(True)
+#       self.origin = QPoint()
+#       self.changeRubberBand = False
+
         
     #---------------------------------------------------------------------------
     def wheelEvent(self, event):
@@ -79,6 +89,13 @@ class TGraphicsView(QGraphicsView):
             #lg.info('pos: ' + str(view_x) + ', ' + str(view_y) + '| scene: ' + str(scene_x) + ', ' + str(scene_y))
             
             self.parent.bad_pix.toggle_pixel( (scene_x, scene_y) )
+            
+            #  for rect selection
+#       self.origin = event.pos()
+#       self.rubberBand.setGeometry(QRect(self.origin, QSize()))
+#       self.rectChanged.emit(self.rubberBand.geometry())
+#       self.rubberBand.show()
+#       self.changeRubberBand = True
 
         QGraphicsView.mousePressEvent(self, event)
        
@@ -90,7 +107,18 @@ class TGraphicsView(QGraphicsView):
         scene_x = int(scene_pos.x())
         scene_y = int(scene_pos.y())
         self.parent.set_cursor_pos(view_x, view_y, scene_x, scene_y)
+        
+        #  for rect selection
+#       if self.changeRubberBand:
+#           self.rubberBand.setGeometry(QRect(self.origin, event.pos()).normalized())
+#           self.rectChanged.emit(self.rubberBand.geometry())
+
         QGraphicsView.mouseMoveEvent(self, event)
+        
+        #  for rect selection
+#   def mouseReleaseEvent(self, event):
+#       self.changeRubberBand = False
+#       QGraphicsView.mouseReleaseEvent(self, event)
                 
 #-------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
