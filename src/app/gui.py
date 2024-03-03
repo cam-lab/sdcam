@@ -48,29 +48,24 @@ class TGraphicsView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.NoAnchor)
         
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        
     #---------------------------------------------------------------------------
     def wheelEvent(self, event):
         steps = 1 if event.angleDelta().y() > 0 else -1
-        factor = 1 + 0.25*steps
+        factor = 1 + 0.2*steps
         
         oldPos = self.mapToScene(event.pos())
-        hsbar = self.horizontalScrollBar().value()
-        vsbar = self.verticalScrollBar().value()
-        if (factor > 1 and  hsbar < 128000 and vsbar < 128000) or \
-           (factor < 1 and (hsbar > 0      or  vsbar > 0)):
-            self.scale(factor, factor)
-            newPos = self.mapToScene(event.pos())
-            delta  = newPos - oldPos
-            self.translate(delta.x(), delta.y())
-            
-            visible_rect   = self.mapToScene(self.viewport().geometry()).boundingRect()
-            visible_widht  = int(visible_rect.width())
-            visible_height = int(visible_rect.height())
-            
-            ratio_x = self.viewport().width()/visible_rect.width()
-            ratio_y = self.viewport().width()/visible_rect.height()
-            
-            self.parent.set_zoom(ratio_x)
+        self.scale(factor, factor)
+        newPos = self.mapToScene(event.pos())
+        delta  = newPos - oldPos
+        self.translate(delta.x(), delta.y())
+
+        visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
+        ratio_x       = self.viewport().width()/visible_rect.width()
+
+        self.parent.set_zoom(ratio_x)
             
     #---------------------------------------------------------------------------
     def mousePressEvent(self, event):
