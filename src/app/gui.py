@@ -46,6 +46,7 @@ class TGraphicsView(QGraphicsView):
     #---------------------------------------------------------------------------
     def __init__(self, scene, parent):
         super().__init__(scene)
+        self.scene  = scene
         self.parent = parent
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
@@ -101,12 +102,19 @@ class TGraphicsView(QGraphicsView):
        
     #---------------------------------------------------------------------------
     def mouseMoveEvent(self, event):
-        view_x = event.pos().x()
-        view_y = event.pos().y()
+        view_x    = event.pos().x()
+        view_y    = event.pos().y()
         scene_pos = self.mapToScene(event.pos())
-        scene_x = int(scene_pos.x())
-        scene_y = int(scene_pos.y())
-        self.parent.set_cursor_pos(view_x, view_y, scene_x, scene_y)
+        scene_x   = int(scene_pos.x())
+        scene_y   = int(scene_pos.y())
+        img       = self.scene.items()[0].pixmap().toImage()
+        if scene_x >= 0 and scene_x < FRAME_SIZE_X and \
+           scene_y >= 0 and scene_y < FRAME_SIZE_Y:
+           pix_val = img.pixel(scene_x, scene_y) & 0xff
+        else:
+            pix_val = None
+        
+        self.parent.set_cursor_pos(view_x, view_y, scene_x, scene_y, pix_val)
         
         #  for rect selection
 #       if self.changeRubberBand:
@@ -287,9 +295,9 @@ class MainWindow(QMainWindow):
         
     #---------------------------------------------------------------------------
     def update_status_bar(self):
-        text = 'Zoom: {:.1f} | View: {:d} {:d} | Scene: {:d} {:d}'.format(self.zoom, 
+        text = 'Zoom: {:.1f} | View: {:d} {:d} | Scene: {:d} {:d} | Value: {}'.format(self.zoom,
                                                                           self.view_cpos_x,  self.view_cpos_y,
-                                                                          self.scene_cpos_x, self.scene_cpos_y)
+                                                                          self.scene_cpos_x, self.scene_cpos_y, self.pixval)
         self.statusBar().showMessage(text)
         
     #---------------------------------------------------------------------------
@@ -298,11 +306,12 @@ class MainWindow(QMainWindow):
         self.update_status_bar()
         
     #---------------------------------------------------------------------------
-    def set_cursor_pos(self, vx, vy, sx, sy):
+    def set_cursor_pos(self, vx, vy, sx, sy, pval):
         self.view_cpos_x  = vx
         self.view_cpos_y  = vy
         self.scene_cpos_x = sx
         self.scene_cpos_y = sy
+        self.pixval       = pval
         self.update_status_bar()
                 
 #-------------------------------------------------------------------------------
