@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
 
 from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
                              QHeaderView, QRubberBand)
-from PyQt5.QtGui     import QIcon, QImage, QPixmap, QColor, QTransform
+from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform
 from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QPoint, QSize
 from PyQt5.QtCore    import QT_VERSION_STR
 
@@ -263,6 +263,7 @@ class MainWindow(QMainWindow):
     #---------------------------------------------------------------------------
     def initUI(self): #, context):
 
+        self.app.setOverrideCursor(QCursor(Qt.ArrowCursor))
         #----------------------------------------------------
         #
         #    Main Window
