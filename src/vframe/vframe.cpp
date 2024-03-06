@@ -292,19 +292,17 @@ void scale(np::ndarray &pixbuf, int sub, double k)
 //------------------------------------------------------------------------------
 np::ndarray make_display_frame(np::ndarray &pixbuf)
 {
-    bp::tuple shape  = bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X, 3); 
-    np::ndarray obuf = np::empty(shape, np::dtype::get_builtin<uint8_t>());
+    bp::tuple shape  = bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X);
+    np::ndarray obuf = np::empty(shape, np::dtype::get_builtin<uint32_t>());
     
-    int count = pixbuf.shape(0)*pixbuf.shape(1);
+    size_t    count  = pixbuf.shape(0)*pixbuf.shape(1);
     uint16_t *idata  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
-    uint8_t  *odata  = reinterpret_cast<uint8_t  *>( obuf.get_data() );
+    uint32_t *odata  = reinterpret_cast<uint32_t  *>( obuf.get_data() );
 
-    for(int i = 0; i < count; ++i)
+    for(size_t i = 0; i < count; ++i)
     {
-        int val        = idata[i] >> 4;
-        odata[i*3 + 0] = val;
-        odata[i*3 + 1] = val;
-        odata[i*3 + 2] = val;
+        uint64_t val  = idata[i];
+        odata[i] = val | (val << 10) | (val << 20);
     }
     
     return obuf;
@@ -322,11 +320,9 @@ int get_frame(TVFrame &f)
     {
         for(size_t col = 0; col < FRAME_SIZE_X; ++col)
         {
-            buf[row][col] = (org + row + col) & VIDEO_DATA_MAX;
-            if(row == 100 && col == 100)
-            {
-                buf[row][col] = 4000;
-            }
+            buf[row][col] = (row + col) & VIDEO_OUT_DATA_MAX;
+            if(row == 100 && col == 100) buf[row][col] = 1023;
+            if(row == 100 && col == 101) buf[row][col] = 1023/2;
         }
     }
 

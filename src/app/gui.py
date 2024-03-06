@@ -110,7 +110,7 @@ class TGraphicsView(QGraphicsView):
         img       = self.scene.items()[0].pixmap().toImage()
         if scene_x >= 0 and scene_x < FRAME_SIZE_X and \
            scene_y >= 0 and scene_y < FRAME_SIZE_Y:
-           pix_val = img.pixel(scene_x, scene_y) & 0xff
+            pix_val = self.parent.img.pixelColor(scene_x, scene_y).rgba64().blue() >> 6
         else:
             pix_val = None
         
@@ -194,10 +194,13 @@ class MainWindow(QMainWindow):
         img = QImage(img_data,
                      img_data.shape[1], 
                      img_data.shape[0], 
-                     QImage.Format_RGB888)
+                     QImage.Format_RGB30)
 
+
+        self.img = img
         for pix in self.bad_pix.pixels():
-            img.setPixelColor(pix[0], pix[1], QColor(0, 255, 0))
+            if pix[0] >= 0 and pix[0] < FRAME_SIZE_X and pix[1] >= 0 and pix[1] < FRAME_SIZE_Y:
+               img.setPixelColor(pix[0], pix[1], QColor(0, 255, 0))
         
         self.show_image(img)
         
