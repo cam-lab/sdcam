@@ -266,6 +266,11 @@ class MainWindow(QMainWindow):
         self.agcAction.setCheckable(True)
         self.agcAction.setChecked(True)
                 
+        self.zffAction = QAction(QIcon( os.path.join(ico_path, 'zoom-fit-frame-24.png') ), 'Fit Frame', self)
+        self.zffAction.setShortcut('Ctrl+1')
+        self.zffAction.setStatusTip('Zoom: Fit Frame. Hotkey: "Ctrl+1"')
+        self.zffAction.triggered.connect(self.MainView.fit_scene_to_view)
+
     #---------------------------------------------------------------------------
     def setup_menu(self):
         self.menubar = self.menuBar()
@@ -275,6 +280,9 @@ class MainWindow(QMainWindow):
         self.controlMenu.addAction(self.agcAction)
         self.controlMenu.addAction(self.exitAction)
         
+        self.viewMenu = self.menubar.addMenu('&Zoom')
+        self.viewMenu.addAction(self.zffAction)
+        
     #---------------------------------------------------------------------------
     def setup_toolbar(self):
         self.toolbar = self.addToolBar('MainToolbar')
@@ -283,6 +291,7 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.ipyConsoleAction)        
         self.toolbar.addAction(self.ipyQtConsoleAction)        
         self.toolbar.addAction(self.agcAction)        
+        self.toolbar.addAction(self.zffAction)
         
     #---------------------------------------------------------------------------
     def setup_main_scene(self):
@@ -313,10 +322,10 @@ class MainWindow(QMainWindow):
         #
         #    Main Window
         #
+        self.setup_main_scene()
         self.setup_actions()
         self.setup_menu()
         self.setup_toolbar()
-        self.setup_main_scene()
         self.create_log_window()
 
         self.addDockWidget(Qt.BottomDockWidgetArea, self.Log)
