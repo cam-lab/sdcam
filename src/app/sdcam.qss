@@ -13,7 +13,7 @@ QGroupBox::title {
    padding: 0px;
    left: 20px;
 } 
-QMenuBar {
+/*QMenuBar {
     font-size: 11pt;
 }
 QMenu {
@@ -21,7 +21,7 @@ QMenu {
 }
 QMenu::item {
     font-size: 11pt;
-}
+} */
 QTableWidget {
     font-size: 14pt;
     font-family: Terminus Re33;
