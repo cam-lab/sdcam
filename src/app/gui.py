@@ -68,21 +68,30 @@ class TGraphicsView(QGraphicsView):
         self.origin           = QPoint()
         self.changeRubberBand = False
         self.setMouseTracking(True)
-
         
     #---------------------------------------------------------------------------
+    def calc_zoom_factor(self):
+        visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
+        ratio_x       = self.viewport().width()/visible_rect.width()
+
+        self.owner.set_zoom(ratio_x)
 
     #---------------------------------------------------------------------------
+    def fit_scene_to_view(self):
+        self.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio)
+        self.calc_zoom_factor()
+
+    #---------------------------------------------------------------------------
+    #
+    #    Event handlers
+    #
     def wheelEvent(self, event):
         modifiers = QApplication.keyboardModifiers()
         coef      = 0.5 if modifiers == Qt.ShiftModifier else 0.1
         steps     = 1 if event.angleDelta().y() > 0 else -1
         factor    = 1 + steps*coef
         self.scale(factor, factor)
-        visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
-        ratio_x       = self.viewport().width()/visible_rect.width()
-
-        self.owner.set_zoom(ratio_x)
+        self.calc_zoom_factor()
             
     #---------------------------------------------------------------------------
     def mousePressEvent(self, event):
@@ -141,17 +150,14 @@ class TGraphicsView(QGraphicsView):
 
         QGraphicsView.mouseMoveEvent(self, event)
         
-        #  for rect selection
+    #---------------------------------------------------------------------------
     def mouseReleaseEvent(self, event):
         if self.changeRubberBand:
             self.changeRubberBand = False
             self.rubberBand.hide()
             self.zoom_area = self.mapToScene(self.rubberBand.geometry()).boundingRect()
             self.fitInView(self.zoom_area, Qt.KeepAspectRatio)
-
-            visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
-            ratio_x       = self.viewport().width()/visible_rect.width()
-            self.owner.set_zoom(ratio_x)
+            self.calc_zoom_factor()
 
         self.owner.app.setOverrideCursor(QCursor(Qt.ArrowCursor))
         QGraphicsView.mouseReleaseEvent(self, event)
