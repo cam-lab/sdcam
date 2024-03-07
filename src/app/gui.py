@@ -52,10 +52,10 @@ class TGraphicsView(QGraphicsView):
     rectChanged = pyqtSignal(QRect)
     
     #---------------------------------------------------------------------------
-    def __init__(self, scene, parent):
+    def __init__(self, scene, owner):
         super().__init__(scene)
         self.scene  = scene
-        self.parent = parent
+        self.owner = owner
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.NoAnchor)
@@ -82,7 +82,7 @@ class TGraphicsView(QGraphicsView):
         visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
         ratio_x       = self.viewport().width()/visible_rect.width()
 
-        self.parent.set_zoom(ratio_x)
+        self.owner.set_zoom(ratio_x)
             
     #---------------------------------------------------------------------------
     def mousePressEvent(self, event):
@@ -101,13 +101,15 @@ class TGraphicsView(QGraphicsView):
             self.rectChanged.emit(self.rubberBand.geometry())
             self.rubberBand.show()
             self.changeRubberBand = True
+        else:
+            self.owner.app.setOverrideCursor(QCursor(Qt.ClosedHandCursor))
 
         #-------------------------------------------------------------
         #
         #   Right Mouse Button click
         #
         if event.button() == Qt.RightButton:
-            self.parent.bad_pix.toggle_pixel( (scene_x, scene_y) )
+            self.owner.bad_pix.toggle_pixel( (scene_x, scene_y) )
             
 
         QGraphicsView.mousePressEvent(self, event)
@@ -121,11 +123,11 @@ class TGraphicsView(QGraphicsView):
         scene_y   = int(scene_pos.y())
         
         if cursor_within_scene(scene_pos):
-            pix_val = self.parent.img.pixelColor(scene_x, scene_y).rgba64().blue() >> (16 - VIDEO_OUT_DATA_WIDTH)
+            pix_val = self.owner.img.pixelColor(scene_x, scene_y).rgba64().blue() >> (16 - VIDEO_OUT_DATA_WIDTH)
         else:
             pix_val = None
         
-        self.parent.set_cursor_pos(view_x, view_y, scene_x, scene_y, pix_val)
+        self.owner.set_cursor_pos(view_x, view_y, scene_x, scene_y, pix_val)
         
 
         #  for rect selection
@@ -149,9 +151,9 @@ class TGraphicsView(QGraphicsView):
 
             visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
             ratio_x       = self.viewport().width()/visible_rect.width()
-            self.parent.set_zoom(ratio_x)
+            self.owner.set_zoom(ratio_x)
 
-
+        self.owner.app.setOverrideCursor(QCursor(Qt.ArrowCursor))
         QGraphicsView.mouseReleaseEvent(self, event)
                 
 #-------------------------------------------------------------------------------
@@ -345,8 +347,8 @@ class MainWindow(QMainWindow):
                 
 #-------------------------------------------------------------------------------
 class TLogWidget(QTableWidget):
-    def __init__(self, parent):
-        super().__init__(0, 4, parent)
+    def __init__(self, owner):
+        super().__init__(0, 4, owner)
         
         self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
