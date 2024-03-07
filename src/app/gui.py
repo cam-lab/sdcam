@@ -19,14 +19,10 @@ from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform
 from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QRectF, QPoint, QPointF, QSize
 from PyQt5.QtCore    import QT_VERSION_STR
 
-#from internal_ipkernel import InternalIPKernel
-
 import ipycon
 
 from logger import logger as lg
-
 from badpix import TBadPix
-
 from vframe import FRAME_SIZE_X, FRAME_SIZE_Y, VIDEO_OUT_DATA_WIDTH
 
 run_path, filename = os.path.split(  os.path.abspath(__file__) )
@@ -56,7 +52,6 @@ class TGraphicsView(QGraphicsView):
         super().__init__(scene)
         self.scene  = scene
         self.owner = owner
-        self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.NoAnchor)
         
@@ -104,14 +99,15 @@ class TGraphicsView(QGraphicsView):
         #   Left Mouse Button click
         #
         modifiers = QApplication.keyboardModifiers()
-        if event.button() == Qt.LeftButton and modifiers == Qt.ShiftModifier and cursor_within_scene(scene_pos):
-            self.origin = event.pos()
-            self.rubberBand.setGeometry(QRect(self.origin, QSize()))
-            self.rectChanged.emit(self.rubberBand.geometry())
-            self.rubberBand.show()
-            self.changeRubberBand = True
-        else:
-            self.owner.app.setOverrideCursor(QCursor(Qt.ClosedHandCursor))
+        if event.button() == Qt.LeftButton:
+            if modifiers == Qt.ShiftModifier and cursor_within_scene(scene_pos):
+                self.origin = event.pos()
+                self.rubberBand.setGeometry(QRect(self.origin, QSize()))
+                self.rectChanged.emit(self.rubberBand.geometry())
+                self.rubberBand.show()
+                self.changeRubberBand = True
+            else:
+                self.setDragMode(QGraphicsView.ScrollHandDrag)
 
         #-------------------------------------------------------------
         #
@@ -159,7 +155,7 @@ class TGraphicsView(QGraphicsView):
             self.fitInView(self.zoom_area, Qt.KeepAspectRatio)
             self.calc_zoom_factor()
 
-        self.owner.app.setOverrideCursor(QCursor(Qt.ArrowCursor))
+        self.setDragMode(QGraphicsView.NoDrag)
         QGraphicsView.mouseReleaseEvent(self, event)
                 
 #-------------------------------------------------------------------------------
@@ -317,7 +313,6 @@ class MainWindow(QMainWindow):
     #---------------------------------------------------------------------------
     def initUI(self): #, context):
 
-        self.app.setOverrideCursor(QCursor(Qt.ArrowCursor))
         #----------------------------------------------------
         #
         #    Main Window
