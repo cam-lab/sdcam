@@ -342,8 +342,9 @@ BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
 
-    scope().attr("FRAME_SIZE_X") = FRAME_SIZE_X;
-    scope().attr("FRAME_SIZE_Y") = FRAME_SIZE_Y;
+    scope().attr("FRAME_SIZE_X")         = FRAME_SIZE_X;
+    scope().attr("FRAME_SIZE_Y")         = FRAME_SIZE_Y;
+    scope().attr("VIDEO_OUT_DATA_WIDTH") = VIDEO_OUT_DATA_WIDTH;
 
     //--------------------------------------------------------------------------
     //

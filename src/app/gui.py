@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
 from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
                              QHeaderView, QRubberBand)
 from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform
-from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QPoint, QSize
+from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QRectF, QPoint, QPointF, QSize
 from PyQt5.QtCore    import QT_VERSION_STR
 
 #from internal_ipkernel import InternalIPKernel
@@ -27,7 +27,7 @@ from logger import logger as lg
 
 from badpix import TBadPix
 
-from vframe import FRAME_SIZE_X, FRAME_SIZE_Y
+from vframe import FRAME_SIZE_X, FRAME_SIZE_Y, VIDEO_OUT_DATA_WIDTH
 
 run_path, filename = os.path.split(  os.path.abspath(__file__) )
 ico_path = os.path.join( run_path, 'ico' )
@@ -37,11 +37,19 @@ VERSION      = '0.1.0'
 
 fqueue = queue.Queue()
 
+
+#-------------------------------------------------------------------------------
+def cursor_within_scene(pos):
+    if pos.x() >= 0 and pos.x() < FRAME_SIZE_X and pos.y() >= 0 and pos.y() < FRAME_SIZE_Y:
+        return True
+    else:
+        return False
+
 #-------------------------------------------------------------------------------
 class TGraphicsView(QGraphicsView):
     
-    #  for rect selection
-    #rectChanged = pyqtSignal(QRect)
+    #  zoom by rect selection
+    rectChanged = pyqtSignal(QRect)
     
     #---------------------------------------------------------------------------
     def __init__(self, scene, parent):
@@ -55,24 +63,22 @@ class TGraphicsView(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        #  for rect selection
-#       self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
-#       self.setMouseTracking(True)
-#       self.origin = QPoint()
-#       self.changeRubberBand = False
+        #  zoom by rect selection
+        self.rubberBand       = QRubberBand(QRubberBand.Rectangle, self)
+        self.origin           = QPoint()
+        self.changeRubberBand = False
+        self.setMouseTracking(True)
 
         
     #---------------------------------------------------------------------------
-    def wheelEvent(self, event):
-        steps = 1 if event.angleDelta().y() > 0 else -1
-        factor = 1 + 0.2*steps
-        
-        oldPos = self.mapToScene(event.pos())
-        self.scale(factor, factor)
-        newPos = self.mapToScene(event.pos())
-        delta  = newPos - oldPos
-        self.translate(delta.x(), delta.y())
 
+    #---------------------------------------------------------------------------
+    def wheelEvent(self, event):
+        modifiers = QApplication.keyboardModifiers()
+        coef      = 0.5 if modifiers == Qt.ShiftModifier else 0.1
+        steps     = 1 if event.angleDelta().y() > 0 else -1
+        factor    = 1 + steps*coef
+        self.scale(factor, factor)
         visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
         ratio_x       = self.viewport().width()/visible_rect.width()
 
@@ -81,22 +87,28 @@ class TGraphicsView(QGraphicsView):
     #---------------------------------------------------------------------------
     def mousePressEvent(self, event):
         
+        scene_pos = self.mapToScene(event.pos())
+        scene_x = int(scene_pos.x())
+        scene_y = int(scene_pos.y())
+        #-------------------------------------------------------------
+        #
+        #   Left Mouse Button click
+        #
+        modifiers = QApplication.keyboardModifiers()
+        if event.button() == Qt.LeftButton and modifiers == Qt.ShiftModifier and cursor_within_scene(scene_pos):
+            self.origin = event.pos()
+            self.rubberBand.setGeometry(QRect(self.origin, QSize()))
+            self.rectChanged.emit(self.rubberBand.geometry())
+            self.rubberBand.show()
+            self.changeRubberBand = True
+
+        #-------------------------------------------------------------
+        #
+        #   Right Mouse Button click
+        #
         if event.button() == Qt.RightButton:
-            view_x = event.pos().x()
-            view_y = event.pos().y()
-            scene_pos = self.mapToScene(event.pos())
-            scene_x = int(scene_pos.x())
-            scene_y = int(scene_pos.y())
-            #lg.info('pos: ' + str(view_x) + ', ' + str(view_y) + '| scene: ' + str(scene_x) + ', ' + str(scene_y))
-            
             self.parent.bad_pix.toggle_pixel( (scene_x, scene_y) )
             
-            #  for rect selection
-#       self.origin = event.pos()
-#       self.rubberBand.setGeometry(QRect(self.origin, QSize()))
-#       self.rectChanged.emit(self.rubberBand.geometry())
-#       self.rubberBand.show()
-#       self.changeRubberBand = True
 
         QGraphicsView.mousePressEvent(self, event)
        
@@ -107,26 +119,40 @@ class TGraphicsView(QGraphicsView):
         scene_pos = self.mapToScene(event.pos())
         scene_x   = int(scene_pos.x())
         scene_y   = int(scene_pos.y())
-        img       = self.scene.items()[0].pixmap().toImage()
-        if scene_x >= 0 and scene_x < FRAME_SIZE_X and \
-           scene_y >= 0 and scene_y < FRAME_SIZE_Y:
-            pix_val = self.parent.img.pixelColor(scene_x, scene_y).rgba64().blue() >> 6
+        
+        if cursor_within_scene(scene_pos):
+            pix_val = self.parent.img.pixelColor(scene_x, scene_y).rgba64().blue() >> (16 - VIDEO_OUT_DATA_WIDTH)
         else:
             pix_val = None
         
         self.parent.set_cursor_pos(view_x, view_y, scene_x, scene_y, pix_val)
         
+
         #  for rect selection
-#       if self.changeRubberBand:
-#           self.rubberBand.setGeometry(QRect(self.origin, event.pos()).normalized())
-#           self.rectChanged.emit(self.rubberBand.geometry())
+        if event.buttons() == Qt.LeftButton:
+            if self.changeRubberBand and cursor_within_scene(scene_pos):
+
+                self.rubberBand.setGeometry(QRect(self.origin, event.pos()).normalized())
+                self.rectChanged.emit(self.rubberBand.geometry())
+                return
+
 
         QGraphicsView.mouseMoveEvent(self, event)
         
         #  for rect selection
-#   def mouseReleaseEvent(self, event):
-#       self.changeRubberBand = False
-#       QGraphicsView.mouseReleaseEvent(self, event)
+    def mouseReleaseEvent(self, event):
+        if self.changeRubberBand:
+            self.changeRubberBand = False
+            self.rubberBand.hide()
+            self.zoom_area = self.mapToScene(self.rubberBand.geometry()).boundingRect()
+            self.fitInView(self.zoom_area, Qt.KeepAspectRatio)
+
+            visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
+            ratio_x       = self.viewport().width()/visible_rect.width()
+            self.parent.set_zoom(ratio_x)
+
+
+        QGraphicsView.mouseReleaseEvent(self, event)
                 
 #-------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
@@ -199,7 +225,7 @@ class MainWindow(QMainWindow):
 
         self.img = img
         for pix in self.bad_pix.pixels():
-            if pix[0] >= 0 and pix[0] < FRAME_SIZE_X and pix[1] >= 0 and pix[1] < FRAME_SIZE_Y:
+            if cursor_within_scene(QPointF(pix[0], pix[1])):
                img.setPixelColor(pix[0], pix[1], QColor(0, 255, 0))
         
         self.show_image(img)
