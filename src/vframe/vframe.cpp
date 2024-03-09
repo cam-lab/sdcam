@@ -320,7 +320,7 @@ int get_frame(TVFrame &f)
     {
         for(size_t col = 0; col < FRAME_SIZE_X; ++col)
         {
-            buf[row][col] = (row + col) & VIDEO_OUT_DATA_MAX;
+            buf[row][col] = (row + col + 1) & VIDEO_OUT_DATA_MAX;
             if(row == 100 && col == 100) buf[row][col] = 1023;
             if(row == 100 && col == 101) buf[row][col] = 1023/2;
         }
