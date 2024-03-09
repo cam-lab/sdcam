@@ -48,10 +48,10 @@ class TGraphicsView(QGraphicsView):
     rectChanged = pyqtSignal(QRect)
     
     #---------------------------------------------------------------------------
-    def __init__(self, scene, owner):
+    def __init__(self, scene, parent):
         super().__init__(scene)
         self.scene  = scene
-        self.owner = owner
+        self.parent = parent
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.NoAnchor)
         
@@ -69,7 +69,7 @@ class TGraphicsView(QGraphicsView):
         visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
         ratio_x       = self.viewport().width()/visible_rect.width()
 
-        self.owner.set_zoom(ratio_x)
+        self.parent.update_zoom(ratio_x)
 
     #---------------------------------------------------------------------------
     def fit_scene_to_view(self):
@@ -170,11 +170,11 @@ class MainWindow(QMainWindow):
     close_signal = pyqtSignal()
     
     #---------------------------------------------------------------------------
-    def __init__(self, app, owner):
+    def __init__(self, app, parent):
         super().__init__()
 
         self.app   = app
-        self.owner = owner
+        self.parent = parent
 
         self.initUI()
 
@@ -255,12 +255,12 @@ class MainWindow(QMainWindow):
         self.ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
         self.ipyConsoleAction.setShortcut('Alt+S')
         self.ipyConsoleAction.setStatusTip('Launch Jupyter Console')
-        self.ipyConsoleAction.triggered.connect(self.owner.launch_jupyter_console_slot)
+        self.ipyConsoleAction.triggered.connect(self.parent.launch_jupyter_console_slot)
 
         self.ipyQtConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-qtconsole-24.png') ), 'Jupyter QtConsole', self)
         self.ipyQtConsoleAction.setShortcut('Alt+T')
         self.ipyQtConsoleAction.setStatusTip('Launch Jupyter QtConsole')
-        self.ipyQtConsoleAction.triggered.connect(self.owner.launch_jupyter_qtconsole_slot)
+        self.ipyQtConsoleAction.triggered.connect(self.parent.launch_jupyter_qtconsole_slot)
         
         self.agcAction = QAction(QIcon( os.path.join(ico_path, 'agc-24.png') ), 'Automatic Gain Control', self)
         self.agcAction.setShortcut('Alt+G')
@@ -363,8 +363,8 @@ class MainWindow(QMainWindow):
                 
 #-------------------------------------------------------------------------------
 class TLogWidget(QTableWidget):
-    def __init__(self, owner):
-        super().__init__(0, 4, owner)
+    def __init__(self, parent):
+        super().__init__(0, 4, parent)
         
         self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
