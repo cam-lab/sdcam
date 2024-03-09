@@ -159,6 +159,12 @@ class TGraphicsView(QGraphicsView):
         QGraphicsView.mouseReleaseEvent(self, event)
                 
 #-------------------------------------------------------------------------------
+class TGraphicsScene(QGraphicsScene):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+#-------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
 
     close_signal = pyqtSignal()
@@ -291,7 +297,7 @@ class MainWindow(QMainWindow):
         
     #---------------------------------------------------------------------------
     def setup_main_scene(self):
-        self.MainScene = QGraphicsScene(self)
+        self.MainScene = TGraphicsScene(self)
         self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))
         self.NoVStreamPixmap = QPixmap(FRAME_SIZE_X, FRAME_SIZE_Y)
         self.NoVStreamPixmap.fill(QColor(0x00,0x00,0x40,255))
