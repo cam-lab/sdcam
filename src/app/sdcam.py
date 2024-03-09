@@ -55,7 +55,7 @@ class TSDCam(QObject, InternalIPKernel):
         super().__init__()
 
         sdc = TSDC_Core()
-        self.init_ipkernel('qt', { 'sdcam' : self, 'sdc' : sdc })
+        self.init_ipkernel('qt5', { 'sdcam' : self, 'sdc' : sdc })
 
         #-------------------------------------------------------------
         #
