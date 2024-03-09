@@ -65,6 +65,24 @@ class TGraphicsView(QGraphicsView):
         self.setMouseTracking(True)
         
     #---------------------------------------------------------------------------
+    def process_cursor_pos(self, pos):
+        vx   = pos.x()
+        vy   = pos.y()
+        spos = self.mapToScene(pos)
+        sx   = int(spos.x())
+        sy   = int(spos.y())
+        
+        cursor_on_scene = cursor_within_scene(spos)
+        if cursor_on_scene:
+            pval = self.parent.img.pixelColor(sx, sy).rgba64().blue() >> (16 - VIDEO_OUT_DATA_WIDTH)
+        else:
+            pval = None
+
+        self.parent.update_cursor_pos(vx, vy, sx, sy, pval)
+        
+        return cursor_on_scene
+
+    #---------------------------------------------------------------------------
     def calc_zoom_factor(self):
         visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
         ratio_x       = self.viewport().width()/visible_rect.width()
@@ -75,32 +93,37 @@ class TGraphicsView(QGraphicsView):
     def fit_scene_to_view(self):
         self.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio)
         self.calc_zoom_factor()
+        self.process_cursor_pos(self.cursor().pos() - self.parent.geometry().topLeft() - self.pos() )
 
     #---------------------------------------------------------------------------
     #
     #    Event handlers
     #
     def wheelEvent(self, event):
+        #lg.info('pos: ' + str(self.cursor().pos().x()) + ', ' + str(self.cursor().pos().y()))
+        #vx, vy, sx, sy, pval = self.process_cursor_pos(self.cursor().pos())
+
         modifiers = QApplication.keyboardModifiers()
         coef      = 0.5 if modifiers == Qt.ShiftModifier else 0.1
         steps     = 1 if event.angleDelta().y() > 0 else -1
         factor    = 1 + steps*coef
         self.scale(factor, factor)
         self.calc_zoom_factor()
+        
+        self.process_cursor_pos(event.pos())
             
     #---------------------------------------------------------------------------
     def mousePressEvent(self, event):
         
-        scene_pos = self.mapToScene(event.pos())
-        scene_x = int(scene_pos.x())
-        scene_y = int(scene_pos.y())
+        cursor_on_scene = self.process_cursor_pos(event.pos())
+
         #-------------------------------------------------------------
         #
         #   Left Mouse Button click
         #
         modifiers = QApplication.keyboardModifiers()
         if event.button() == Qt.LeftButton:
-            if modifiers == Qt.ShiftModifier and cursor_within_scene(scene_pos):
+            if modifiers == Qt.ShiftModifier and cursor_on_scene:
                 self.origin = event.pos()
                 self.rubberBand.setGeometry(QRect(self.origin, QSize()))
                 self.rectChanged.emit(self.rubberBand.geometry())
@@ -114,30 +137,18 @@ class TGraphicsView(QGraphicsView):
         #   Right Mouse Button click
         #
         if event.button() == Qt.RightButton:
-            self.owner.bad_pix.toggle_pixel( (scene_x, scene_y) )
+            self.parent.bad_pix.toggle_pixel( (scene_x, scene_y) )
             
 
         QGraphicsView.mousePressEvent(self, event)
        
     #---------------------------------------------------------------------------
     def mouseMoveEvent(self, event):
-        view_x    = event.pos().x()
-        view_y    = event.pos().y()
-        scene_pos = self.mapToScene(event.pos())
-        scene_x   = int(scene_pos.x())
-        scene_y   = int(scene_pos.y())
-        
-        if cursor_within_scene(scene_pos):
-            pix_val = self.owner.img.pixelColor(scene_x, scene_y).rgba64().blue() >> (16 - VIDEO_OUT_DATA_WIDTH)
-        else:
-            pix_val = None
-        
-        self.owner.set_cursor_pos(view_x, view_y, scene_x, scene_y, pix_val)
-        
+        cursor_on_scene = self.process_cursor_pos(event.pos())
 
         #  for rect selection
         if event.buttons() == Qt.LeftButton:
-            if self.changeRubberBand and cursor_within_scene(scene_pos):
+            if self.changeRubberBand and cursor_on_scene:
 
                 self.rubberBand.setGeometry(QRect(self.origin, event.pos()).normalized())
                 self.rectChanged.emit(self.rubberBand.geometry())
@@ -155,6 +166,7 @@ class TGraphicsView(QGraphicsView):
             self.fitInView(self.zoom_area, Qt.KeepAspectRatio)
             self.calc_zoom_factor()
 
+        self.process_cursor_pos(event.pos())
         self.setDragMode(QGraphicsView.NoDrag)
         QGraphicsView.mouseReleaseEvent(self, event)
                 
@@ -183,6 +195,9 @@ class MainWindow(QMainWindow):
         self.view_cpos_y  = 0
         self.scene_cpos_x = 0
         self.scene_cpos_y = 0
+        
+        scene_org = self.MainView.pos() + self.MainView.mapFromScene(0, 0)
+        QCursor().setPos( self.geometry().topLeft() + scene_org)
         
         self.bad_pix = TBadPix()
         
@@ -348,12 +363,12 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(text)
         
     #---------------------------------------------------------------------------
-    def set_zoom(self, zoom):
+    def update_zoom(self, zoom):
         self.zoom = zoom
-        self.update_status_bar()
+       #self.update_status_bar()
         
     #---------------------------------------------------------------------------
-    def set_cursor_pos(self, vx, vy, sx, sy, pval):
+    def update_cursor_pos(self, vx, vy, sx, sy, pval):
         self.view_cpos_x  = vx
         self.view_cpos_y  = vy
         self.scene_cpos_x = sx
