@@ -288,6 +288,11 @@ class MainWindow(QMainWindow):
         self.zffAction.setShortcut('Ctrl+1')
         self.zffAction.setStatusTip('Zoom: Fit Frame. Hotkey: "Ctrl+1"')
         self.zffAction.triggered.connect(self.MainView.fit_scene_to_view)
+        
+        self.sdlgAction = QAction(QIcon( os.path.join(ico_path, 'settings24.png') ), 'Settings', self)
+        self.sdlgAction.setShortcut('Ctrl+Alt+S')
+        self.sdlgAction.setStatusTip('Edit settings')
+        self.sdlgAction.triggered.connect(self.edit_settings)
 
     #---------------------------------------------------------------------------
     def setup_menu(self):
@@ -296,6 +301,7 @@ class MainWindow(QMainWindow):
         self.controlMenu.addAction(self.ipyConsoleAction)
         self.controlMenu.addAction(self.ipyQtConsoleAction)
         self.controlMenu.addAction(self.agcAction)
+        self.controlMenu.addAction(self.sdlgAction)
         self.controlMenu.addAction(self.exitAction)
         
         self.viewMenu = self.menubar.addMenu('&Zoom')
@@ -310,7 +316,12 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.ipyQtConsoleAction)        
         self.toolbar.addAction(self.agcAction)        
         self.toolbar.addAction(self.zffAction)
+        self.toolbar.addAction(self.sdlgAction)
         
+    #---------------------------------------------------------------------------
+    def edit_settings(self):
+        self.SettingsDialog.show()
+
     #---------------------------------------------------------------------------
     def setup_main_scene(self):
         self.MainScene = TGraphicsScene(self)
@@ -353,7 +364,6 @@ class MainWindow(QMainWindow):
         self.restore_main_window()
         
         self.SettingsDialog = settings.TSettingsDialog(self.parent.settings, self)
-        self.SettingsDialog.show()
 
         self.statusBar().showMessage('Ready')
         
