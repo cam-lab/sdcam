@@ -7,7 +7,6 @@ import shlex
 
 from logger import logger as lg
 
-
 #-------------------------------------------------------------------------------
 class TConsoleLaunchThread(threading.Thread):
 
@@ -39,7 +38,15 @@ class TConsoleLaunchThread(threading.Thread):
             lg.info(self.settings.__repr__())
 
         elif self.console == 'qt':
+            con = self.settings['Qtcon']
             cmd = 'jupyter qtconsole --existing ' + self.connection_file
+            cmd += ' --ConsoleWidget.font_family="'   + con['FontName'] + '"'
+            cmd += ' --ConsoleWidget.font_size='      + con['FontSize']
+            cmd += ' --ConsoleWidget.console_width='  + con['Width']
+            cmd += ' --ConsoleWidget.console_height=' + con['Height']
+            cmd += ' --ConsoleWidget.gui_completion_height=50'
+            cmd += ' --ConsoleWidget.kind=rich'
+            #cmd += ' --matplotlib inline'
         else:
             lg.warning('E: invalid console type: ' + self.console)
             return

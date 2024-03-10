@@ -83,6 +83,7 @@ class TSDCam(QObject, InternalIPKernel):
         
         if args.console:
             ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file.replace('\\', '/'),
+                                          self.settings,
                                           args.console)
 
         app.aboutToQuit.connect(self.finish)
