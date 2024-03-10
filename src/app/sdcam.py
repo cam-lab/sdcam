@@ -147,7 +147,7 @@ class TSDCam(QObject, InternalIPKernel):
 
     #---------------------------------------------------------------------------
     def restore_settings(self):
-        Settings = QSettings('cam-lab', 'sdcam')
+        Settings = QSettings('camlab', 'sdcam')
         if Settings.contains('Application/Settings'):
             self.settings = settings.read('Application/Settings')
         else:

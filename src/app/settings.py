@@ -35,7 +35,7 @@ app_settings = \
 }
 #-------------------------------------------------------------------------------
 def read(key):
-    Settings = QSettings('cam-lab', 'sdcam')
+    Settings = QSettings('camlab', 'sdcam')
     settings = Settings.value(key)
 
     return settings
@@ -241,7 +241,7 @@ class TSettingsDialog(QDialog):
         settings['Qtcon']['FontName'] = self.cboxQtconFontName.currentFont().family()
         settings['Qtcon']['FontSize'] = self.cboxQtconFontSize.currentText()
 
-        Settings = QSettings('cam-lab', 'sdcam')
+        Settings = QSettings('camlab', 'sdcam')
         Settings.setValue('Application/Settings', settings)
         self.close()
         
