@@ -18,7 +18,6 @@ from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform
 from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QRectF, QPoint, QPointF, QSize
 from PyQt5.QtCore    import QT_VERSION_STR
 
-import ipycon
 import settings
 
 from logger   import logger as lg
@@ -222,15 +221,6 @@ class MainWindow(QMainWindow):
             lg.warning('main window settings not exist, use default')
             self.setGeometry(100, 100, 1024, 768)
 
-    #---------------------------------------------------------------------------
-    def restore_app_settings(self):
-        Settings = QSettings('cam-lab', 'sdcam')
-        if Settings.contains('Application/Settings'):
-            self.parent.settings = settings.read('Application/Settings')
-        else:
-            lg.warning('application settings not exist, use default')
-            self.parent.settings = settings.app_settings
-
         
     #---------------------------------------------------------------------------
     def closeEvent(self, event):
@@ -350,8 +340,6 @@ class MainWindow(QMainWindow):
         #
         #    Main Window
         #
-        self.restore_app_settings()
-
         self.setup_main_scene()
         self.setup_actions()
         self.setup_menu()

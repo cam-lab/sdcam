@@ -46,7 +46,7 @@ class TSettingsDialog(QDialog):
     def __init__(self, settings, parent):
         super().__init__(parent)
         
-        self.settings = settings
+        self.parent = parent
         self.setModal(True)
         self.setWindowTitle('Settings')
         self.resize(550, 480)
@@ -225,22 +225,24 @@ class TSettingsDialog(QDialog):
     #-----------------------------------------------------------------
     def save_settings(self):
         lg.info('save settings')
-        self.settings['Frame']['ZoomFit'] = True if self.cbZoomFit.checkState() == Qt.Checked else False
-        self.settings['IPycon']['OrgX']   = self.leIPyconX.text()
-        self.settings['IPycon']['OrgY']   = self.leIPyconY.text()
-        self.settings['IPycon']['Width']  = self.leIPyconWidth.text()
-        self.settings['IPycon']['Height'] = self.leIPyconHeight.text()
+        settings = self.parent.parent.settings
 
-        self.settings['Qtcon']['OrgX']    = self.leQtconX.text()
-        self.settings['Qtcon']['OrgY']    = self.leQtconY.text()
-        self.settings['Qtcon']['Width']   = self.leQtconWidth.text()
-        self.settings['Qtcon']['Height']  = self.leQtconHeight.text()
+        settings['Frame']['ZoomFit'] = True if self.cbZoomFit.checkState() == Qt.Checked else False
+        settings['IPycon']['OrgX']   = self.leIPyconX.text()
+        settings['IPycon']['OrgY']   = self.leIPyconY.text()
+        settings['IPycon']['Width']  = self.leIPyconWidth.text()
+        settings['IPycon']['Height'] = self.leIPyconHeight.text()
 
-        self.settings['Qtcon']['FontName'] = self.cboxQtconFontName.currentFont().family()
-        self.settings['Qtcon']['FontSize'] = self.cboxQtconFontSize.currentText()
+        settings['Qtcon']['OrgX']    = self.leQtconX.text()
+        settings['Qtcon']['OrgY']    = self.leQtconY.text()
+        settings['Qtcon']['Width']   = self.leQtconWidth.text()
+        settings['Qtcon']['Height']  = self.leQtconHeight.text()
+
+        settings['Qtcon']['FontName'] = self.cboxQtconFontName.currentFont().family()
+        settings['Qtcon']['FontSize'] = self.cboxQtconFontSize.currentText()
 
         Settings = QSettings('cam-lab', 'sdcam')
-        Settings.setValue('Application/Settings', self.settings)
+        Settings.setValue('Application/Settings', settings)
         self.close()
         
     #-----------------------------------------------------------------
