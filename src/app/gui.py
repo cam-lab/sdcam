@@ -207,13 +207,13 @@ class MainWindow(QMainWindow):
         
     #---------------------------------------------------------------------------
     def save_settings(self):
-        Settings = QSettings('cam-lab', 'sdcam')
+        Settings = QSettings('camlab', 'sdcam')
         Settings.setValue('main-window/geometry', self.saveGeometry() )
         Settings.setValue('main-window/state',    self.saveState());
         
     #---------------------------------------------------------------------------
     def restore_main_window(self):
-        Settings = QSettings('cam-lab', 'sdcam')
+        Settings = QSettings('camlab', 'sdcam')
         if Settings.contains('main-window/geometry'):
             self.restoreGeometry( Settings.value('main-window/geometry') )
             self.restoreState( Settings.value('main-window/state') )
