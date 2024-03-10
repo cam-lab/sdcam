@@ -137,11 +137,11 @@ class TSDCam(QObject, InternalIPKernel):
     
     #---------------------------------------------------------------------------
     def launch_jupyter_console_slot(self):
-        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'shell')
+        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, self.settings, 'shell')
 
     #---------------------------------------------------------------------------
     def launch_jupyter_qtconsole_slot(self):
-        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'qt')
+        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, self.settings, 'qt')
 
 
     #---------------------------------------------------------------------------

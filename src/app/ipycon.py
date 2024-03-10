@@ -11,10 +11,11 @@ from logger import logger as lg
 #-------------------------------------------------------------------------------
 class TConsoleLaunchThread(threading.Thread):
 
-    def __init__(self, connection_file, console, name='Jupyter Console Launch Thread' ):
+    def __init__(self, connection_file, settings, console, name='Jupyter Console Launch Thread' ):
         super().__init__()
         self.connection_file = connection_file.replace('\\', '/')
-        self.console = console
+        self.settings = settings
+        self.console  = console
 
     def run(self):
 
@@ -29,8 +30,14 @@ class TConsoleLaunchThread(threading.Thread):
         lg.info('Console type: ' + self.console)
 
         if self.console == 'shell':
+            con = self.settings['IPycon']
+            geometry = con['Width'] + 'x' + con['Height'] + '+' + con['OrgX'] + '+' + con['OrgY']
             console = 'jupyter console --existing ' + self.connection_file
-            cmd = 'terminator -T "IPython Console" --new-tab -e "' + console + '"'
+            cmd  = 'gnome-terminal -t IPython Console --geometry ' + geometry
+            cmd += ' -- bash -c "' + console + '"'
+            lg.info('cmd: ' + cmd)
+            lg.info(self.settings.__repr__())
+
         elif self.console == 'qt':
             cmd = 'jupyter qtconsole --existing ' + self.connection_file
         else:
@@ -47,8 +54,8 @@ class TConsoleLaunchThread(threading.Thread):
         lg.info('Jupyter Console has launched')
 
 #-------------------------------------------------------------------------------
-def launch_jupyter_console(cfile, ctype):
-    clthread = TConsoleLaunchThread(cfile, ctype)
+def launch_jupyter_console(cfile, settings, ctype):
+    clthread = TConsoleLaunchThread(cfile, settings, ctype)
     clthread.start()
 
 #-------------------------------------------------------------------------------
