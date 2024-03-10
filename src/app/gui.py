@@ -367,10 +367,8 @@ class MainWindow(QMainWindow):
         self.SettingsDialog = settings.TSettingsDialog(self.app_settings, self)
         self.SettingsDialog.show()
 
-
         self.statusBar().showMessage('Ready')
         
-        #-----------------------------------------------------------------------
         self.show()
         if self.app_settings['Frame']['ZoomFit']:
             self.MainView.fit_scene_to_view()
@@ -385,7 +383,6 @@ class MainWindow(QMainWindow):
     #---------------------------------------------------------------------------
     def update_zoom(self, zoom):
         self.zoom = zoom
-       #self.update_status_bar()
         
     #---------------------------------------------------------------------------
     def update_cursor_pos(self, vx, vy, sx, sy, pval):
