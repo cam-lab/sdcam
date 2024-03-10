@@ -226,10 +226,10 @@ class MainWindow(QMainWindow):
     def restore_app_settings(self):
         Settings = QSettings('cam-lab', 'sdcam')
         if Settings.contains('Application/Settings'):
-            self.app_settings = settings.read('Application/Settings')
+            self.parent.settings = settings.read('Application/Settings')
         else:
             lg.warning('application settings not exist, use default')
-            self.app_settings = settings.app_settings
+            self.parent.settings = settings.app_settings
 
         
     #---------------------------------------------------------------------------
@@ -364,13 +364,13 @@ class MainWindow(QMainWindow):
         self.set_title()
         self.restore_main_window()
         
-        self.SettingsDialog = settings.TSettingsDialog(self.app_settings, self)
+        self.SettingsDialog = settings.TSettingsDialog(self.parent.settings, self)
         self.SettingsDialog.show()
 
         self.statusBar().showMessage('Ready')
         
         self.show()
-        if self.app_settings['Frame']['ZoomFit']:
+        if self.parent.settings['Frame']['ZoomFit']:
             self.MainView.fit_scene_to_view()
         
     #---------------------------------------------------------------------------
