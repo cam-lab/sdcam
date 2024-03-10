@@ -34,8 +34,6 @@ class TConsoleLaunchThread(threading.Thread):
             console = 'jupyter console --existing ' + self.connection_file
             cmd  = 'gnome-terminal -t IPython Console --geometry ' + geometry
             cmd += ' -- bash -c "' + console + '"'
-            lg.info('cmd: ' + cmd)
-            lg.info(self.settings.__repr__())
 
         elif self.console == 'qt':
             con = self.settings['Qtcon']
