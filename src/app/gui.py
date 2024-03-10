@@ -8,7 +8,7 @@ from math import sqrt
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
-                             QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, 
+                             QVBoxLayout, QHBoxLayout, QSplitter, QGraphicsView,
                              QFrame, QGraphicsPixmapItem, QGraphicsItem, 
                              QDockWidget, QAction)
 
@@ -351,6 +351,12 @@ class MainWindow(QMainWindow):
         
         self.statusBar().showMessage('Ready')
         
+        from settings import TSettingsDialog
+        
+        Settings = TSettingsDialog(self)
+        Settings.show()
+
+
         #-----------------------------------------------------------------------
         self.show()
         
