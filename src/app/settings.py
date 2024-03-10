@@ -3,21 +3,51 @@
 
 
 from PyQt5.Qt        import Qt
-
 from PyQt5.QtWidgets import (QWidget, QDialog, QLayout, QVBoxLayout, QHBoxLayout,
                              QGroupBox, QCheckBox, QLabel, QLineEdit, QDialogButtonBox,
                              QComboBox, QFontComboBox, QAction)
-
 from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QSize
-
 from PyQt5.QtGui     import QFont
+
+from logger import logger as lg
+
+
+#-------------------------------------------------------------------------------
+app_settings = \
+{
+    'Frame'  : { 'ZoomFit' : True },
+    'IPycon' :
+    {
+        'OrgX'   : '0',
+        'OrgY'   : '0',
+        'Width'  : '100',
+        'Height' : '100'
+    },
+    'Qtcon' :
+    {
+        'OrgX'     : '0',
+        'OrgY'     : '0',
+        'Width'    : '100',
+        'Height'   : '100',
+        'FontName' : 'DejaVu Sans Mono',
+        'FontSize' : '10'
+    }
+}
+#-------------------------------------------------------------------------------
+def read(key):
+    Settings = QSettings('cam-lab', 'sdcam')
+    settings = Settings.value(key)
+
+    return settings
 
 #-------------------------------------------------------------------------------
 class TSettingsDialog(QDialog):
 
-    def __init__(self, parent):
+    def __init__(self, settings, parent):
         super().__init__(parent)
         
+        self.settings = settings
+        self.setModal(True)
         self.setWindowTitle('Settings')
         self.resize(550, 480)
         
@@ -38,6 +68,7 @@ class TSettingsDialog(QDialog):
 
         self.cbZoomFit = QCheckBox(self.gbFrame)
         self.cbZoomFit.setText('Zoom Fit')
+        self.cbZoomFit.setCheckState(Qt.Checked if settings['Frame']['ZoomFit'] else Qt.Unchecked)
         self.cbZoomFit.setGeometry(QRect(10, 30, 100, 24))
 
         self.ltMain.addWidget(self.gbFrame)
@@ -61,7 +92,7 @@ class TSettingsDialog(QDialog):
 
         self.leIPyconX = QLineEdit(self.gbIPyconOrigin)
         self.leIPyconX.setGeometry(QRect(10, 50, 60, 24))
-        self.leIPyconX.setText('1200')
+        self.leIPyconX.setText(settings['IPycon']['OrgX'])
 
         self.lbIPyconY = QLabel(self.gbIPyconOrigin)
         self.lbIPyconY.setGeometry(QRect(80, 30, 10, 24))
@@ -69,7 +100,7 @@ class TSettingsDialog(QDialog):
 
         self.leIPyconY = QLineEdit(self.gbIPyconOrigin)
         self.leIPyconY.setGeometry(QRect(80, 50, 60, 24))
-        self.leIPyconY.setText('0')
+        self.leIPyconY.setText(settings['IPycon']['OrgY'])
         
         #    Geometry Size
         self.gbIPyconSize = QGroupBox(self.gbIPycon)
@@ -82,7 +113,7 @@ class TSettingsDialog(QDialog):
         
         self.leIPyconWidth = QLineEdit(self.gbIPyconSize)
         self.leIPyconWidth.setGeometry(QRect(10, 50, 60, 24))
-        self.leIPyconWidth.setText('150')
+        self.leIPyconWidth.setText(settings['IPycon']['Width'])
         
         self.lbIPyconHeight = QLabel(self.gbIPyconSize)
         self.lbIPyconHeight.setGeometry(QRect(80, 30, 60, 24))
@@ -90,7 +121,7 @@ class TSettingsDialog(QDialog):
         
         self.leIPyconHeight = QLineEdit(self.gbIPyconSize)
         self.leIPyconHeight.setGeometry(QRect(80, 50, 60, 24))
-        self.leIPyconHeight.setText('69')
+        self.leIPyconHeight.setText(settings['IPycon']['Height'])
 
         self.ltMain.addWidget(self.gbIPycon)
         
@@ -111,8 +142,8 @@ class TSettingsDialog(QDialog):
         self.lbQtconFontName.setText('Name')
 
         font = QFont()
-        font.setFamily(u"DejaVu Sans Mono")
-        font.setPointSize(14)
+        font.setFamily(settings['Qtcon']['FontName'])
+        font.setPointSize(int(settings['Qtcon']['FontSize']))
         
         self.cboxQtconFontName = QFontComboBox(self.gbQtconFont)
         self.cboxQtconFontName.setGeometry(QRect(10, 45, 180, 24))
@@ -124,9 +155,11 @@ class TSettingsDialog(QDialog):
         self.lbQtconFontSize.setText('Size')
         
         self.cboxQtconFontSize = QComboBox(self.gbQtconFont)
-        self.cboxQtconFontSize.setGeometry(QRect(10, 100, 100, 24))
+        self.cboxQtconFontSize.setGeometry(QRect(10, 100, 50, 24))
         self.cboxQtconFontSize.setEditable(True)
-        self.cboxQtconFontSize.setCurrentText('14')
+        self.cboxQtconFontSize.setInsertPolicy(QComboBox.NoInsert)
+        self.cboxQtconFontSize.addItems([str(i) for i in  [8, 9, 10, 11, 12, 14, 16, 18]])
+        self.cboxQtconFontSize.setCurrentText(settings['Qtcon']['FontSize'])
 
         #    Geometry Origin
         self.gbQtconOrigin = QGroupBox(self.gbQtcon)
@@ -140,7 +173,7 @@ class TSettingsDialog(QDialog):
         
         self.leQtconX = QLineEdit(self.gbQtconOrigin)
         self.leQtconX.setGeometry(QRect(10, 50, 60, 24))
-        self.leQtconX.setText('1200')
+        self.leQtconX.setText(settings['Qtcon']['OrgX'])
 
         self.lbQtconY = QLabel(self.gbQtconOrigin)
         self.lbQtconY.setGeometry(QRect(80, 30, 10, 24))
@@ -148,7 +181,7 @@ class TSettingsDialog(QDialog):
         
         self.leQtconY = QLineEdit(self.gbQtconOrigin)
         self.leQtconY.setGeometry(QRect(80, 50, 60, 24))
-        self.leQtconY.setText('0')
+        self.leQtconY.setText(settings['Qtcon']['OrgY'])
 
         #    Geometry Size
         self.gbQtconSize = QGroupBox(self.gbQtcon)
@@ -161,7 +194,7 @@ class TSettingsDialog(QDialog):
 
         self.leQtconWidth = QLineEdit(self.gbQtconSize)
         self.leQtconWidth.setGeometry(QRect(10, 50, 60, 24))
-        self.leQtconWidth.setText('150')
+        self.leQtconWidth.setText(settings['Qtcon']['Width'])
 
         self.lbIQtonHeight = QLabel(self.gbQtconSize)
         self.lbIQtonHeight.setGeometry(QRect(80, 30, 60, 24))
@@ -169,7 +202,7 @@ class TSettingsDialog(QDialog):
 
         self.leQtconHeight = QLineEdit(self.gbQtconSize)
         self.leQtconHeight.setGeometry(QRect(80, 50, 60, 24))
-        self.leQtconHeight.setText('69')
+        self.leQtconHeight.setText(settings['Qtcon']['Height'])
 
         self.ltMain.addWidget(self.gbQtcon)
 
@@ -191,17 +224,29 @@ class TSettingsDialog(QDialog):
 
     #-----------------------------------------------------------------
     def save_settings(self):
-        print('save settings')
-        Settings = QSettings('camlab', 'sdcam')
-        Settings.setValue('component-view', self.CmpViewTable.data_dict())
+        lg.info('save settings')
+        self.settings['Frame']['ZoomFit'] = True if self.cbZoomFit.checkState() == Qt.Checked else False
+        self.settings['IPycon']['OrgX']   = self.leIPyconX.text()
+        self.settings['IPycon']['OrgY']   = self.leIPyconY.text()
+        self.settings['IPycon']['Width']  = self.leIPyconWidth.text()
+        self.settings['IPycon']['Height'] = self.leIPyconHeight.text()
 
-        curr_file = CmpMgr.curr_file_path()
-        self.Parent.CmpTable.reload_file(curr_file)
+        self.settings['Qtcon']['OrgX']    = self.leQtconX.text()
+        self.settings['Qtcon']['OrgY']    = self.leQtconY.text()
+        self.settings['Qtcon']['Width']   = self.leQtconWidth.text()
+        self.settings['Qtcon']['Height']  = self.leQtconHeight.text()
 
+        self.settings['Qtcon']['FontName'] = self.cboxQtconFontName.currentFont().family()
+        self.settings['Qtcon']['FontSize'] = self.cboxQtconFontSize.currentText()
+
+        Settings = QSettings('cam-lab', 'sdcam')
+        Settings.setValue('Application/Settings', self.settings)
         self.close()
+        
     #-----------------------------------------------------------------
     def cancel(self):
-        print('close settings dialog')
+        lg.info('close settings dialog')
+        
         self.close()
 
 #-------------------------------------------------------------------------------

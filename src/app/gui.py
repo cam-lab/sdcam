@@ -19,16 +19,17 @@ from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QRect
 from PyQt5.QtCore    import QT_VERSION_STR
 
 import ipycon
+import settings
 
-from logger import logger as lg
-from badpix import TBadPix
-from vframe import FRAME_SIZE_X, FRAME_SIZE_Y, VIDEO_OUT_DATA_WIDTH
+from logger   import logger as lg
+from badpix   import TBadPix
+from vframe   import FRAME_SIZE_X, FRAME_SIZE_Y, VIDEO_OUT_DATA_WIDTH
 
 run_path, filename = os.path.split(  os.path.abspath(__file__) )
 ico_path = os.path.join( run_path, 'ico' )
 
 PROGRAM_NAME = 'Software-Defined Camera'
-VERSION      = '0.1.0'
+VERSION      = '0.2.0'
 
 fqueue = queue.Queue()
 
@@ -207,18 +208,26 @@ class MainWindow(QMainWindow):
         
     #---------------------------------------------------------------------------
     def save_settings(self):
-        Settings = QSettings('cam-lab', 'pysdcam')
+        Settings = QSettings('cam-lab', 'sdcam')
         Settings.setValue('main-window/geometry', self.saveGeometry() )
         Settings.setValue('main-window/state',    self.saveState());
         
     #---------------------------------------------------------------------------
     def restore_settings(self):
-        Settings = QSettings('cam-lab', 'pysdcam')
+        Settings = QSettings('cam-lab', 'sdcam')
         if Settings.contains('main-window/geometry'):
             self.restoreGeometry( Settings.value('main-window/geometry') )
             self.restoreState( Settings.value('main-window/state') )
         else:
             self.setGeometry(100, 100, 1024, 768)
+            
+        if Settings.contains('Application/Settings'):
+            self.app_settings = settings.read('Application/Settings')
+            lg.info('settings: ' + self.app_settings.__repr__())
+        else:
+            lg.info('application settings not exist, use default')
+            self.app_settings = settings.app_settings
+
         
     #---------------------------------------------------------------------------
     def closeEvent(self, event):
@@ -349,12 +358,10 @@ class MainWindow(QMainWindow):
         self.set_title()
         self.restore_settings()
         
+        self.SettingsDialog = settings.TSettingsDialog(self.app_settings, self)
+        self.SettingsDialog.show()
+
         self.statusBar().showMessage('Ready')
-        
-        from settings import TSettingsDialog
-        
-        Settings = TSettingsDialog(self)
-        Settings.show()
 
 
         #-----------------------------------------------------------------------
