@@ -213,19 +213,22 @@ class MainWindow(QMainWindow):
         Settings.setValue('main-window/state',    self.saveState());
         
     #---------------------------------------------------------------------------
-    def restore_settings(self):
+    def restore_main_window(self):
         Settings = QSettings('cam-lab', 'sdcam')
         if Settings.contains('main-window/geometry'):
             self.restoreGeometry( Settings.value('main-window/geometry') )
             self.restoreState( Settings.value('main-window/state') )
         else:
+            lg.warning('main window settings not exist, use default')
             self.setGeometry(100, 100, 1024, 768)
-            
+
+    #---------------------------------------------------------------------------
+    def restore_app_settings(self):
+        Settings = QSettings('cam-lab', 'sdcam')
         if Settings.contains('Application/Settings'):
             self.app_settings = settings.read('Application/Settings')
-            lg.info('settings: ' + self.app_settings.__repr__())
         else:
-            lg.info('application settings not exist, use default')
+            lg.warning('application settings not exist, use default')
             self.app_settings = settings.app_settings
 
         
@@ -326,6 +329,7 @@ class MainWindow(QMainWindow):
         self.NoVStreamPixmap.fill(QColor(0x00,0x00,0x40,255))
         self.PixmapItem = self.init_pixmap_item(FRAME_SIZE_X, FRAME_SIZE_Y, self.NoVStreamPixmap, 1)
         self.MainScene.addItem(self.PixmapItem)
+        self.img = self.PixmapItem.pixmap().toImage()
 
         self.MainView = TGraphicsView(self.MainScene, self)
         self.MainView.setFrameStyle(QFrame.NoFrame)
@@ -340,12 +344,14 @@ class MainWindow(QMainWindow):
         self.Log.setWidget(self.LogWidget)
         
     #---------------------------------------------------------------------------
-    def initUI(self): #, context):
+    def initUI(self):
 
         #----------------------------------------------------
         #
         #    Main Window
         #
+        self.restore_app_settings()
+
         self.setup_main_scene()
         self.setup_actions()
         self.setup_menu()
@@ -356,16 +362,18 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.MainView)
         
         self.set_title()
-        self.restore_settings()
+        self.restore_main_window()
         
         self.SettingsDialog = settings.TSettingsDialog(self.app_settings, self)
         self.SettingsDialog.show()
 
+
         self.statusBar().showMessage('Ready')
-
-
+        
         #-----------------------------------------------------------------------
         self.show()
+        if self.app_settings['Frame']['ZoomFit']:
+            self.MainView.fit_scene_to_view()
         
     #---------------------------------------------------------------------------
     def update_status_bar(self):
