@@ -1,4 +1,3 @@
-# coding: utf-8
 
 import sys
 import os
@@ -9,103 +8,184 @@ from math import sqrt
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
-                             QVBoxLayout,QHBoxLayout, QSplitter, QGraphicsView, 
+                             QVBoxLayout, QHBoxLayout, QSplitter, QGraphicsView,
                              QFrame, QGraphicsPixmapItem, QGraphicsItem, 
                              QDockWidget, QAction)
 
 from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
-                             QHeaderView)
-from PyQt5.QtGui     import QIcon, QImage, QPixmap, QColor, QTransform
-from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent
+                             QHeaderView, QRubberBand)
+from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform
+from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QRectF, QPoint, QPointF, QSize
 from PyQt5.QtCore    import QT_VERSION_STR
 
-#from internal_ipkernel import InternalIPKernel
+import settings
 
-import ipycon
-
-from logger import logger as lg
-
-from badpix import TBadPix
+from logger   import logger as lg
+from badpix   import TBadPix
+from vframe   import FRAME_SIZE_X, FRAME_SIZE_Y, VIDEO_OUT_DATA_WIDTH
 
 run_path, filename = os.path.split(  os.path.abspath(__file__) )
 ico_path = os.path.join( run_path, 'ico' )
 
 PROGRAM_NAME = 'Software-Defined Camera'
-VERSION      = '0.1.0'
+VERSION      = '0.2.0'
 
 fqueue = queue.Queue()
+
+
+#-------------------------------------------------------------------------------
+def cursor_within_scene(pos):
+    if pos.x() >= 0 and pos.x() < FRAME_SIZE_X and pos.y() >= 0 and pos.y() < FRAME_SIZE_Y:
+        return True
+    else:
+        return False
 
 #-------------------------------------------------------------------------------
 class TGraphicsView(QGraphicsView):
     
+    #  zoom by rect selection
+    rectChanged = pyqtSignal(QRect)
+    
     #---------------------------------------------------------------------------
     def __init__(self, scene, parent):
         super().__init__(scene)
+        self.scene  = scene
         self.parent = parent
-        self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.NoAnchor)
         
-    #---------------------------------------------------------------------------
-    def wheelEvent(self, event):
-        steps = 1 if event.angleDelta().y() > 0 else -1
-        factor = 1 + 0.25*steps
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        #  zoom by rect selection
+        self.rubberBand       = QRubberBand(QRubberBand.Rectangle, self)
+        self.origin           = QPoint()
+        self.changeRubberBand = False
+        self.setMouseTracking(True)
         
-        oldPos = self.mapToScene(event.pos())
-        hsbar = self.horizontalScrollBar().value()
-        vsbar = self.verticalScrollBar().value()
-        if (factor > 1 and  hsbar < 128000 and vsbar < 128000) or \
-           (factor < 1 and (hsbar > 0      or  vsbar > 0)):
-            self.scale(factor, factor)
-            newPos = self.mapToScene(event.pos())
-            delta  = newPos - oldPos
-            self.translate(delta.x(), delta.y())
-            
-            visible_rect   = self.mapToScene(self.viewport().geometry()).boundingRect()
-            visible_widht  = int(visible_rect.width())
-            visible_height = int(visible_rect.height())
-            
-            ratio_x = self.viewport().width()/visible_rect.width()
-            ratio_y = self.viewport().width()/visible_rect.height()
-            
-            self.parent.set_zoom(ratio_x)
+    #---------------------------------------------------------------------------
+    def process_cursor_pos(self, pos):
+        vx   = pos.x()
+        vy   = pos.y()
+        spos = self.mapToScene(pos)
+        sx   = int(spos.x())
+        sy   = int(spos.y())
+        
+        cursor_on_scene = cursor_within_scene(spos)
+        if cursor_on_scene:
+            pval = self.parent.img.pixelColor(sx, sy).rgba64().blue() >> (16 - VIDEO_OUT_DATA_WIDTH)
+        else:
+            pval = None
+
+        self.parent.update_cursor_pos(vx, vy, sx, sy, pval)
+        
+        return cursor_on_scene
+
+    #---------------------------------------------------------------------------
+    def calc_zoom_factor(self):
+        visible_rect  = self.mapToScene(self.viewport().geometry()).boundingRect()
+        ratio_x       = self.viewport().width()/visible_rect.width()
+
+        self.parent.update_zoom(ratio_x)
+
+    #---------------------------------------------------------------------------
+    def fit_scene_to_view(self):
+        self.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio)
+        self.calc_zoom_factor()
+        self.process_cursor_pos(self.cursor().pos() - self.parent.geometry().topLeft() - self.pos() )
+
+    #---------------------------------------------------------------------------
+    #
+    #    Event handlers
+    #
+    def wheelEvent(self, event):
+        #lg.info('pos: ' + str(self.cursor().pos().x()) + ', ' + str(self.cursor().pos().y()))
+        #vx, vy, sx, sy, pval = self.process_cursor_pos(self.cursor().pos())
+
+        modifiers = QApplication.keyboardModifiers()
+        coef      = 0.5 if modifiers == Qt.ShiftModifier else 0.1
+        steps     = 1 if event.angleDelta().y() > 0 else -1
+        factor    = 1 + steps*coef
+        self.scale(factor, factor)
+        self.calc_zoom_factor()
+        
+        self.process_cursor_pos(event.pos())
             
     #---------------------------------------------------------------------------
     def mousePressEvent(self, event):
         
+        cursor_on_scene = self.process_cursor_pos(event.pos())
+
+        #-------------------------------------------------------------
+        #
+        #   Left Mouse Button click
+        #
+        modifiers = QApplication.keyboardModifiers()
+        if event.button() == Qt.LeftButton:
+            if modifiers == Qt.ShiftModifier and cursor_on_scene:
+                self.origin = event.pos()
+                self.rubberBand.setGeometry(QRect(self.origin, QSize()))
+                self.rectChanged.emit(self.rubberBand.geometry())
+                self.rubberBand.show()
+                self.changeRubberBand = True
+            else:
+                self.setDragMode(QGraphicsView.ScrollHandDrag)
+
+        #-------------------------------------------------------------
+        #
+        #   Right Mouse Button click
+        #
         if event.button() == Qt.RightButton:
-            view_x = event.pos().x()
-            view_y = event.pos().y()
-            scene_pos = self.mapToScene(event.pos())
-            scene_x = int(scene_pos.x())
-            scene_y = int(scene_pos.y())
-            #lg.info('pos: ' + str(view_x) + ', ' + str(view_y) + '| scene: ' + str(scene_x) + ', ' + str(scene_y))
-            
             self.parent.bad_pix.toggle_pixel( (scene_x, scene_y) )
+            
 
         QGraphicsView.mousePressEvent(self, event)
        
     #---------------------------------------------------------------------------
     def mouseMoveEvent(self, event):
-        view_x = event.pos().x()
-        view_y = event.pos().y()
-        scene_pos = self.mapToScene(event.pos())
-        scene_x = int(scene_pos.x())
-        scene_y = int(scene_pos.y())
-        self.parent.set_cursor_pos(view_x, view_y, scene_x, scene_y)
+        cursor_on_scene = self.process_cursor_pos(event.pos())
+
+        #  for rect selection
+        if event.buttons() == Qt.LeftButton:
+            if self.changeRubberBand and cursor_on_scene:
+
+                self.rubberBand.setGeometry(QRect(self.origin, event.pos()).normalized())
+                self.rectChanged.emit(self.rubberBand.geometry())
+                return
+
+
         QGraphicsView.mouseMoveEvent(self, event)
+        
+    #---------------------------------------------------------------------------
+    def mouseReleaseEvent(self, event):
+        if self.changeRubberBand:
+            self.changeRubberBand = False
+            self.rubberBand.hide()
+            self.zoom_area = self.mapToScene(self.rubberBand.geometry()).boundingRect()
+            self.fitInView(self.zoom_area, Qt.KeepAspectRatio)
+            self.calc_zoom_factor()
+
+        self.process_cursor_pos(event.pos())
+        self.setDragMode(QGraphicsView.NoDrag)
+        QGraphicsView.mouseReleaseEvent(self, event)
                 
+#-------------------------------------------------------------------------------
+class TGraphicsScene(QGraphicsScene):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
 #-------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
 
     close_signal = pyqtSignal()
     
     #---------------------------------------------------------------------------
-    def __init__(self, app, owner):
+    def __init__(self, app, parent):
         super().__init__()
 
         self.app   = app
-        self.owner = owner
+        self.parent = parent
 
         self.initUI()
 
@@ -114,6 +194,9 @@ class MainWindow(QMainWindow):
         self.view_cpos_y  = 0
         self.scene_cpos_x = 0
         self.scene_cpos_y = 0
+        
+        scene_org = self.MainView.pos() + self.MainView.mapFromScene(0, 0)
+        QCursor().setPos( self.geometry().topLeft() + scene_org)
         
         self.bad_pix = TBadPix()
         
@@ -124,18 +207,20 @@ class MainWindow(QMainWindow):
         
     #---------------------------------------------------------------------------
     def save_settings(self):
-        Settings = QSettings('cam-lab', 'pysdcam')
+        Settings = QSettings('cam-lab', 'sdcam')
         Settings.setValue('main-window/geometry', self.saveGeometry() )
         Settings.setValue('main-window/state',    self.saveState());
         
     #---------------------------------------------------------------------------
-    def restore_settings(self):
-        Settings = QSettings('cam-lab', 'pysdcam')
+    def restore_main_window(self):
+        Settings = QSettings('cam-lab', 'sdcam')
         if Settings.contains('main-window/geometry'):
             self.restoreGeometry( Settings.value('main-window/geometry') )
             self.restoreState( Settings.value('main-window/state') )
         else:
+            lg.warning('main window settings not exist, use default')
             self.setGeometry(100, 100, 1024, 768)
+
         
     #---------------------------------------------------------------------------
     def closeEvent(self, event):
@@ -161,10 +246,13 @@ class MainWindow(QMainWindow):
         img = QImage(img_data,
                      img_data.shape[1], 
                      img_data.shape[0], 
-                     QImage.Format_RGB888)
+                     QImage.Format_RGB30)
 
+
+        self.img = img
         for pix in self.bad_pix.pixels():
-            img.setPixelColor(pix[0], pix[1], QColor(0, 255, 0))
+            if cursor_within_scene(QPointF(pix[0], pix[1])):
+               img.setPixelColor(pix[0], pix[1], QColor(0, 255, 0))
         
         self.show_image(img)
         
@@ -183,12 +271,12 @@ class MainWindow(QMainWindow):
         self.ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
         self.ipyConsoleAction.setShortcut('Alt+S')
         self.ipyConsoleAction.setStatusTip('Launch Jupyter Console')
-        self.ipyConsoleAction.triggered.connect(self.owner.launch_jupyter_console_slot)
+        self.ipyConsoleAction.triggered.connect(self.parent.launch_jupyter_console_slot)
 
         self.ipyQtConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-qtconsole-24.png') ), 'Jupyter QtConsole', self)
         self.ipyQtConsoleAction.setShortcut('Alt+T')
         self.ipyQtConsoleAction.setStatusTip('Launch Jupyter QtConsole')
-        self.ipyQtConsoleAction.triggered.connect(self.owner.launch_jupyter_qtconsole_slot)
+        self.ipyQtConsoleAction.triggered.connect(self.parent.launch_jupyter_qtconsole_slot)
         
         self.agcAction = QAction(QIcon( os.path.join(ico_path, 'agc-24.png') ), 'Automatic Gain Control', self)
         self.agcAction.setShortcut('Alt+G')
@@ -196,6 +284,16 @@ class MainWindow(QMainWindow):
         self.agcAction.setCheckable(True)
         self.agcAction.setChecked(True)
                 
+        self.zffAction = QAction(QIcon( os.path.join(ico_path, 'zoom-fit-frame-24.png') ), 'Fit Frame', self)
+        self.zffAction.setShortcut('Ctrl+1')
+        self.zffAction.setStatusTip('Zoom: Fit Frame. Hotkey: "Ctrl+1"')
+        self.zffAction.triggered.connect(self.MainView.fit_scene_to_view)
+        
+        self.sdlgAction = QAction(QIcon( os.path.join(ico_path, 'settings24.png') ), 'Settings', self)
+        self.sdlgAction.setShortcut('Ctrl+Alt+S')
+        self.sdlgAction.setStatusTip('Edit settings')
+        self.sdlgAction.triggered.connect(self.edit_settings)
+
     #---------------------------------------------------------------------------
     def setup_menu(self):
         self.menubar = self.menuBar()
@@ -203,7 +301,11 @@ class MainWindow(QMainWindow):
         self.controlMenu.addAction(self.ipyConsoleAction)
         self.controlMenu.addAction(self.ipyQtConsoleAction)
         self.controlMenu.addAction(self.agcAction)
+        self.controlMenu.addAction(self.sdlgAction)
         self.controlMenu.addAction(self.exitAction)
+        
+        self.viewMenu = self.menubar.addMenu('&Zoom')
+        self.viewMenu.addAction(self.zffAction)
         
     #---------------------------------------------------------------------------
     def setup_toolbar(self):
@@ -213,15 +315,22 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.ipyConsoleAction)        
         self.toolbar.addAction(self.ipyQtConsoleAction)        
         self.toolbar.addAction(self.agcAction)        
+        self.toolbar.addAction(self.zffAction)
+        self.toolbar.addAction(self.sdlgAction)
         
     #---------------------------------------------------------------------------
+    def edit_settings(self):
+        self.SettingsDialog.show()
+
+    #---------------------------------------------------------------------------
     def setup_main_scene(self):
-        self.MainScene = QGraphicsScene(self)
+        self.MainScene = TGraphicsScene(self)
         self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))
-        self.NoVStreamPixmap = QPixmap(1280, 960)
+        self.NoVStreamPixmap = QPixmap(FRAME_SIZE_X, FRAME_SIZE_Y)
         self.NoVStreamPixmap.fill(QColor(0x00,0x00,0x40,255))
-        self.PixmapItem = self.init_pixmap_item(1280, 960, self.NoVStreamPixmap, 1)
+        self.PixmapItem = self.init_pixmap_item(FRAME_SIZE_X, FRAME_SIZE_Y, self.NoVStreamPixmap, 1)
         self.MainScene.addItem(self.PixmapItem)
+        self.img = self.PixmapItem.pixmap().toImage()
 
         self.MainView = TGraphicsView(self.MainScene, self)
         self.MainView.setFrameStyle(QFrame.NoFrame)
@@ -236,47 +345,50 @@ class MainWindow(QMainWindow):
         self.Log.setWidget(self.LogWidget)
         
     #---------------------------------------------------------------------------
-    def initUI(self): #, context):
+    def initUI(self):
 
         #----------------------------------------------------
         #
         #    Main Window
         #
+        self.setup_main_scene()
         self.setup_actions()
         self.setup_menu()
         self.setup_toolbar()
-        self.setup_main_scene()
         self.create_log_window()
 
         self.addDockWidget(Qt.BottomDockWidgetArea, self.Log)
         self.setCentralWidget(self.MainView)
         
         self.set_title()
-        self.restore_settings()
+        self.restore_main_window()
         
+        self.SettingsDialog = settings.TSettingsDialog(self.parent.settings, self)
+
         self.statusBar().showMessage('Ready')
         
-        #-----------------------------------------------------------------------
         self.show()
+        if self.parent.settings['Frame']['ZoomFit']:
+            self.MainView.fit_scene_to_view()
         
     #---------------------------------------------------------------------------
     def update_status_bar(self):
-        text = 'Zoom: {:.1f} | View: {:d} {:d} | Scene: {:d} {:d}'.format(self.zoom, 
+        text = 'Zoom: {:.1f} | View: {:d} {:d} | Scene: {:d} {:d} | Value: {}'.format(self.zoom,
                                                                           self.view_cpos_x,  self.view_cpos_y,
-                                                                          self.scene_cpos_x, self.scene_cpos_y)
+                                                                          self.scene_cpos_x, self.scene_cpos_y, self.pixval)
         self.statusBar().showMessage(text)
         
     #---------------------------------------------------------------------------
-    def set_zoom(self, zoom):
+    def update_zoom(self, zoom):
         self.zoom = zoom
-        self.update_status_bar()
         
     #---------------------------------------------------------------------------
-    def set_cursor_pos(self, vx, vy, sx, sy):
+    def update_cursor_pos(self, vx, vy, sx, sy, pval):
         self.view_cpos_x  = vx
         self.view_cpos_y  = vy
         self.scene_cpos_x = sx
         self.scene_cpos_y = sy
+        self.pixval       = pval
         self.update_status_bar()
                 
 #-------------------------------------------------------------------------------

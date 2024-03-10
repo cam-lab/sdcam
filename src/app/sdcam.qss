@@ -1,10 +1,13 @@
+QDialog {
+    background-color: #eff0eb;
+}
 QGroupBox {
-    border: 2px solid gray;
-    border-radius: 4px;
+    border: 1px solid gray;
+    border-radius: 3px;
     margin: 0px;
     margin-top: 1ex;
     padding: 0px;
-    font-size: 12pt;
+    font-size: 11pt;
     font-weight: bold;
 }
 QGroupBox::title {
@@ -13,7 +16,36 @@ QGroupBox::title {
    padding: 0px;
    left: 20px;
 } 
-QMenuBar {
+QLabel {
+    font-size: 10pt;
+    font-weight: 500;
+}
+QLineEdit {
+    font-size: 10pt;
+    font-weight: 400;
+    border-radius: 2px;
+    border: 2px solid #e0e4e7;
+    /*padding: 5px 15px;*/
+}
+QCheckBox {
+    font-size: 10pt;
+    font-weight: 600;
+}
+QComboBox {
+    font-size: 10pt;
+    font-weight: 400;
+    border-radius: 2px;
+    border: 2px solid #e0e4e7;
+}
+QFontComboBox {
+    font-size: 10pt;
+    font-weight: 400;
+    border-radius: 2px;
+    border: 2px solid #e0e4e7;
+}
+
+
+/*QMenuBar {
     font-size: 11pt;
 }
 QMenu {
@@ -21,7 +53,7 @@ QMenu {
 }
 QMenu::item {
     font-size: 11pt;
-}
+} */
 QTableWidget {
     font-size: 14pt;
     font-family: Terminus Re33;

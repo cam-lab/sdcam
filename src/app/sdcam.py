@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# coding: utf-8
 
 import sys
 import os
@@ -22,7 +21,7 @@ sys.path.append( os.path.abspath(os.path.join('bin', 'release')))
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore    import QObject, pyqtSignal, QFileSystemWatcher
-from PyQt5.QtCore    import QT_VERSION_STR, pyqtSignal
+from PyQt5.QtCore    import QSettings, QT_VERSION_STR, pyqtSignal
 
 #from IPython.utils.frame import extract_module_locals
 #from ipykernel.kernelapp import IPKernelApp
@@ -31,6 +30,8 @@ from internal_ipkernel   import InternalIPKernel
 from sdc_core import *
 import gui
 import ipycon
+import settings
+
 from logger   import logger as lg
 from logger   import LOG_FILE
 from logger   import setup_logger
@@ -55,8 +56,9 @@ class TSDCam(QObject, InternalIPKernel):
         super().__init__()
 
         sdc = TSDC_Core()
-        self.init_ipkernel('qt', { 'sdcam' : self, 'sdc' : sdc })
+        self.init_ipkernel('qt5', { 'sdcam' : self, 'sdc' : sdc })
 
+        self.restore_settings()
         #-------------------------------------------------------------
         #
         #    Main window
@@ -81,6 +83,7 @@ class TSDCam(QObject, InternalIPKernel):
         
         if args.console:
             ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file.replace('\\', '/'),
+                                          self.settings,
                                           args.console)
 
         app.aboutToQuit.connect(self.finish)
@@ -135,11 +138,21 @@ class TSDCam(QObject, InternalIPKernel):
     
     #---------------------------------------------------------------------------
     def launch_jupyter_console_slot(self):
-        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'shell')
+        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, self.settings, 'shell')
 
     #---------------------------------------------------------------------------
     def launch_jupyter_qtconsole_slot(self):
-        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, 'qt')
+        ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, self.settings, 'qt')
+
+
+    #---------------------------------------------------------------------------
+    def restore_settings(self):
+        Settings = QSettings('cam-lab', 'sdcam')
+        if Settings.contains('Application/Settings'):
+            self.settings = settings.read('Application/Settings')
+        else:
+            lg.warning('application settings not exist, use default')
+            self.settings = settings.app_settings
 
 #-------------------------------------------------------------------------------
 def main():
