@@ -24,9 +24,7 @@ from PyQt5.QtCore    import QObject, pyqtSignal, QFileSystemWatcher
 from PyQt5.QtCore    import QSettings, QT_VERSION_STR, pyqtSignal
 from PyQt5.QtGui     import QIcon
 
-#from IPython.utils.frame import extract_module_locals
-#from ipykernel.kernelapp import IPKernelApp
-from internal_ipkernel   import InternalIPKernel
+from internal_ipkernel import InternalIPKernel
 
 from sdc_core import *
 import gui
