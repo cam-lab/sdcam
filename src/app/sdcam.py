@@ -22,6 +22,7 @@ from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore    import QObject, pyqtSignal, QFileSystemWatcher
 from PyQt5.QtCore    import QSettings, QT_VERSION_STR, pyqtSignal
+from PyQt5.QtGui     import QIcon
 
 #from IPython.utils.frame import extract_module_locals
 #from ipykernel.kernelapp import IPKernelApp
@@ -178,6 +179,7 @@ def main():
         qss = fqss.read().decode()
         qss = re.sub(os.linesep, ' ', qss )
     app.setStyleSheet(qss)
+    app.setWindowIcon(QIcon(os.path.join(resources_path, 'ico', 'camlab.jpeg')))
 
     sdcam = TSDCam(app, args)
     
