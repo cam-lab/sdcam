@@ -33,6 +33,9 @@
 #include <stdint.h>
 #include <iostream>
 #include <sstream>
+#include <thread>
+#include <chrono>
+#include <atomic>
 
 #if defined( __GNUG__ )
         
@@ -56,6 +59,8 @@
 
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
+
+#include "tsqueue.h"
 
 namespace bp = boost::python;
 namespace np = boost::python::numpy;
@@ -151,6 +156,13 @@ inline bool deserialize_frame(void *frameObj, uint8_t *src, uint32_t len)
 //------------------------------------------------------------------------------
 std::string vframe_str(TVFrame & r);
 std::string vframe_repr(TVFrame & r);
+
+extern std::thread        *stream_thread;
+extern std::atomic_bool    sthread_exit;
+extern tsqueue<TVFrame &>  free_frame_queue;
+
+void vstream_fun();
+
 //------------------------------------------------------------------------------
 #if defined( __GNUG__ )
 

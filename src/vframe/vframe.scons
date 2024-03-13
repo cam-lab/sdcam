@@ -27,7 +27,7 @@ env['CURDIR'] = CurDir
 #
 #     Setup sources and target
 #
-Sources = [ 'vframe.cpp']
+Sources = [ 'vframe.cpp', 'video.cpp']
 Target = os.path.join(env['BINDIR'], ProductName)
 
 #-------------------------------------------------------------------------------
