@@ -42,7 +42,6 @@ import gui
 
 from udp import command_queue, TSocket
  
-
 #-------------------------------------------------------------------------------
 class TSDC_Core(QObject):
 
@@ -69,6 +68,12 @@ class TSDC_Core(QObject):
         vframe.init_numpy()
 
         self._f = vframe.TVFrame()
+
+        self._frame_pool = []
+        for i in range(20):
+            f = vframe.TVFrame()
+            self._frame_pool.append(f)
+            vframe.put_free_frame(f)
         
         self._agc_ena = True
         

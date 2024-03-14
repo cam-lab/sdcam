@@ -54,16 +54,16 @@
 
 #endif //  __GNUC__
 
-
-#include <stdint.h>
-#include <iostream>
-#include <cmath>
-
 #include "timing.h"
 #include "vframe.h"
 
 #include <array_ref.h>
 #include <array_indexing_suite.h>
+
+//------------------------------------------------------------------------------
+std::thread        *vstream_thread;
+std::atomic_bool    vsthread_exit;
+tsqueue<TVFrame *>  free_frame_queue;
 
 //------------------------------------------------------------------------------
 void init_numpy()
@@ -347,7 +347,7 @@ int get_frame(TVFrame &f)
     {
         for(size_t col = 0; col < FRAME_SIZE_X; ++col)
         {
-            buf[row][col] = (row + col + 1) & VIDEO_OUT_DATA_MAX;
+            buf[row][col] = (org + row + col + 1) & VIDEO_OUT_DATA_MAX;
             if(row == 100 && col == 100) buf[row][col] = 1023;
             if(row == 100 && col == 101) buf[row][col] = 1023/2;
         }
@@ -357,11 +357,53 @@ int get_frame(TVFrame &f)
                 reinterpret_cast<uint8_t*>(buf),
                 FRAME_SIZE_X*FRAME_SIZE_Y*sizeof(buf[0][0]));
 
-    //org += 20;
+    org += 0;
 
     return 1;
 }
 
+bp::object queue_push_cb;
+//------------------------------------------------------------------------------
+void call_py()
+{
+    static int x;
+    
+    queue_push_cb(++x);
+}
+//------------------------------------------------------------------------------
+void reg_cb(bp::object cb)
+{
+    queue_push_cb = cb;
+}
+//------------------------------------------------------------------------------
+void call_cb()
+{
+    call_py();
+}
+//------------------------------------------------------------------------------
+void put_free_frame(TVFrame &f)
+{
+    static uint32_t cnt;
+    
+    f.fnum = ++cnt;
+    free_frame_queue.push(&f);
+    
+    std::cout << "f.fnum: " << f.fnum << " size: " << free_frame_queue.size() << std::endl;
+}
+//------------------------------------------------------------------------------
+void start_vstream_thread()
+{
+    vstream_thread = new std::thread(vstream_fun);
+    std::cout << "INFO: video stream processing thread started" << std::endl;
+}
+//------------------------------------------------------------------------------
+void finish_vstream_thread()
+{
+    vsthread_exit.store(true);
+    vstream_thread->join();
+    vsthread_exit.store(false);
+    std::cout << "INFO: video stream processing thread finished" << std::endl;
+}
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -399,11 +441,16 @@ BOOST_PYTHON_MODULE(vframe)
     //
     //    Common exposed functions
     //
-    def("init_numpy",         init_numpy);
-    def("get_frame",          get_frame);
-    def("histogram",          histogram);
-    def("scale",              scale);
-    def("make_display_frame", make_display_frame);
+    def("init_numpy",            init_numpy);
+    def("get_frame",             get_frame);
+    def("histogram",             histogram);
+    def("scale",                 scale);
+    def("make_display_frame",    make_display_frame);
+
+    def("start_vstream_thread",  start_vstream_thread);
+    def("finish_vstream_thread", finish_vstream_thread);
+    def("put_free_frame",        put_free_frame);
+    def("call_cb",               call_cb);
 }
 //------------------------------------------------------------------------------
 

@@ -157,9 +157,9 @@ inline bool deserialize_frame(void *frameObj, uint8_t *src, uint32_t len)
 std::string vframe_str(TVFrame & r);
 std::string vframe_repr(TVFrame & r);
 
-extern std::thread        *stream_thread;
-extern std::atomic_bool    sthread_exit;
-extern tsqueue<TVFrame &>  free_frame_queue;
+extern std::thread        *vstream_thread;
+extern std::atomic_bool    vsthread_exit;
+extern tsqueue<TVFrame *>  free_frame_queue;
 
 void vstream_fun();
 

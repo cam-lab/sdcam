@@ -64,7 +64,14 @@ void vstream_fun()
     for(;;)
     {
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(40));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(40));
+        
+        TVFrame *f = free_frame_queue.pop(std::chrono::milliseconds(40));
+        
+        if(f)
+        {
+            std::cout << "frame num: " << f->fnum << std::endl;
+        }
 
         if(vsthread_exit.load())
         {
