@@ -164,8 +164,10 @@ class TGraphicsView(QGraphicsView):
         #   Right Mouse Button click
         #
         if event.button() == Qt.RightButton:
-            self.parent.bad_pix.toggle_pixel( (scene_x, scene_y) )
-            
+            spos = self.mapToScene(event.pos())
+            sx   = int(spos.x())
+            sy   = int(spos.y())
+            self.parent.bad_pix.toggle_pixel( (sx, sy) )
 
         QGraphicsView.mousePressEvent(self, event)
        
