@@ -83,11 +83,15 @@ public:
         
         return nullptr;   // timeout expired
 
-        T item = queue.front();
-        return item;
     }
+    
+    size_t size()
+    {
+        std::unique_lock<std::mutex> lk(mtx);
 
-
+        return queue.size();
+    }
+    
 private:
     std::queue<T>           queue;
     std::mutex              mtx;
