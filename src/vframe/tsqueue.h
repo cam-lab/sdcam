@@ -70,11 +70,18 @@ public:
         flag.notify_one();
     }
 
-    T pop()
+    T pop(const std::chrono::milliseconds timeout)
     {
         std::unique_lock<std::mutex> lk(mtx);
 
-        flag.wait(lk, [this]() { return !queue.emtpy(); });
+        if( flag.wait_for(lk, timeout, [this]() { return !queue.empty(); }) )
+        {
+            T item = queue.front();
+            queue.pop();
+            return item;
+        }
+        
+        return nullptr;   // timeout expired
 
         T item = queue.front();
         return item;
