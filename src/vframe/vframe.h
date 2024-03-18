@@ -165,7 +165,7 @@ std::string vframe_repr(TVFrame & r);
 extern std::thread        *vstream_thread;
 extern std::atomic_bool    vsthread_exit;
 extern tsqueue<TVFrame *>  free_frame_q;
-extern tsqueue<TVFrame *>  inc_frame_q;
+extern tsqueue<TVFrame *>  incoming_frame_q;
 
 void iframe_event_set();
 void vstream_fun();

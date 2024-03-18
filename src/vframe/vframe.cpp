@@ -65,7 +65,7 @@ TVFrame            *frame_pool;
 std::thread        *vstream_thread;
 std::atomic_bool    vsthread_exit;
 tsqueue<TVFrame *>  free_frame_q;
-tsqueue<TVFrame *>  inc_frame_q;
+tsqueue<TVFrame *>  incoming_frame_q;
 
 bp::object          inpframe_event;
 
@@ -385,7 +385,7 @@ void put_free_frame(TVFrame &f)
 //------------------------------------------------------------------------------
 TVFrame *get_iframe()
 {
-    TVFrame *f = inc_frame_q.pop(std::chrono::milliseconds(4000));
+    TVFrame *f = incoming_frame_q.pop(std::chrono::milliseconds(4000));
     return f;
 }
 //------------------------------------------------------------------------------
