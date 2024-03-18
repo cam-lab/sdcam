@@ -42,7 +42,8 @@ import gui
 
 from udp import command_queue, TSocket
  
-iframe_event = threading.Event()
+iframe_event          = threading.Event()
+vsthread_finish_event = threading.Event()
 
 #-------------------------------------------------------------------------------
 class TSDC_Core(QObject):
@@ -71,7 +72,8 @@ class TSDC_Core(QObject):
         vframe.create_frame_pool()
 
         self._f      = vframe.TVFrame()
-        vframe.reg_pyobject(iframe_event)
+        vframe.reg_pyobject(iframe_event,          0)
+        vframe.reg_pyobject(vsthread_finish_event, 1)
 
         self._agc_ena = True
         
@@ -105,6 +107,8 @@ class TSDC_Core(QObject):
         #    UDP socket
         #
         self._sock = TSocket()
+
+        vframe.start_vstream_thread()
 
     #-------------------------------------------------------
     def deinit(self):
@@ -260,6 +264,8 @@ class TVFrameThread(threading.Thread):
     #-------------------------------------------------------
     def finish(self):
         lg.info('VFrame Thread pending to finish')
+        vframe.finish_vstream_thread()
+        vsthread_finish_event.wait()
         vframe.delete_frame_pool()
         self._finish_event.set()
 

@@ -68,6 +68,7 @@ tsqueue<TVFrame *>  free_frame_q;
 tsqueue<TVFrame *>  incoming_frame_q;
 
 bp::object          inpframe_event;
+bp::object          vsthread_finish_event;
 
 //------------------------------------------------------------------------------
 void init_numpy()
@@ -378,9 +379,19 @@ int get_frame(TVFrame &f)
     return 1;
 }
 //------------------------------------------------------------------------------
-void reg_pyobject(bp::object &pyobj)
+void reg_pyobject(bp::object &pyobj, int idx)
 {
-    inpframe_event = pyobj;
+    switch(idx)
+    {
+    case 0:
+        inpframe_event = pyobj;
+        break;
+    case 1:
+        vsthread_finish_event = pyobj;
+        break;
+    default:
+        print("E: invalid object index");
+    }
 }
 //------------------------------------------------------------------------------
 void iframe_event_set()
@@ -414,22 +425,37 @@ void start_vstream_thread()
         print("vframe: free frame queue init: frame addr: {}", fmt::ptr(pf));
     }
 
+    vsthread_exit.store(false);
+
+    {
+        GilLock gl;
+
+        vsthread_finish_event.attr("clear")();
+    }
+
     vstream_thread = new std::thread(vstream_fun);
     print("\nvframe: INFO: video stream processing thread started");
 }
 //------------------------------------------------------------------------------
+void vsthread_finish_set()
+{
+    GilLock gl;
+
+    vsthread_finish_event.attr("set")();
+}
+//------------------------------------------------------------------------------
 void join_vstream_thread()
 {
+    vsthread_exit.store(true);
     vstream_thread->join();
-    vsthread_exit.store(false);
     free_frame_q.clear();
     incoming_frame_q.clear();
+    vsthread_finish_set();
     print("vframe: INFO: video stream processing thread finished\n");
 }
 //------------------------------------------------------------------------------
 void finish_vstream_thread()
 {
-    vsthread_exit.store(true);
     auto vsthread_finalize = new std::thread(join_vstream_thread);
     vsthread_finalize->detach();
     print("vframe: INFO: video stream processing thread finish pending...");
