@@ -36,6 +36,8 @@
 #include <mutex>
 #include <condition_variable>
 
+#include "utils.h"
+
 //------------------------------------------------------------------------------
 #if defined( __GNUG__ )
         
@@ -81,6 +83,7 @@ public:
             return item;
         }
         
+        print("tsqueue::pop, timeout or spurious wakeup");
         return nullptr;   // timeout expired
 
     }

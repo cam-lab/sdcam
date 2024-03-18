@@ -5,6 +5,8 @@
 import os
 import sys
 
+from pathlib import Path
+
 sys.path.append( '.scons' )
 
 from helpers import *
@@ -40,6 +42,8 @@ DEFINES = ['ENA_FW_QT']
 if Platform == 'win32':
     DEFINES += ['BOOST_ALL_NO_LIB']
 
+FMTPATH = Path(os.environ['EXTERNAL_LIB']) / 'fmt'
+
 BOOST_PATH     = os.environ['BOOST_PATH']
 
 PYTHON_VER_MAJOR = '3'
@@ -55,10 +59,12 @@ BOOST_NUMPY_LIB  = 'boost_numpy'  + PYTHON_VER_SFX
 
 
 env.Append(CCFLAGS = ['-D'+ d for d in DEFINES] )
-env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include')])
+env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include'), str(FMTPATH / 'include')])
 env.Append(CPPPATH = [PYTHON_INCLUDE])
 env.Append(LIBPATH = [os.path.join(BOOST_PATH, 'lib')])
 env.Append(LIBS = [PYTHON_LIBRARY, BOOST_PYTHON_LIB, BOOST_NUMPY_LIB])
+env.Append(CXXFLAGS = '-std=c++17')
+
 
 env['SHLIBPREFIX'] = ''
 if Platform == 'win32':

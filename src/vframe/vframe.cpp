@@ -394,7 +394,7 @@ void put_free_frame(TVFrame &f)
 void start_vstream_thread()
 {
     vstream_thread = new std::thread(vstream_fun);
-    std::cout << "INFO: video stream processing thread started" << std::endl;
+    print("vframe: INFO: video stream processing thread started");
 }
 //------------------------------------------------------------------------------
 void finish_vstream_thread()
@@ -402,7 +402,7 @@ void finish_vstream_thread()
     vsthread_exit.store(true);
     vstream_thread->join();
     vsthread_exit.store(false);
-    std::cout << "INFO: video stream processing thread finished" << std::endl;
+    print("vframe: INFO: video stream processing thread finished");
 }
 //------------------------------------------------------------------------------
 

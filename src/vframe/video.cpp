@@ -60,7 +60,7 @@
 //------------------------------------------------------------------------------
 void vstream_fun()
 {
-    std::cout << "INFO: begin video stream processing" << std::endl;
+    print("video: INFO: begin incoming video stream processing");
     for(;;)
     {
 
@@ -70,16 +70,15 @@ void vstream_fun()
         
         if(f)
         {
-            std::cout << "frame num: " << f->fnum << std::endl;
         }
 
         if(vsthread_exit.load())
         {
-            std::cout << "INFO: video stream processing exit notification received" << std::endl;
+            print("video: INFO: video stream processing exit notification received");
             break;
         }
     }
-    std::cout << "INFO: end video stream processing" << std::endl;
+    print("video: INFO: end video stream processing");
 }
 //------------------------------------------------------------------------------
 

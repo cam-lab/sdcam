@@ -60,6 +60,7 @@
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
 
+#include "utils.h"
 #include "tsqueue.h"
 
 namespace bp = boost::python;
