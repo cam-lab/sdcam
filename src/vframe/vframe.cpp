@@ -75,6 +75,18 @@ void init_numpy()
     np::initialize();
 }
 //------------------------------------------------------------------------------
+void create_frame_pool()
+{
+    frame_pool = new TVFrame[FRAME_POOL_SIZE];
+    print("vframe: create video frame pool");
+}
+//------------------------------------------------------------------------------
+void delete_frame_pool()
+{
+    delete[] frame_pool;
+    print("vframe: delete video frame pool");
+}
+//------------------------------------------------------------------------------
 TVFrame::TVFrame()
     : host_fnum      ( 0 )
     , host_fpixsize  ( 2 )             // bytes
@@ -394,8 +406,6 @@ TVFrame *get_iframe()
 //
 void start_vstream_thread()
 {
-    frame_pool = new TVFrame[FRAME_POOL_SIZE];
-
     for(size_t i = 0; i < FRAME_POOL_SIZE; ++i)
     {
         TVFrame *pf = &frame_pool[i];
@@ -403,6 +413,7 @@ void start_vstream_thread()
         free_frame_q.push(pf);
         print("vframe: free frame queue init: frame addr: {}", fmt::ptr(pf));
     }
+
     vstream_thread = new std::thread(vstream_fun);
     print("\nvframe: INFO: video stream processing thread started");
 }
@@ -411,6 +422,8 @@ void join_vstream_thread()
 {
     vstream_thread->join();
     vsthread_exit.store(false);
+    free_frame_q.clear();
+    incoming_frame_q.clear();
     print("vframe: INFO: video stream processing thread finished\n");
 }
 //------------------------------------------------------------------------------
@@ -465,6 +478,8 @@ BOOST_PYTHON_MODULE(vframe)
     def("scale",                 scale);
     def("make_display_frame",    make_display_frame);
 
+    def("create_frame_pool",     create_frame_pool);
+    def("delete_frame_pool",     delete_frame_pool);
     def("start_vstream_thread",  start_vstream_thread);
     def("finish_vstream_thread", finish_vstream_thread);
     def("reg_pyobject",          reg_pyobject);

@@ -68,6 +68,7 @@ class TSDC_Core(QObject):
         self._queue_limit_exceed = False
         
         vframe.init_numpy()
+        vframe.create_frame_pool()
 
         self._f      = vframe.TVFrame()
         vframe.reg_pyobject(iframe_event)
@@ -259,6 +260,7 @@ class TVFrameThread(threading.Thread):
     #-------------------------------------------------------
     def finish(self):
         lg.info('VFrame Thread pending to finish')
+        vframe.delete_frame_pool()
         self._finish_event.set()
 
     #-------------------------------------------------------
