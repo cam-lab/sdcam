@@ -64,7 +64,7 @@ void vstream_fun()
 
     uint16_t buf[FRAME_SIZE_Y][FRAME_SIZE_X];
 
-    print("video: INFO: begin incoming video stream processing");
+    print("video:  INFO: begin incoming video stream processing");
     for(;;)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(40));
@@ -94,11 +94,11 @@ void vstream_fun()
         
         if(vsthread_exit.load())
         {
-            print("video: INFO: video stream processing exit notification received");
+            print("video:  INFO: video stream processing exit notification received");
             break;
         }
     }
-    print("video: INFO: end video stream processing");
+    print("video:  INFO: end video stream processing");
 }
 //------------------------------------------------------------------------------
 

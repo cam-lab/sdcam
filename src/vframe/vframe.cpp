@@ -404,14 +404,14 @@ void start_vstream_thread()
         print("vframe: free frame queue init: frame addr: {}", fmt::ptr(pf));
     }
     vstream_thread = new std::thread(vstream_fun);
-    print("vframe: INFO: video stream processing thread started");
+    print("\nvframe: INFO: video stream processing thread started");
 }
 //------------------------------------------------------------------------------
 void join_vstream_thread()
 {
     vstream_thread->join();
     vsthread_exit.store(false);
-    print("vframe: INFO: video stream processing thread finished");
+    print("vframe: INFO: video stream processing thread finished\n");
 }
 //------------------------------------------------------------------------------
 void finish_vstream_thread()
