@@ -61,9 +61,13 @@
 #include <array_indexing_suite.h>
 
 //------------------------------------------------------------------------------
+TVFrame            *frame_pool;
 std::thread        *vstream_thread;
 std::atomic_bool    vsthread_exit;
-tsqueue<TVFrame *>  free_frame_queue;
+tsqueue<TVFrame *>  free_frame_q;
+tsqueue<TVFrame *>  inc_frame_q;
+
+bp::object          inpframe_event;
 
 //------------------------------------------------------------------------------
 void init_numpy()
@@ -357,56 +361,70 @@ int get_frame(TVFrame &f)
                 reinterpret_cast<uint8_t*>(buf),
                 FRAME_SIZE_X*FRAME_SIZE_Y*sizeof(buf[0][0]));
 
-    org += 0;
+    org += 10;
 
     return 1;
 }
+//------------------------------------------------------------------------------
+void reg_pyobject(bp::object &pyobj)
+{
+    inpframe_event = pyobj;
+}
+//------------------------------------------------------------------------------
+void iframe_event_set()
+{
+    GilLock gl;
 
-bp::object queue_push_cb;
-//------------------------------------------------------------------------------
-void call_py()
-{
-    static int x;
-    
-    queue_push_cb(++x);
-}
-//------------------------------------------------------------------------------
-void reg_cb(bp::object cb)
-{
-    queue_push_cb = cb;
-}
-//------------------------------------------------------------------------------
-void call_cb()
-{
-    call_py();
+    inpframe_event.attr("set")();
 }
 //------------------------------------------------------------------------------
 void put_free_frame(TVFrame &f)
 {
-    static uint32_t cnt;
-    
-    f.fnum = ++cnt;
-    free_frame_queue.push(&f);
-    
-    std::cout << "f.fnum: " << f.fnum << " size: " << free_frame_queue.size() << std::endl;
+    free_frame_q.push(&f);
 }
 //------------------------------------------------------------------------------
+TVFrame *get_iframe()
+{
+    TVFrame *f = inc_frame_q.pop(std::chrono::milliseconds(4000));
+    return f;
+}
+//------------------------------------------------------------------------------
+//
+//    Video Stream Thread stuff
+//
 void start_vstream_thread()
 {
+    frame_pool = new TVFrame[FRAME_POOL_SIZE];
+
+    for(size_t i = 0; i < FRAME_POOL_SIZE; ++i)
+    {
+        TVFrame *pf = &frame_pool[i];
+        pf->fnum = i;
+        free_frame_q.push(pf);
+        print("vframe: free frame queue init: frame addr: {}", fmt::ptr(pf));
+    }
     vstream_thread = new std::thread(vstream_fun);
     print("vframe: INFO: video stream processing thread started");
 }
 //------------------------------------------------------------------------------
-void finish_vstream_thread()
+void join_vstream_thread()
 {
-    vsthread_exit.store(true);
     vstream_thread->join();
     vsthread_exit.store(false);
     print("vframe: INFO: video stream processing thread finished");
 }
 //------------------------------------------------------------------------------
-
+void finish_vstream_thread()
+{
+    vsthread_exit.store(true);
+    auto vsthread_finalize = new std::thread(join_vstream_thread);
+    vsthread_finalize->detach();
+    print("vframe: INFO: video stream processing thread finish pending...");
+}
 //------------------------------------------------------------------------------
+//
+//    Boost.Python Module
+//
 BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
@@ -449,8 +467,9 @@ BOOST_PYTHON_MODULE(vframe)
 
     def("start_vstream_thread",  start_vstream_thread);
     def("finish_vstream_thread", finish_vstream_thread);
+    def("reg_pyobject",          reg_pyobject);
     def("put_free_frame",        put_free_frame);
-    def("call_cb",               call_cb);
+    def("get_iframe",            get_iframe, return_value_policy<reference_existing_object>());
 }
 //------------------------------------------------------------------------------
 

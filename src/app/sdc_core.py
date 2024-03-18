@@ -42,6 +42,8 @@ import gui
 
 from udp import command_queue, TSocket
  
+iframe_event = threading.Event()
+
 #-------------------------------------------------------------------------------
 class TSDC_Core(QObject):
 
@@ -67,14 +69,9 @@ class TSDC_Core(QObject):
         
         vframe.init_numpy()
 
-        self._f = vframe.TVFrame()
+        self._f      = vframe.TVFrame()
+        vframe.reg_pyobject(iframe_event)
 
-        self._frame_pool = []
-        for i in range(20):
-            f = vframe.TVFrame()
-            self._frame_pool.append(f)
-            vframe.put_free_frame(f)
-        
         self._agc_ena = True
         
         self.org_thres = 5
@@ -160,7 +157,13 @@ class TSDC_Core(QObject):
 
     #-------------------------------------------------------
     def processing(self):
-        vframe.get_frame(self._f)
+        if not iframe_event.wait(0.1):
+            return
+
+        iframe_event.clear()
+        #vframe.get_inp_frame(self._f)
+        self._f = vframe.get_iframe()
+
         pbuf = self._f.pixbuf
 
         self.fframe_histo.fill(0)
@@ -172,7 +175,8 @@ class TSDC_Core(QObject):
         self._pmap = vframe.make_display_frame(pbuf)
         pmap = vframe.make_display_frame(pbuf)
         self.display(pmap)
-        time.sleep(0.04)
+
+        vframe.put_free_frame(self._f)
            
     #-----------------------------------------------------------------
     #

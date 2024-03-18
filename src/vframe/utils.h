@@ -37,6 +37,19 @@
 #include <boost/python.hpp>
                        
 //------------------------------------------------------------------------------
+class GilLock
+{
+public:
+    GilLock() : state(PyGILState_Ensure()) { }
+    ~GilLock() { PyGILState_Release(state); }
+
+    GilLock(const GilLock &)            = delete;
+    GilLock &operator=(const GilLock &) = delete;
+
+private:
+    PyGILState_STATE state;
+};
+//------------------------------------------------------------------------------
 template<typename... T>
 FMT_INLINE void print(fmt::format_string<T...> fmt, T&&... args)
 {
