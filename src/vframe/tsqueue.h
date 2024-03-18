@@ -85,7 +85,6 @@ public:
         
         print("tsqueue::pop, timeout or spurious wakeup");
         return nullptr;   // timeout expired
-
     }
     
     size_t size()
@@ -95,6 +94,16 @@ public:
         return queue.size();
     }
     
+    void clear()
+    {
+        std::unique_lock<std::mutex> lk(mtx);
+        
+        while(!queue.empty())
+        {
+            queue.pop();
+        }
+    }
+
 private:
     std::queue<T>           queue;
     std::mutex              mtx;
