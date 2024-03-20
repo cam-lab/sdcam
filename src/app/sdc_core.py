@@ -124,12 +124,10 @@ class TSDC_Core(QObject):
     #-------------------------------------------------------
     def agc_slot(self, checked):
         self._agc_ena = checked
-        lg.info('agc action: ' + str(checked))
         
     #-------------------------------------------------------
     def vstream_slot(self, checked):
         self._vstream_ena = checked
-        lg.info('vstream action: ' + str(checked))
 
     #-------------------------------------------------------
     def generate(self):
@@ -201,13 +199,13 @@ class TSDC_Core(QObject):
             if self._vstream_ena:
                 vframe.start_vstream_thread()
                 self._vstream_on = True
-                lg.info('start video thread')
+                lg.info('start low-level incoming video stream thread')
         else:
             if not self._vstream_ena:
                 vframe.finish_vstream_thread();
                 vsthread_finish_event.wait()
                 self._vstream_on = False
-                lg.info('stop video thread')
+                lg.info('stop low-level incoming video stream thread')
 
     #-----------------------------------------------------------------
     #

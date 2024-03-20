@@ -64,8 +64,8 @@
 TVFrame            *frame_pool;
 std::thread        *vstream_thread;
 std::atomic_bool    vsthread_exit;
-tsqueue<TVFrame *>  free_frame_q;
-tsqueue<TVFrame *>  incoming_frame_q;
+tsqueue<TVFrame *>  free_frame_q("free_q");
+tsqueue<TVFrame *>  incoming_frame_q("incoming_q");
 
 bp::object          inpframe_event;
 bp::object          vsthread_finish_event;
@@ -417,6 +417,9 @@ TVFrame *get_iframe()
 //
 void start_vstream_thread()
 {
+    print("-------------------------------------------------------------\n\
+                    Start Video Stream Thread\n");
+    
     for(size_t i = 0; i < FRAME_POOL_SIZE; ++i)
     {
         TVFrame *pf = &frame_pool[i];
@@ -425,6 +428,8 @@ void start_vstream_thread()
         print("vframe: free frame queue init: frame addr: {}", fmt::ptr(pf));
     }
 
+    print("vframe: free frame queue size:     {}", free_frame_q.size());
+    print("vframe: incoming frame queue size: {}", incoming_frame_q.size());
     vsthread_exit.store(false);
 
     {
@@ -450,14 +455,19 @@ void join_vstream_thread()
     vstream_thread->join();
     free_frame_q.clear();
     incoming_frame_q.clear();
+    print("vframe: free frame queue size:     {}", free_frame_q.size());
+    print("vframe: incoming frame queue size: {}", incoming_frame_q.size());
     vsthread_finish_set();
-    print("vframe: INFO: video stream processing thread finished\n");
+    print("vframe: INFO: video stream processing thread finished");
+    print("-------------------------------------------------------------\n");
 }
 //------------------------------------------------------------------------------
 void finish_vstream_thread()
 {
     auto vsthread_finalize = new std::thread(join_vstream_thread);
     vsthread_finalize->detach();
+    print("\n-------------------------------------------------------------\n\
+                    Stop Video Stream Thread\n");
     print("vframe: INFO: video stream processing thread finish pending...");
 }
 //------------------------------------------------------------------------------

@@ -31,6 +31,7 @@
 #define TSQUEUE_H
 
 #include <stdint.h>
+#include <string.h>
 #include <iostream>
 #include <queue>
 #include <mutex>
@@ -63,7 +64,11 @@
 template<typename T>
 class tsqueue
 {
+    std::string name;
+    
 public:
+    tsqueue(const std::string s) : name(s) { }
+
     void push(T item)
     {
         std::unique_lock<std::mutex> lk(mtx);
@@ -83,7 +88,7 @@ public:
             return item;
         }
         
-        print("tsqueue::pop, timeout or spurious wakeup");
+        print("tsqueue::pop, {}, timeout or spurious wakeup", name);
         return nullptr;   // timeout expired
     }
     
