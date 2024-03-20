@@ -51,9 +51,11 @@ class TSDC_Core(QObject):
     frame_signal = pyqtSignal( int )
     
     #-------------------------------------------------------
-    def __init__(self):
+    def __init__(self, parent):
         super().__init__()
         
+        self.parent = parent
+
         #-----------------------------------------
         #
         #    MMR 
@@ -71,11 +73,14 @@ class TSDC_Core(QObject):
         vframe.init_numpy()
         vframe.create_frame_pool()
 
-        self._f      = vframe.TVFrame()
+        self._f = vframe.TVFrame()
         vframe.reg_pyobject(iframe_event,          0)
         vframe.reg_pyobject(vsthread_finish_event, 1)
 
-        self._agc_ena = True
+        self._agc_ena     = False
+        self._vstream_ena = False
+
+        self._vstream_on  = False
         
         self.org_thres = 5
         self.top_thres = 5
@@ -108,8 +113,6 @@ class TSDC_Core(QObject):
         #
         self._sock = TSocket()
 
-        vframe.start_vstream_thread()
-
     #-------------------------------------------------------
     def deinit(self):
         self._sock.close()
@@ -121,7 +124,13 @@ class TSDC_Core(QObject):
     #-------------------------------------------------------
     def agc_slot(self, checked):
         self._agc_ena = checked
+        lg.info('agc action: ' + str(checked))
         
+    #-------------------------------------------------------
+    def vstream_slot(self, checked):
+        self._vstream_ena = checked
+        lg.info('vstream action: ' + str(checked))
+
     #-------------------------------------------------------
     def generate(self):
         time.sleep(0.04)
@@ -162,11 +171,14 @@ class TSDC_Core(QObject):
 
     #-------------------------------------------------------
     def processing(self):
+        self.vsthread_control()
         if not iframe_event.wait(0.1):
             return
 
         iframe_event.clear()
         #vframe.get_inp_frame(self._f)
+        if not self._vstream_on:     # prevent spurious pop from incoming queue
+            return
         self._f = vframe.get_iframe()
 
         pbuf = self._f.pixbuf
@@ -183,6 +195,20 @@ class TSDC_Core(QObject):
 
         vframe.put_free_frame(self._f)
            
+    #-----------------------------------------------------------------
+    def vsthread_control(self):
+        if not self._vstream_on:
+            if self._vstream_ena:
+                vframe.start_vstream_thread()
+                self._vstream_on = True
+                lg.info('start video thread')
+        else:
+            if not self._vstream_ena:
+                vframe.finish_vstream_thread();
+                vsthread_finish_event.wait()
+                self._vstream_on = False
+                lg.info('stop video thread')
+
     #-----------------------------------------------------------------
     #
     #    MMR command API
@@ -264,13 +290,16 @@ class TVFrameThread(threading.Thread):
     #-------------------------------------------------------
     def finish(self):
         lg.info('VFrame Thread pending to finish')
-        vframe.finish_vstream_thread()
-        vsthread_finish_event.wait()
+        if self.core._vstream_on:
+            vframe.finish_vstream_thread()
+            vsthread_finish_event.wait()
+
         vframe.delete_frame_pool()
         self._finish_event.set()
 
     #-------------------------------------------------------
     def run(self):
+        self.core._vstream_ena = self.core.parent.sdc_core_opt['Start/Stop Video']
         while True:
             self.core.processing()
             if self._finish_event.is_set():
