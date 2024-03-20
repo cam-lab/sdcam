@@ -33,6 +33,10 @@
 #include <stdint.h>
 #include <iostream>
 #include <sstream>
+#include <fstream>
+#include <thread>
+#include <chrono>
+#include <atomic>
 
 #if defined( __GNUG__ )
         
@@ -57,6 +61,9 @@
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
 
+#include "utils.h"
+#include "tsqueue.h"
+
 namespace bp = boost::python;
 namespace np = boost::python::numpy;
 
@@ -72,6 +79,9 @@ const uint32_t VIDEO_DATA_MAX       = (1 << VIDEO_DATA_WIDTH) - 1;
 
 const uint32_t VIDEO_OUT_DATA_WIDTH = 10;
 const uint32_t VIDEO_OUT_DATA_MAX   = (1 << VIDEO_OUT_DATA_WIDTH) - 1;
+
+const size_t   FRAME_POOL_SIZE      = 4;
+
 
 //------------------------------------------------------------------------------
 struct TVFrame
@@ -151,6 +161,15 @@ inline bool deserialize_frame(void *frameObj, uint8_t *src, uint32_t len)
 //------------------------------------------------------------------------------
 std::string vframe_str(TVFrame & r);
 std::string vframe_repr(TVFrame & r);
+
+extern std::thread        *vstream_thread;
+extern std::atomic_bool    vsthread_exit;
+extern tsqueue<TVFrame *>  free_frame_q;
+extern tsqueue<TVFrame *>  incoming_frame_q;
+
+void iframe_event_set();
+void vstream_fun();
+
 //------------------------------------------------------------------------------
 #if defined( __GNUG__ )
 

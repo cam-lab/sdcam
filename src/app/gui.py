@@ -50,6 +50,7 @@ import settings
 
 from logger   import logger as lg
 from badpix   import TBadPix
+
 from vframe   import FRAME_SIZE_X, FRAME_SIZE_Y, VIDEO_OUT_DATA_WIDTH
 
 run_path, filename = os.path.split(  os.path.abspath(__file__) )
@@ -59,7 +60,6 @@ PROGRAM_NAME = 'Software-Defined Camera'
 VERSION      = '0.2.0'
 
 fqueue = queue.Queue()
-
 
 #-------------------------------------------------------------------------------
 def cursor_within_scene(pos):
@@ -164,8 +164,10 @@ class TGraphicsView(QGraphicsView):
         #   Right Mouse Button click
         #
         if event.button() == Qt.RightButton:
-            self.parent.bad_pix.toggle_pixel( (scene_x, scene_y) )
-            
+            spos = self.mapToScene(event.pos())
+            sx   = int(spos.x())
+            sy   = int(spos.y())
+            self.parent.bad_pix.toggle_pixel( (sx, sy) )
 
         QGraphicsView.mousePressEvent(self, event)
        
@@ -204,12 +206,16 @@ class TGraphicsScene(QGraphicsScene):
         super().__init__(parent)
 
 #-------------------------------------------------------------------------------
+#
+#     Main window
+#
 class MainWindow(QMainWindow):
 
     close_signal = pyqtSignal()
     
     #---------------------------------------------------------------------------
     def __init__(self, app, parent):
+
         super().__init__()
 
         self.app   = app
@@ -228,6 +234,7 @@ class MainWindow(QMainWindow):
         
         self.bad_pix = TBadPix()
         
+        
     #---------------------------------------------------------------------------
     def set_title(self, text = ''):
         text = ' - ' + text if len(text) > 0 else ''
@@ -237,19 +244,20 @@ class MainWindow(QMainWindow):
     def save_settings(self):
         Settings = QSettings('camlab', 'sdcam')
         Settings.setValue('main-window/geometry', self.saveGeometry() )
-        Settings.setValue('main-window/state',    self.saveState());
-        
+        Settings.setValue('main-window/state',    self.saveState())
+        Settings.setValue('sdc_core/options',     self.parent.sdc_core_opt)
+
     #---------------------------------------------------------------------------
     def restore_main_window(self):
         Settings = QSettings('camlab', 'sdcam')
         if Settings.contains('main-window/geometry'):
             self.restoreGeometry( Settings.value('main-window/geometry') )
             self.restoreState( Settings.value('main-window/state') )
+            
         else:
             lg.warning('main window settings not exist, use default')
             self.setGeometry(100, 100, 1024, 768)
 
-        
     #---------------------------------------------------------------------------
     def closeEvent(self, event):
         self.save_settings()
@@ -290,44 +298,77 @@ class MainWindow(QMainWindow):
         self.PixmapItem.setPixmap(pmap)
     
     #---------------------------------------------------------------------------
+    class TCheckedAction(QAction):
+
+        trig_signal = pyqtSignal( bool )
+
+        def __init__(self, icon_off, icon_on, text, parent  ):
+            self.icon_on  = QIcon( os.path.join(ico_path, icon_on) )
+            self.icon_off = QIcon( os.path.join(ico_path, icon_off) )
+
+            super().__init__(self.icon_off, text, parent)
+            self.triggered.connect(self.trigAction)
+            
+            self.setStatusTip(text)
+            self.setCheckable(True)
+            self.setChecked(parent.parent.sdc_core_opt[text])
+
+        def updateIcon(self):
+            self.setIcon(self.icon_on) if self.isChecked() else self.setIcon(self.icon_off)
+            
+        def trigAction(self):
+            self.updateIcon()
+            self.parent().parent.sdc_core_opt[self.text()] = self.isChecked()
+            self.trig_signal.emit(self.isChecked())
+            
     def setup_actions(self):
+        #-------------------------------------------------------------
         self.exitAction = QAction(QIcon( os.path.join(ico_path, 'exit24.png') ), 'Exit', self)
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.setStatusTip('Exit application')
         self.exitAction.triggered.connect(self.close)
+        #-------------------------------------------------------------
 
         self.ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
         self.ipyConsoleAction.setShortcut('Alt+S')
         self.ipyConsoleAction.setStatusTip('Launch Jupyter Console')
         self.ipyConsoleAction.triggered.connect(self.parent.launch_jupyter_console_slot)
 
+        #-------------------------------------------------------------
         self.ipyQtConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-qtconsole-24.png') ), 'Jupyter QtConsole', self)
         self.ipyQtConsoleAction.setShortcut('Alt+T')
         self.ipyQtConsoleAction.setStatusTip('Launch Jupyter QtConsole')
         self.ipyQtConsoleAction.triggered.connect(self.parent.launch_jupyter_qtconsole_slot)
         
-        self.agcAction = QAction(QIcon( os.path.join(ico_path, 'agc-24.png') ), 'Automatic Gain Control', self)
-        self.agcAction.setShortcut('Alt+G')
-        self.agcAction.setStatusTip('Automatic Gain Control')
-        self.agcAction.setCheckable(True)
-        self.agcAction.setChecked(True)
-                
+        #-------------------------------------------------------------
+        self.vstreamAction = self.TCheckedAction('play-24.png', 'pause-24.png', 'Start/Stop Video', self)
+        self.vstreamAction.setShortcut('F5')
+        self.vstreamAction.trigAction()
+
+        #-------------------------------------------------------------
+        self.agcAction = self.TCheckedAction('automatic-off-24.png', 'automatic-on-24.png', 'Automatic Gain Control', self)
+        self.agcAction.setShortcut('F6')
+        self.agcAction.trigAction()
+
+        #-------------------------------------------------------------
         self.zffAction = QAction(QIcon( os.path.join(ico_path, 'zoom-fit-frame-24.png') ), 'Fit Frame', self)
         self.zffAction.setShortcut('Ctrl+1')
         self.zffAction.setStatusTip('Zoom: Fit Frame. Hotkey: "Ctrl+1"')
         self.zffAction.triggered.connect(self.MainView.fit_scene_to_view)
         
-        self.sdlgAction = QAction(QIcon( os.path.join(ico_path, 'settings24.png') ), 'Settings', self)
-        self.sdlgAction.setShortcut('Ctrl+Alt+S')
+        #-------------------------------------------------------------
+        self.sdlgAction = QAction(QIcon( os.path.join(ico_path, 'settings-24.png') ), 'Settings', self)
+        self.sdlgAction.setShortcut('F12')
         self.sdlgAction.setStatusTip('Edit settings')
         self.sdlgAction.triggered.connect(self.edit_settings)
-
+        
     #---------------------------------------------------------------------------
     def setup_menu(self):
         self.menubar = self.menuBar()
         self.controlMenu = self.menubar.addMenu('&Control')
         self.controlMenu.addAction(self.ipyConsoleAction)
         self.controlMenu.addAction(self.ipyQtConsoleAction)
+        self.controlMenu.addAction(self.vstreamAction)
         self.controlMenu.addAction(self.agcAction)
         self.controlMenu.addAction(self.sdlgAction)
         self.controlMenu.addAction(self.exitAction)
@@ -342,10 +383,11 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.exitAction)        
         self.toolbar.addAction(self.ipyConsoleAction)        
         self.toolbar.addAction(self.ipyQtConsoleAction)        
-        self.toolbar.addAction(self.agcAction)        
+        self.toolbar.addAction(self.vstreamAction)
+        self.toolbar.addAction(self.agcAction)
         self.toolbar.addAction(self.zffAction)
         self.toolbar.addAction(self.sdlgAction)
-        
+
     #---------------------------------------------------------------------------
     def edit_settings(self):
         self.SettingsDialog.show()
@@ -380,16 +422,18 @@ class MainWindow(QMainWindow):
         #    Main Window
         #
         self.setup_main_scene()
-        self.setup_actions()
-        self.setup_menu()
-        self.setup_toolbar()
         self.create_log_window()
 
         self.addDockWidget(Qt.BottomDockWidgetArea, self.Log)
         self.setCentralWidget(self.MainView)
         
-        self.set_title()
         self.restore_main_window()
+
+        self.setup_actions()
+        self.setup_menu()
+        self.setup_toolbar()
+
+        self.set_title()
         
         self.SettingsDialog = settings.TSettingsDialog(self.parent.settings, self)
 

@@ -31,8 +31,8 @@ def optflags(toolchain, variant):
     return TOOLCHAIN_OPTFLAGS[toolchain][variant]
 #-------------------------------------------------------------------------------
 def shell_support_colors():
-    parent = psutil.Process().parent().cmdline()[0]
-
+    parent = psutil.Process().parent().name()
+    
     if any( shell_name in parent for shell_name in ('bash',  'zsh', 'cmd.exe') ): 
         return True
     else:

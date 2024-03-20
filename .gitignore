@@ -4,6 +4,7 @@ __pycache__
 *.o
 *.vtg
 *.vpwhistu
+*.vpwwild*
 bin
 build
 lib

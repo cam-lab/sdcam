@@ -81,11 +81,15 @@ class TSDCam(QObject, InternalIPKernel):
     def __init__(self, app, args):
         
         super().__init__()
-
-        sdc = TSDC_Core()
-        self.init_ipkernel('qt5', { 'sdcam' : self, 'sdc' : sdc })
+        
+        self.default_sdc_core_opt = { 'Start/Stop Video'       : False,
+                                      'Automatic Gain Control' : False }
 
         self.restore_settings()
+        
+        sdc = TSDC_Core(self)
+        self.init_ipkernel('qt5', { 'sdcam' : self, 'sdc' : sdc })
+
         #-------------------------------------------------------------
         #
         #    Main window
@@ -115,12 +119,12 @@ class TSDCam(QObject, InternalIPKernel):
 
         app.aboutToQuit.connect(self.finish)
 
-        self.mwin.agcAction.triggered.connect(self.vfthread.core.agc_slot, Qt.QueuedConnection)
+        self.mwin.agcAction.trig_signal.connect(self.vfthread.core.agc_slot, Qt.QueuedConnection)
+        self.mwin.vstreamAction.trig_signal.connect(self.vfthread.core.vstream_slot, Qt.QueuedConnection)
         self.vfthread.core.frame_signal.connect(self.mwin.show_frame_slot, Qt.QueuedConnection)
 
         self.mwin.close_signal.connect(self.finish)
         self.mwin.close_signal.connect(app.quit)
-        
 
         #-------------------------------------------------------------
         #
@@ -171,7 +175,6 @@ class TSDCam(QObject, InternalIPKernel):
     def launch_jupyter_qtconsole_slot(self):
         ipycon.launch_jupyter_console(self.ipkernel.abs_connection_file, self.settings, 'qt')
 
-
     #---------------------------------------------------------------------------
     def restore_settings(self):
         Settings = QSettings('camlab', 'sdcam')
@@ -180,6 +183,12 @@ class TSDCam(QObject, InternalIPKernel):
         else:
             lg.warning('application settings not exist, use default')
             self.settings = settings.app_settings
+            
+        if Settings.contains('sdc_core/options'):
+            self.sdc_core_opt = Settings.value('sdc_core/options')
+        else:
+            lg.warning('sdc core options not exist, use default')
+            self.sdc_core_opt = self.default_sdc_core_opt
 
 #-------------------------------------------------------------------------------
 def main():
