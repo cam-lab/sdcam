@@ -77,6 +77,12 @@ class TSDC_Core(QObject):
         vframe.reg_pyobject(iframe_event,          0)
         vframe.reg_pyobject(vsthread_finish_event, 1)
 
+        class HookStub:
+            def run(self, host):
+                pass
+
+        self.hook = HookStub()
+
         self._agc_ena     = False
         self._vstream_ena = False
 
@@ -192,6 +198,8 @@ class TSDC_Core(QObject):
         self.display(pmap)
 
         vframe.put_free_frame(self._f)
+
+        self.hook.run(self)
            
     #-----------------------------------------------------------------
     def vsthread_control(self):
