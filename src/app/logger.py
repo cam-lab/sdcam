@@ -30,7 +30,8 @@
 import os
 import logging
 
-from PyQt5.QtCore    import QObject, pyqtSignal
+from pathlib      import Path
+from PyQt5.QtCore import QObject, pyqtSignal
 
 #-------------------------------------------------------------------------------
 class TLogger(QObject):
@@ -44,9 +45,7 @@ class TLogger(QObject):
 
 #-------------------------------------------------------------------------------
 
-#Logger = TLogger()
-
-LOG_FILE = 'sdcam.log'
+LOG_FILE = Path('log') / 'sdcam.log'
 
 #-------------------------------------------------------------------------------
 def setup_logger(lvl):

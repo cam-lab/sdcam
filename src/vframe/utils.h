@@ -30,12 +30,13 @@
 #ifndef PROJECT_UTILS_H
 #define PROJECT_UTILS_H
         
-#define FMT_HEADER_ONLY
-#include <fmt/core.h>
-#include <fmt/ranges.h>
-#include <fmt/chrono.h>
+//#define FMT_HEADER_ONLY
+//#include <fmt/core.h>
+//#include <fmt/ranges.h>
+//#include <fmt/chrono.h>
 #include <boost/python.hpp>
-                       
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 //------------------------------------------------------------------------------
 class GilLock
 {

@@ -109,8 +109,9 @@ struct TVFrame
     TVFrame();
     
     bp::object pbuf() { return pixbuf; }
-    
-    bool fill(uint8_t *src, uint32_t len);
+
+    TVFrame  copy();
+    bool     fill(uint8_t *src, uint32_t len);
     
     uint32_t retreive_fnum(uint16_t *p);
     uint64_t retreive_tstamp(uint16_t *p);
