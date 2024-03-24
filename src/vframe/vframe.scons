@@ -25,6 +25,12 @@ Platform = env['PLATFORM']
 CurDir = os.path.abspath(str(Dir('.').srcnode()))
 env['CURDIR'] = CurDir
 
+
+logpath = Path('log')
+
+if not logpath.exists():
+    Execute(Mkdir(logpath))
+
 #-------------------------------------------------------------------------------
 #
 #     Setup sources and target
@@ -42,9 +48,9 @@ DEFINES = ['ENA_FW_QT']
 if Platform == 'win32':
     DEFINES += ['BOOST_ALL_NO_LIB']
 
-FMTPATH = Path(os.environ['EXTERNAL_LIB']) / 'fmt'
-
-BOOST_PATH     = os.environ['BOOST_PATH']
+BOOST_PATH = Path(os.environ['BOOST_PATH'])
+FMTPATH    = Path(os.environ['EXTERNAL_LIB']) / 'fmt'
+SPDLOGPATH = Path(os.environ['EXTERNAL_LIB']) / 'spdlog'
 
 PYTHON_VER_MAJOR = '3'
 PYTHON_VER_MINOR = '10'
@@ -57,14 +63,12 @@ PYTHON_LIBRARY = 'python' + PYTHON_VERSION
 BOOST_PYTHON_LIB = 'boost_python' + PYTHON_VER_SFX
 BOOST_NUMPY_LIB  = 'boost_numpy'  + PYTHON_VER_SFX
 
-
 env.Append(CCFLAGS = ['-D'+ d for d in DEFINES] )
-env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include'), str(FMTPATH / 'include')])
+env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include'), str(FMTPATH / 'include'), str(SPDLOGPATH / 'include')])
 env.Append(CPPPATH = [PYTHON_INCLUDE])
-env.Append(LIBPATH = [os.path.join(BOOST_PATH, 'lib')])
-env.Append(LIBS = [PYTHON_LIBRARY, BOOST_PYTHON_LIB, BOOST_NUMPY_LIB])
-env.Append(CXXFLAGS = '-std=c++17')
-
+env.Append(LIBPATH = [str(BOOST_PATH / 'lib'), str(FMTPATH / 'lib'), str(SPDLOGPATH / 'lib')])
+env.Append(LIBS = [PYTHON_LIBRARY, BOOST_PYTHON_LIB, BOOST_NUMPY_LIB, 'fmt', 'spdlog'])
+env.Append(CXXFLAGS = '-std=c++17 -DSPDLOG_COMPILED_LIB')
 
 env['SHLIBPREFIX'] = ''
 if Platform == 'win32':

@@ -57,14 +57,18 @@
 //------------------------------------------------------------------------------
 #include "vframe.h"
 
+static auto lg = spdlog::basic_logger_mt("video ", "log/vframe.log");
+
 //------------------------------------------------------------------------------
 void vstream_fun()
 {
+    lg->set_pattern("%Y-%m-%d %H:%M:%S %n   %L : %v");
+
     static uint16_t org = 0;
 
     uint16_t buf[FRAME_SIZE_Y][FRAME_SIZE_X];
 
-    print("video:  INFO: begin incoming video stream processing");
+    lg->info("begin incoming video stream processing");
     for(;;)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(40));
@@ -94,11 +98,11 @@ void vstream_fun()
         
         if(vsthread_exit.load())
         {
-            print("video:  INFO: video stream processing exit notification received");
+            lg->info("video stream processing exit notification received");
             break;
         }
     }
-    print("video:  INFO: end video stream processing");
+    lg->info("end video stream processing");
 }
 //------------------------------------------------------------------------------
 

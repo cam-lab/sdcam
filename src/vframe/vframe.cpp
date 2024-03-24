@@ -70,6 +70,8 @@ tsqueue<TVFrame *>  incoming_frame_q("incoming_q");
 bp::object          inpframe_event;
 bp::object          vsthread_finish_event;
 
+auto lg = spdlog::basic_logger_mt("vframe", "log/vframe.log", true);
+
 //------------------------------------------------------------------------------
 void init_numpy()
 {
@@ -78,14 +80,17 @@ void init_numpy()
 //------------------------------------------------------------------------------
 void create_frame_pool()
 {
+    lg->set_pattern("%Y-%m-%d %H:%M:%S %n   %L : %v");
+    spdlog::flush_on(spdlog::level::info);
+
     frame_pool = new TVFrame[FRAME_POOL_SIZE];
-    print("vframe: create video frame pool");
+    lg->info("create video frame pool");
 }
 //------------------------------------------------------------------------------
 void delete_frame_pool()
 {
     delete[] frame_pool;
-    print("vframe: delete video frame pool");
+    lg->info("delete video frame pool");
 }
 //------------------------------------------------------------------------------
 TVFrame::TVFrame()
@@ -390,7 +395,7 @@ void reg_pyobject(bp::object &pyobj, int idx)
         vsthread_finish_event = pyobj;
         break;
     default:
-        print("E: invalid object index");
+        lg->error("invalid object index");
     }
 }
 //------------------------------------------------------------------------------
@@ -417,19 +422,19 @@ TVFrame *get_iframe()
 //
 void start_vstream_thread()
 {
-    print("-------------------------------------------------------------\n\
-                    Start Video Stream Thread\n");
+    lg->info("-------------------------------------------------------------\n\
+                                                 Start Video Stream Thread\n");
     
     for(size_t i = 0; i < FRAME_POOL_SIZE; ++i)
     {
         TVFrame *pf = &frame_pool[i];
         pf->fnum = i;
         free_frame_q.push(pf);
-        print("vframe: free frame queue init: frame addr: {}", fmt::ptr(pf));
+        lg->info("free frame queue init: frame addr: {}", fmt::ptr(pf));
     }
 
-    print("vframe: free frame queue size:     {}", free_frame_q.size());
-    print("vframe: incoming frame queue size: {}", incoming_frame_q.size());
+    lg->info("free frame queue size:     {}", free_frame_q.size());
+    lg->info("incoming frame queue size: {}", incoming_frame_q.size());
     vsthread_exit.store(false);
 
     {
@@ -439,7 +444,7 @@ void start_vstream_thread()
     }
 
     vstream_thread = new std::thread(vstream_fun);
-    print("\nvframe: INFO: video stream processing thread started");
+    lg->info("video stream processing thread started");
 }
 //------------------------------------------------------------------------------
 void vsthread_finish_set()
@@ -455,20 +460,20 @@ void join_vstream_thread()
     vstream_thread->join();
     free_frame_q.clear();
     incoming_frame_q.clear();
-    print("vframe: free frame queue size:     {}", free_frame_q.size());
-    print("vframe: incoming frame queue size: {}", incoming_frame_q.size());
+    lg->info("free frame queue size:     {}", free_frame_q.size());
+    lg->info("incoming frame queue size: {}", incoming_frame_q.size());
     vsthread_finish_set();
-    print("vframe: INFO: video stream processing thread finished");
-    print("-------------------------------------------------------------\n");
+    lg->info("video stream processing thread finished");
+    lg->info("-------------------------------------------------------------\n");
 }
 //------------------------------------------------------------------------------
 void finish_vstream_thread()
 {
     auto vsthread_finalize = new std::thread(join_vstream_thread);
     vsthread_finalize->detach();
-    print("\n-------------------------------------------------------------\n\
-                    Stop Video Stream Thread\n");
-    print("vframe: INFO: video stream processing thread finish pending...");
+    lg->info("-------------------------------------------------------------\n\
+                                                 Stop Video Stream Thread\n");
+    lg->info("video stream processing thread finish pending...");
 }
 //------------------------------------------------------------------------------
 //

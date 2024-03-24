@@ -67,7 +67,11 @@ class tsqueue
     std::string name;
     
 public:
-    tsqueue(const std::string s) : name(s) { }
+    tsqueue(const std::string s) : name(s)
+    {
+        lg = spdlog::basic_logger_mt(name, "log/vframe.log");
+        lg->set_pattern("%Y-%m-%d %H:%M:%S %n   %L : %v");
+    }
 
     void push(T item)
     {
@@ -88,7 +92,7 @@ public:
             return item;
         }
         
-        print("tsqueue::pop, {}, timeout or spurious wakeup", name);
+        lg->warn("timeout or spurious wakeup while {}.pop()", name);
         return nullptr;   // timeout expired
     }
     
@@ -110,9 +114,10 @@ public:
     }
 
 private:
-    std::queue<T>           queue;
-    std::mutex              mtx;
-    std::condition_variable flag;
+    std::queue<T>                   queue;
+    std::mutex                      mtx;
+    std::condition_variable         flag;
+    std::shared_ptr<spdlog::logger> lg;
 };
 
 //------------------------------------------------------------------------------
