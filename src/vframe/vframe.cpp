@@ -126,6 +126,15 @@ TVFrame::TVFrame()
 {
 }
 //------------------------------------------------------------------------------
+TVFrame TVFrame::copy()
+{
+    TVFrame f = *this;
+    
+    f.pixbuf = pixbuf.copy();
+    
+    return f;
+}
+//------------------------------------------------------------------------------
 bool TVFrame::fill(uint8_t *src, uint32_t len)
 {
     uint32_t *buf = reinterpret_cast<uint32_t *>(src);
@@ -503,6 +512,7 @@ BOOST_PYTHON_MODULE(vframe)
             .add_property("fexp",   &TVFrame::det_fexp)
             .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
             .add_property("rawbuf", make_getter(&TVFrame::rawbuf))
+            .def("copy",   &TVFrame::copy)
             .def("rshift", &TVFrame::rshift)
             .def("divide", &TVFrame::divide)
             .def("__str__",  vframe_str)
