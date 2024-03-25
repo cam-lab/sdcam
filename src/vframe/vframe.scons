@@ -47,7 +47,7 @@ DEFINES = ['ENA_FW_QT']
 if Platform == 'win32':
     DEFINES += ['BOOST_ALL_NO_LIB']
 
-BOOST_PATH = Path(os.environ['BOOST_PATH'])
+BOOST_PATH = Path(os.environ['EXTERNAL_LIB']) / 'boost' / env['BOOST_VERSION']
 FMTPATH    = Path(os.environ['EXTERNAL_LIB']) / 'fmt'
 SPDLOGPATH = Path(os.environ['EXTERNAL_LIB']) / 'spdlog'
 

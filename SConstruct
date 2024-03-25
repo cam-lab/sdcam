@@ -13,13 +13,20 @@ from helpers import *
 #
 #     Common settings
 #
-QTDIR      = os.environ['QT5DIR']
-INCDIR     = ['#inc', '#src/include']
-BINDIR     = '#bin'
-BUILDPATH  = '#build'
-LIBDIR     = '#lib'
-DEFINES    = []
-env        = Environment()
+BOOST_VERSION = '1_84_0'
+
+INCDIR        = ['#inc', '#src/include']
+BINDIR        = '#bin'
+BUILDPATH     = '#build'
+LIBDIR        = '#lib'
+DEFINES       = []
+
+#-------------------------------------------------------------------------------
+#
+#     Environment
+#
+env                  = Environment()
+env['BOOST_VERSION'] = BOOST_VERSION
 
 #-------------------------------------------------------------------------------
 #
