@@ -17,9 +17,8 @@ from helpers import *
 #
 ProductName = 'vframe'
 
-Import('qtEnv')
+Import('env')
 
-env = qtEnv.Clone()
 Platform = env['PLATFORM']
 
 CurDir = os.path.abspath(str(Dir('.').srcnode()))
