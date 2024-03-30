@@ -5,9 +5,11 @@
 import os
 import sys
 
+from pathlib import Path
+
 sys.path.append( '.scons' )
 
-from helpers import *
+import helpers as hlp
 
 #-------------------------------------------------------------------------------
 #
@@ -15,10 +17,12 @@ from helpers import *
 #
 BOOST_VERSION = '1_84_0'
 
-INCDIR        = ['#inc', '#src/include']
-BINDIR        = '#bin'
-BUILDPATH     = '#build'
-LIBDIR        = '#lib'
+INCDIR        = [hlp.abspath('#src/include')]
+BINDIR        = hlp.abspath('#bin')
+BUILDPATH     = hlp.abspath('#build')
+LIBDIR        = hlp.abspath('#lib')
+LOGPATH       = hlp.abspath('#log')
+
 DEFINES       = []
 
 #-------------------------------------------------------------------------------
@@ -33,7 +37,7 @@ env['BOOST_VERSION'] = BOOST_VERSION
 #     Platform-specific settings
 #
 Platform  = env['PLATFORM']
-Toolchain = ARGUMENTS.get('toolchain', DEFAULT_TOOLCHAIN[Platform])
+Toolchain = ARGUMENTS.get('toolchain', hlp.DEFAULT_TOOLCHAIN[Platform])
 
 #------------------------------------------------------------
 if Platform == 'win32':
@@ -57,7 +61,7 @@ AddOption('--verbose', action='store_true',  help='print full command lines of l
 
 #     Process options and user's variables
 if GetOption('verbose') == None:
-    set_comstr(env)
+    hlp.set_comstr(env)
 
 #     Check build variant
 Variant = ARGUMENTS.get('variant', 'release')
@@ -67,18 +71,19 @@ if not Variant in ['release', 'debug']:
     Exit(1)
 
 #     Toolchain flags
-CCFLAGS   = ccflags(Toolchain)
-CXXFLAGS  = cxxflags(Toolchain)
-OPTFLAGS  = optflags(Toolchain, Variant)
+CCFLAGS   = hlp.ccflags(Toolchain)
+CXXFLAGS  = hlp.cxxflags(Toolchain)
+OPTFLAGS  = hlp.optflags(Toolchain, Variant)
 
 env['VARIANT'] = Variant
 env.Append(CPPPATH   = INCDIR)
 env.Append(CCFLAGS   = CCFLAGS + OPTFLAGS)
 env.Append(CXXFLAGS  = CXXFLAGS)
 env.Append(INCDIR    = INCDIR)
-env.Append(BINDIR    = os.path.join(BINDIR, Variant))
-env.Append(BUILDPATH = os.path.join(BUILDPATH, Variant))
-env.Append(LIBPATH   = os.path.join(LIBDIR, Variant))
+env.Append(BINDIR    = BINDIR / Variant)
+env.Append(BUILDPATH = BUILDPATH / Variant)
+env.Append(LIBPATH   = LIBDIR / Variant)
+env.Append(LOGPATH   = LOGPATH)
 
 #-------------------------------------------------------------------------------
 #
