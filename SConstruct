@@ -13,13 +13,20 @@ from helpers import *
 #
 #     Common settings
 #
-QTDIR      = os.environ['QT5DIR']
-INCDIR     = ['#inc', '#src/include']
-BINDIR     = '#bin'
-BUILDPATH  = '#build'
-LIBDIR     = '#lib'
-DEFINES    = []
-env        = Environment()
+BOOST_VERSION = '1_84_0'
+
+INCDIR        = ['#inc', '#src/include']
+BINDIR        = '#bin'
+BUILDPATH     = '#build'
+LIBDIR        = '#lib'
+DEFINES       = []
+
+#-------------------------------------------------------------------------------
+#
+#     Environment
+#
+env                  = Environment()
+env['BOOST_VERSION'] = BOOST_VERSION
 
 #-------------------------------------------------------------------------------
 #
@@ -64,26 +71,21 @@ CCFLAGS   = ccflags(Toolchain)
 CXXFLAGS  = cxxflags(Toolchain)
 OPTFLAGS  = optflags(Toolchain, Variant)
 
-#     Qt environment
-qtEnv = env.Clone()
-qtEnv['VARIANT'] = Variant
-qtEnv['ENV']['PKG_CONFIG_PATH'] = os.path.join(QTDIR, 'lib/pkgconfig')
-qtEnv['QT5DIR'] = QTDIR
-qtEnv.Append(CPPPATH   = INCDIR)
-qtEnv.Append(CCFLAGS   = CCFLAGS + OPTFLAGS)
-qtEnv.Append(CXXFLAGS  = CXXFLAGS)
-qtEnv.Append(INCDIR    = INCDIR)
-qtEnv.Append(BINDIR    = os.path.join(BINDIR, Variant))
-qtEnv.Append(BUILDPATH = os.path.join(BUILDPATH, Variant))
-qtEnv.Append(LIBPATH   = os.path.join(LIBDIR, Variant))
-qtEnv.Tool('qt5')
+env['VARIANT'] = Variant
+env.Append(CPPPATH   = INCDIR)
+env.Append(CCFLAGS   = CCFLAGS + OPTFLAGS)
+env.Append(CXXFLAGS  = CXXFLAGS)
+env.Append(INCDIR    = INCDIR)
+env.Append(BINDIR    = os.path.join(BINDIR, Variant))
+env.Append(BUILDPATH = os.path.join(BUILDPATH, Variant))
+env.Append(LIBPATH   = os.path.join(LIBDIR, Variant))
 
 #-------------------------------------------------------------------------------
 #
 #     Build hierarchy
 #
 SConscript('src/vframe/vframe.scons', 
-            exports = 'qtEnv',
-            variant_dir = '#build/%s/%s' % (qtEnv['VARIANT'], 'vframe' ), duplicate = 0)
+            exports = 'env',
+            variant_dir = '#build/%s/%s' % (env['VARIANT'], 'vframe' ), duplicate = 0)
 #-------------------------------------------------------------------------------
 
