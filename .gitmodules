@@ -1,6 +1,3 @@
 [submodule "inc"]
 	path = inc
 	url = https://github.com/cam-lab/inc.git
-[submodule "src/qpipe"]
-	path = src/qpipe
-	url = https://github.com/cam-lab/qpipe.git
