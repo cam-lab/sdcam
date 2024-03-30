@@ -6,7 +6,11 @@ import os
 import sys
 import psutil
 
+from pathlib import Path
+
 import SCons 
+
+from SCons.Script import *
 
 from cfg import *
 #-------------------------------------------------------------------------------
@@ -20,6 +24,9 @@ COMSTR = \
     'qt5moc' : 'moc ', 
     'qt5qrc' : 'qrc ' 
 }
+#-------------------------------------------------------------------------------
+def abspath(p):
+    return Path(Dir(p).abspath)
 #-------------------------------------------------------------------------------
 def ccflags(toolchain):
     return TOOLCHAIN_CCFLAGS[toolchain]
