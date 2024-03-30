@@ -22,7 +22,7 @@ TOOLCHAIN_CCFLAGS = \
 TOOLCHAIN_CXXFLAGS = \
 {
     'MSVC' : ['/std:c++14'],
-    'GCC'  : ['-std=c++11']
+    'GCC'  : ['-std=c++17']
 }
 #-------------------------------------------------------------------------------
 TOOLCHAIN_OPTFLAGS = \
