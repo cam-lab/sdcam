@@ -96,6 +96,11 @@ env.Append(BUILDPATH = BUILDPATH / Variant)
 env.Append(LIBPATH   = LIBDIR / Variant)
 env.Append(LOGPATH   = LOGPATH)
 
+
+if not LOGPATH.exists():
+    Execute(Mkdir(LOGPATH))
+
+
 #-------------------------------------------------------------------------------
 #
 #     Build hierarchy

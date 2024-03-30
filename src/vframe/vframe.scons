@@ -24,12 +24,6 @@ Platform = env['PLATFORM']
 CurDir = os.path.abspath(str(Dir('.').srcnode()))
 env['CURDIR'] = CurDir
 
-
-logpath = Path('log')
-
-if not logpath.exists():
-    Execute(Mkdir(logpath))
-
 #-------------------------------------------------------------------------------
 #
 #     Setup sources and target
