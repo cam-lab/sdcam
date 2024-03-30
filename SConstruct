@@ -70,7 +70,7 @@ if GetOption('verbose') == None:
     hlp.set_comstr(env)
 
 #     Check build variant
-Variant = ARGUMENTS.get('variant', 'release')
+Variant = ARGUMENTS.get('bv', 'release')
 
 if not Variant in ['release', 'debug']:
     print('E: scons: invalid variant "%s" specified in command line. Supported variants are: "release", "debug"' % Variant)
