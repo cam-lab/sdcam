@@ -67,7 +67,7 @@ env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include'), str(FMTPATH / 'includ
 env.Append(CPPPATH = [PYTHON_INCLUDE])
 env.Append(LIBPATH = [str(BOOST_PATH / 'lib'), str(FMTPATH / 'lib'), str(SPDLOGPATH / 'lib')])
 env.Append(LIBS = [PYTHON_LIBRARY, BOOST_PYTHON_LIB, BOOST_NUMPY_LIB, 'fmt', 'spdlog'])
-env.Append(CXXFLAGS = '-std=c++17 -DSPDLOG_COMPILED_LIB')
+env.Append(CXXFLAGS = '-DSPDLOG_COMPILED_LIB')
 
 env['SHLIBPREFIX'] = ''
 if Platform == 'win32':
