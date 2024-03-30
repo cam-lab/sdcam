@@ -95,32 +95,6 @@
     <List Name="RTE">
     </List>
     <Files AutoFolders="DirectoryView">
-        <Folder Name="inc">
-            <F
-                N="inc/*.c"
-                Recurse="1"
-                Excludes=".git"/>
-            <F
-                N="inc/*.cpp"
-                Recurse="1"
-                Excludes=".git"/>
-            <F
-                N="inc/*.cxx"
-                Recurse="1"
-                Excludes=".git"/>
-            <F
-                N="inc/*.h"
-                Recurse="1"
-                Excludes=".git"/>
-            <F
-                N="inc/*.hpp"
-                Recurse="1"
-                Excludes=".git"/>
-            <F
-                N="inc/*.py"
-                Recurse="1"
-                Excludes=".git"/>
-        </Folder>
         <Folder Name="src">
             <F
                 N="src/*.c"
@@ -146,6 +120,11 @@
                 N="src/*.py"
                 Recurse="1"
                 Excludes=".git"/>
+            <F
+                N="src/*.scons"
+                Recurse="1"
+                Excludes=".git"
+                L="1"/>
         </Folder>
         <F
             N="Makefile"
