@@ -67,21 +67,16 @@
 namespace bp = boost::python;
 namespace np = boost::python::numpy;
 
-const uint16_t FRAME_SIZE_X = 640;
-const uint16_t FRAME_SIZE_Y = 512;
-
 const uint32_t RAWBUF_SIZE = FRAME_SIZE_X*FRAME_SIZE_Y*2 + 2*1024;
 
 const uint32_t HOST_METABUF_SIZE    = 4 + 1024;
 
-const uint32_t VIDEO_DATA_WIDTH     = 14;
 const uint32_t VIDEO_DATA_MAX       = (1 << VIDEO_DATA_WIDTH) - 1;
 
 const uint32_t VIDEO_OUT_DATA_WIDTH = 10;
 const uint32_t VIDEO_OUT_DATA_MAX   = (1 << VIDEO_OUT_DATA_WIDTH) - 1;
 
 const size_t   FRAME_POOL_SIZE      = 4;
-
 
 //------------------------------------------------------------------------------
 struct TVFrame

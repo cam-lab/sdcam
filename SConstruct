@@ -25,6 +25,12 @@ LOGPATH       = hlp.abspath('#log')
 
 DEFINES       = []
 
+APP_SETTINGS = {
+    'FRAME_SIZE_X'     : 640,
+    'FRAME_SIZE_Y'     : 512,
+    'VIDEO_DATA_WIDTH' : 14 # bit
+}
+
 #-------------------------------------------------------------------------------
 #
 #     Environment
@@ -41,9 +47,9 @@ Toolchain = ARGUMENTS.get('toolchain', hlp.DEFAULT_TOOLCHAIN[Platform])
 
 #------------------------------------------------------------
 if Platform == 'win32':
-    DEFINES  += ['ENA_WIN_API']
+    DEFINES.append('ENA_WIN_API')
 elif Platform == 'posix':
-    DEFINES += []
+    pass
 else:
     print('E: scons: unsupported platform. Supported platforms are: "win32", "posix"')
     Exit(1)
@@ -75,10 +81,15 @@ CCFLAGS   = hlp.ccflags(Toolchain)
 CXXFLAGS  = hlp.cxxflags(Toolchain)
 OPTFLAGS  = hlp.optflags(Toolchain, Variant)
 
+for k in APP_SETTINGS:
+    DEFINES.append('{}={}'.format(k, APP_SETTINGS[k]))
+
 env['VARIANT'] = Variant
-env.Append(CPPPATH   = INCDIR)
-env.Append(CCFLAGS   = CCFLAGS + OPTFLAGS)
-env.Append(CXXFLAGS  = CXXFLAGS)
+env.Append(CPPPATH    = INCDIR)
+env.Append(CCFLAGS    = CCFLAGS + OPTFLAGS)
+env.Append(CXXFLAGS   = CXXFLAGS)
+env.Append(CPPDEFINES = DEFINES)
+
 env.Append(INCDIR    = INCDIR)
 env.Append(BINDIR    = BINDIR / Variant)
 env.Append(BUILDPATH = BUILDPATH / Variant)
