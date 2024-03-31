@@ -57,12 +57,19 @@
 //------------------------------------------------------------------------------
 #include "vframe.h"
 
-static auto lg = spdlog::basic_logger_mt("video ", "log/vframe.log");
+#include "socket.h"
+
+const char     *SOCKET_IP   = "127.0.0.1";
+const uint16_t  SRC_PORT = 50000;
+
+static auto lg = spdlog::basic_logger_mt("video   ", "log/vframe.log");
 
 //------------------------------------------------------------------------------
 void vstream_fun()
 {
     lg->set_pattern("%Y-%m-%d %H:%M:%S %n   %L : %v");
+
+    TSocket sock(lg, SOCKET_IP, SRC_PORT);
 
     static uint16_t org = 0;
 
@@ -95,6 +102,10 @@ void vstream_fun()
             incoming_frame_q.push(f);
             iframe_event_set();
         }
+        
+        uint8_t pool[2048];
+        size_t rcount = sock.read(pool, 2048);
+        lg->info("receive {} bytes", rcount);
         
         if(vsthread_exit.load())
         {

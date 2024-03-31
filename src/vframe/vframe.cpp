@@ -70,7 +70,7 @@ tsqueue<TVFrame *>  incoming_frame_q("incoming_q");
 bp::object          inpframe_event;
 bp::object          vsthread_finish_event;
 
-auto lg = spdlog::basic_logger_mt("vframe", "log/vframe.log", true);
+auto lg = spdlog::basic_logger_mt("vframe  ", "log/vframe.log", true);
 
 //------------------------------------------------------------------------------
 void init_numpy()
