@@ -105,8 +105,8 @@ if not LOGPATH.exists():
 #
 #     Build hierarchy
 #
-SConscript('src/vframe/vframe.scons', 
-            exports = 'env',
-            variant_dir = '#build/%s/%s' % (env['VARIANT'], 'vframe' ), duplicate = 0)
+SConscript('src/vframe/vframe.scons',  exports = 'env')
+SConscript('src/utils/framegen.scons', exports = 'env')
+
 #-------------------------------------------------------------------------------
 
