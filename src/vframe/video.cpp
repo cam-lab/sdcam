@@ -70,6 +70,8 @@ void vstream_fun()
     lg->set_pattern("%Y-%m-%d %H:%M:%S %n   %L : %v");
 
     TSocket sock(lg, SOCKET_IP, SRC_PORT);
+    
+    sock.set_recv_timeout(std::chrono::milliseconds(100));
 
     static uint16_t org = 0;
 
@@ -105,7 +107,6 @@ void vstream_fun()
         
         uint8_t pool[2048];
         size_t rcount = sock.read(pool, 2048);
-        lg->info("receive {} bytes", rcount);
         
         if(vsthread_exit.load())
         {

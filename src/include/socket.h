@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>
@@ -83,6 +84,8 @@ public:
     void close ();
     int  read  (      uint8_t *dst, const size_t size);
     int  write (const uint8_t *src, const size_t size);
+    
+    void set_recv_timeout(const std::chrono::milliseconds timeout);
 
 private:
     std::shared_ptr<spdlog::logger> lg;

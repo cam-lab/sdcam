@@ -73,7 +73,7 @@ void TSocket::close()
 int TSocket::read(uint8_t *buf, const size_t size)
 {
     lg->info("begin receiving");
-    size_t count;
+    int             count;
     struct sockaddr raddr;
     socklen_t       raddrlen;
     
@@ -89,6 +89,18 @@ int TSocket::write(const uint8_t *src, const size_t size)
     lg->info("sendto: addr: {:x}, port: {}", addr.sin_addr.s_addr, ntohs(addr.sin_port));
 
     return sendto(fd, src, size, 0, reinterpret_cast<struct sockaddr *>(&addr), addrlen);
+}
+//------------------------------------------------------------------------------
+void TSocket::set_recv_timeout(const std::chrono::milliseconds timeout)
+{
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = timeout.count()*1000;
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0)
+    {
+        throw TSocketException("cannot set timeout for socket", fd);
+    }
+    lg->info("set timeout: {} ms for receiving data from the socket", timeout.count());
 }
 //------------------------------------------------------------------------------
 
