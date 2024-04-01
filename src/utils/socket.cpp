@@ -30,7 +30,7 @@
 #include "socket.h"
 
 //------------------------------------------------------------------------------
-void TSocket::create()
+void TSocket::create(const char *a, uint16_t p)
 {
     lg->info("create socket");
     fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -40,17 +40,16 @@ void TSocket::create()
         throw TSocketException("cannot create socket", fd);
     }
     
-    lg->info("success, sockfd: {}", fd);
-}
-//------------------------------------------------------------------------------
-void TSocket::bind(const char *a, uint16_t p)
-{
-
     addr.sin_family      = AF_INET;
     addr.sin_addr.s_addr = inet_addr(a);
     addr.sin_port        = htons(p);
 
-    lg->info("try to bind socket {}:{}", a, p);
+    lg->info("success, sockfd: {}", fd);
+}
+//------------------------------------------------------------------------------
+void TSocket::bind()
+{
+    lg->info("try to bind socket {}:{}", addr.sin_addr.s_addr, ntohs(addr.sin_port));
     if(::bind(fd, reinterpret_cast<struct sockaddr *>(&addr), addrlen))
     {
         throw TSocketException("cannot bind socket", fd);

@@ -62,21 +62,24 @@ class TSocket
 {
 public:
     TSocket(std::shared_ptr<spdlog::logger> logger,
-            const char *a, uint16_t p)
+            const char *a, uint16_t p, bool Binded=true)
         : lg(logger)
         , fd(0)
         , addr{0, 0, 0, { } }
         , addrlen(sizeof(addr))
         
     {
-        create();
-        bind(a, p);
+        create(a, p);
+        if(Binded)
+        {
+            bind();
+        }
     }
     ~TSocket() { if(fd) close(); }
 
 
-    void create();
-    void bind  (const char *addr, uint16_t port);
+    void create(const char *addr, uint16_t port);
+    void bind  ();
     void close ();
     int  read  (      uint8_t *dst, const size_t size);
     int  write (const uint8_t *src, const size_t size);

@@ -91,7 +91,7 @@ int main()
 int fgen(const size_t count)
 {
     lg->info("------------------------------------");
-    TSocket sock(lg, SOCKET_IP, SRC_PORT);
+    TSocket sock(lg, SOCKET_IP, SRC_PORT, false);
 
     static uint16_t org = 0;
 
