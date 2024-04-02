@@ -89,7 +89,7 @@ void vstream_fun()
             {
                 for(size_t col = 0; col < FRAME_SIZE_X; ++col)
                 {
-                    buf[row][col] = (org + row + col + 1) & VDATA_OUT_MAX;
+                    buf[row][col] = (org + row + col + 1) & OUT_PIX_MAXVAL;
                     if(row == 100 && col == 100) buf[row][col] = 1023;
                     if(row == 100 && col == 101) buf[row][col] = 1023/2;
                 }

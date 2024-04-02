@@ -107,7 +107,7 @@ int fgen(const size_t count)
         {
             for(size_t col = 0; col < FRAME_SIZE_X; ++col)
             {
-                fpool[row][col] = (org + row + col + 1) & VDATA_OUT_MAX;
+                fpool[row][col] = (org + row + col + 1) & OUT_PIX_MAXVAL;
                 if(row == 100 && col == 100) fpool[row][col] = 1023;
                 if(row == 100 && col == 101) fpool[row][col] = 1023/2;
             }

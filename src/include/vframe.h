@@ -67,11 +67,11 @@
 namespace bp = boost::python;
 namespace np = boost::python::numpy;
 
-const uint32_t VDATA_INP_W   = VIDEO_DATA_INP_WIDTH;
-const uint32_t VDATA_OUT_W   = VIDEO_DATA_OUT_WIDTH;
+const uint32_t INP_PIX_W      = INPUT_PIXEL_WIDTH;
+const uint32_t OUT_PIX_W      = OUTPUT_PIXEL_WIDTH;
 
-const uint32_t VDATA_INP_MAX = (1 << VDATA_INP_W) - 1;
-const uint32_t VDATA_OUT_MAX = (1 << VDATA_OUT_W) - 1;
+const uint32_t INP_PIX_MAXVAL = (1 << INP_PIX_W) - 1;
+const uint32_t OUT_PIX_MAXVAL = (1 << OUT_PIX_W) - 1;
 
 const size_t FRAME_POOL_SIZE = 4;
 
