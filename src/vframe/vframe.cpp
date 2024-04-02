@@ -120,6 +120,20 @@ uint32_t TVFrame::retreive_fnum(uint16_t *p)
            ( (p[3] & 0xff) << 24);
 }
 //------------------------------------------------------------------------------
+uint64_t TVFrame::retreive_tstamp(uint16_t *p)
+{
+    uint64_t tstamp = ( static_cast<uint64_t>(p[0] & 0xff)     )  +
+                      ( static_cast<uint64_t>(p[1] & 0xff) << 8)  +
+                      ( static_cast<uint64_t>(p[2] & 0xff) << 16) +
+                      ( static_cast<uint64_t>(p[3] & 0xff) << 24) +
+                      ( static_cast<uint64_t>(p[4] & 0xff) << 32) +
+                      ( static_cast<uint64_t>(p[5] & 0xff) << 40) +
+                      ( static_cast<uint64_t>(p[6] & 0xff) << 48) +
+                      ( static_cast<uint64_t>(p[7] & 0xff) << 56);
+
+    return tstamp;
+}
+//------------------------------------------------------------------------------
 //#pragma GCC push_options
 //#pragma GCC optimize ("unroll-lools")
 
@@ -141,21 +155,6 @@ void TVFrame::divide(double n)
     {
         buf[i] /= n;
     }
-}
-//------------------------------------------------------------------------------
-uint64_t TVFrame::retreive_tstamp(uint16_t *p)
-{
-    uint32_t l = (  p[0] & 0xff)        +
-                 ( (p[1] & 0xff) << 8)  +
-                 ( (p[2] & 0xff) << 16) +
-                 ( (p[3] & 0xff) << 24);
-    
-    uint64_t h = (  p[4] & 0xff)        +
-                 ( (p[5] & 0xff) << 8)  +
-                 ( (p[6] & 0xff) << 16) +
-                 ( (p[7] & 0xff) << 24);
-        
-    return l + (h << 32);
 }
 //------------------------------------------------------------------------------
 std::string vframe_str(TVFrame & r)
