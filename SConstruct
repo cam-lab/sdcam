@@ -28,7 +28,8 @@ DEFINES       = []
 APP_SETTINGS = {
     'FRAME_SIZE_X'     : 640,
     'FRAME_SIZE_Y'     : 512,
-    'VIDEO_DATA_WIDTH' : 14 # bit
+    'VIDEO_DATA_INP_WIDTH' : 14, # bit
+    'VIDEO_DATA_OUT_WIDTH' : 10  # bit
 }
 
 #-------------------------------------------------------------------------------

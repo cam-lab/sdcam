@@ -276,7 +276,7 @@ std::string vframe_repr(TVFrame & r)
 //------------------------------------------------------------------------------
 bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t orgThreshold, uint16_t topThreshold, float discardLevel)
 {
-    int scale = (1 << VIDEO_DATA_WIDTH)/histo.shape(0); 
+    int scale = (1 << VDATA_INP_W)/histo.shape(0);
     int shift = log2(scale);
     int count = data.shape(0)*data.shape(1);
     uint16_t *pixbuf  = reinterpret_cast<uint16_t *>( data.get_data() );
@@ -340,8 +340,8 @@ void scale(np::ndarray &pixbuf, int sub, double k)
         {
             val -= sub;
             uint32_t res = val*k;
-            if(res > VIDEO_DATA_MAX) 
-                buf[i] = VIDEO_DATA_MAX;
+            if(res > VDATA_INP_MAX)
+                buf[i] = VDATA_INP_MAX;
             else 
                 buf[i] = res;
         }
@@ -378,7 +378,7 @@ int get_frame(TVFrame &f)
     {
         for(size_t col = 0; col < FRAME_SIZE_X; ++col)
         {
-            buf[row][col] = (org + row + col + 1) & VIDEO_OUT_DATA_MAX;
+            buf[row][col] = (org + row + col + 1) & VDATA_OUT_MAX;
             if(row == 100 && col == 100) buf[row][col] = 1023;
             if(row == 100 && col == 101) buf[row][col] = 1023/2;
         }
@@ -492,9 +492,9 @@ BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
 
-    scope().attr("FRAME_SIZE_X")         = FRAME_SIZE_X;
-    scope().attr("FRAME_SIZE_Y")         = FRAME_SIZE_Y;
-    scope().attr("VIDEO_OUT_DATA_WIDTH") = VIDEO_OUT_DATA_WIDTH;
+    scope().attr("FRAME_SIZE_X")   = FRAME_SIZE_X;
+    scope().attr("FRAME_SIZE_Y")   = FRAME_SIZE_Y;
+    scope().attr("VDATA_OUT_W")    = VDATA_OUT_W;
 
     //--------------------------------------------------------------------------
     //

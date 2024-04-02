@@ -107,9 +107,9 @@ int fgen(const size_t count)
         {
             for(size_t col = 0; col < FRAME_SIZE_X; ++col)
             {
-                buf[row][col] = (org + row + col + 1) & VIDEO_OUT_DATA_MAX;
-                if(row == 100 && col == 100) buf[row][col] = 1023;
-                if(row == 100 && col == 101) buf[row][col] = 1023/2;
+                fpool[row][col] = (org + row + col + 1) & VDATA_OUT_MAX;
+                if(row == 100 && col == 100) fpool[row][col] = 1023;
+                if(row == 100 && col == 101) fpool[row][col] = 1023/2;
             }
         }
 

@@ -71,12 +71,14 @@ const uint32_t RAWBUF_SIZE = FRAME_SIZE_X*FRAME_SIZE_Y*2 + 2*1024;
 
 const uint32_t HOST_METABUF_SIZE    = 4 + 1024;
 
-const uint32_t VIDEO_DATA_MAX       = (1 << VIDEO_DATA_WIDTH) - 1;
 
-const uint32_t VIDEO_OUT_DATA_WIDTH = 10;
-const uint32_t VIDEO_OUT_DATA_MAX   = (1 << VIDEO_OUT_DATA_WIDTH) - 1;
+const uint32_t VDATA_INP_W   = VIDEO_DATA_INP_WIDTH;
+const uint32_t VDATA_OUT_W   = VIDEO_DATA_OUT_WIDTH;
 
-const size_t   FRAME_POOL_SIZE      = 4;
+const uint32_t VDATA_INP_MAX = (1 << VDATA_INP_W) - 1;
+const uint32_t VDATA_OUT_MAX = (1 << VDATA_OUT_W) - 1;
+
+const size_t FRAME_POOL_SIZE = 4;
 
 //------------------------------------------------------------------------------
 struct TVFrame
