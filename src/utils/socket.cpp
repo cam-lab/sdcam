@@ -78,7 +78,14 @@ int TSocket::read(uint8_t *buf, const size_t size)
     socklen_t       raddrlen;
     
     count = recvfrom(fd, buf, size, 0, &raddr, &raddrlen);
-    lg->info("received data count: {}", size);
+    if(count < 0)
+    {
+        lg->info("receive timeout expired");
+    }
+    else
+    {
+        lg->info("received data count: {}", count);
+    }
 
     return count;
 }
