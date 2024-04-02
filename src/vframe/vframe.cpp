@@ -161,11 +161,10 @@ std::string vframe_str(TVFrame & r)
 {
     std::stringstream out;
 
-    print("    fnum          : {}\n    \
-               size_x        : {}\n    \
-               size_y        : {}\n    \
-               size_y        : {}\n    \
-               pixwidth      : {}\n", r.fnum, r.size_x, r.size_y, r.pixwidth);
+    out << "    fnum          : " << r.fnum     << "\n";
+    out << "    size_x        : " << r.size_x   << "\n";
+    out << "    size_y        : " << r.size_y   << "\n";
+    out << "    pixwidth      : " << r.pixwidth << std::endl;
 
     return out.str();
 }
