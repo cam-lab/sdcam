@@ -4,7 +4,7 @@
 //
 //    Purpose: Frame Generator
 //
-//    Copyright (c) 2016-2017, 2024, Camlab Project Team
+//    Copyright (c) 2024, Camlab Project Team
 //
 //    Permission is hereby granted, free of charge, to any person
 //    obtaining  a copy of this software and associated documentation
@@ -60,6 +60,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "socket.h"
+#include "vframe.h"
 
 const char     *SOCKET_IP   = "127.0.0.1";
 const uint16_t  SRC_PORT = 50000;
@@ -93,9 +94,15 @@ int fgen(const size_t count)
     lg->info("------------------------------------");
     TSocket sock(lg, SOCKET_IP, SRC_PORT, false);
 
-    static uint16_t org = 0;
+    static uint32_t fnum = 0x12345678;
+    static uint16_t org  = 0;
+    
+    //const size_t PKT_PAYLOAD_SIZE = 1472/2;
+    const size_t PKT_PAYLOAD_SIZE = 90/2;
+    
+    std::array<uint16_t, PKT_PAYLOAD_SIZE> buf;
 
-    uint16_t buf[FRAME_SIZE_Y][FRAME_SIZE_X];
+    uint16_t fpool[FRAME_SIZE_Y][FRAME_SIZE_X];
 
     lg->info("begin frame stream generating");
     for(size_t i = 0; i < count; ++i)
@@ -114,11 +121,70 @@ int fgen(const size_t count)
         }
 
         org += 10;
+        
+        // frame number
+        ++fnum;
 
-        sock.write(reinterpret_cast<uint8_t*>(buf), FRAME_SIZE_X*FRAME_SIZE_Y);
+        // timestamp
+        auto now    = std::chrono::high_resolution_clock::now();
+        auto epoch  = now.time_since_epoch();
+        uint64_t tstamp = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch).count()/10;
+        
+        print("timestamp: {:x}", tstamp);
+
+        // send frame
+        size_t idx     = 0;
+        size_t pkt_num = 0;
+        
+        auto put_data = [&](uint16_t data)
+        {
+            buf[idx++] = data;
+            if(idx == PKT_PAYLOAD_SIZE)
+            {
+                sock.write(reinterpret_cast<uint8_t*>(buf.data()), idx*2);
+                print("send pkt {}, count: {}", ++pkt_num, idx);
+                idx = 0;
+            }
+        };
+
+        buf[idx++] = CFT_MASK;
+        buf[idx++] = VFT_MASK + FRAME_MDB_SIZE;
+
+        buf[idx++] = (fnum >> 0)  & 0xff;
+        buf[idx++] = (fnum >> 8)  & 0xff;
+        buf[idx++] = (fnum >> 16) & 0xff;
+        buf[idx++] = (fnum >> 24) & 0xff;
+        
+        buf[idx++] = (tstamp >> 0)  & 0xff;
+        buf[idx++] = (tstamp >> 8)  & 0xff;
+        buf[idx++] = (tstamp >> 16) & 0xff;
+        buf[idx++] = (tstamp >> 24) & 0xff;
+        buf[idx++] = (tstamp >> 32) & 0xff;
+        buf[idx++] = (tstamp >> 40) & 0xff;
+        buf[idx++] = (tstamp >> 48) & 0xff;
+        buf[idx++] = (tstamp >> 56) & 0xff;
+        
+        buf[idx++] = FRAME_SIZE_X;
+        buf[idx++] = FRAME_SIZE_Y;
+        buf[idx++] = INP_PIX_W;
+
+        for(size_t row = 0; row < FRAME_SIZE_Y; ++row)
+        {
+            put_data(VFT_MASK + FTT_MASK + 1);
+            put_data(row & LNUM_MASK);
+
+            for(size_t col = 0; col < FRAME_SIZE_X; ++col)
+            {
+                print("row: {}, col: {}, val: {}, idx: {}", row, col, fpool[row][col], idx);
+                put_data(fpool[row][col]);
+            }
+        }
+        sock.write(reinterpret_cast<uint8_t*>(buf.data()), idx*2);
+        print("send last pkt, pkt_num {}, count: {}", ++pkt_num, idx);
+
     }
     lg->info("end frame stream generating");
-    
+
     return 0;
 }
 //------------------------------------------------------------------------------

@@ -72,7 +72,7 @@ void TSocket::close()
 //------------------------------------------------------------------------------
 int TSocket::read(uint8_t *buf, const size_t size)
 {
-    lg->info("begin receiving");
+    //lg->info("begin receiving");
     int             count;
     struct sockaddr raddr;
     socklen_t       raddrlen;
@@ -80,7 +80,7 @@ int TSocket::read(uint8_t *buf, const size_t size)
     count = recvfrom(fd, buf, size, 0, &raddr, &raddrlen);
     if(count < 0)
     {
-        lg->info("receive timeout expired");
+        //lg->info("receive timeout expired");
     }
     else
     {
