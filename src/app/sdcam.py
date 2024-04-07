@@ -63,7 +63,7 @@ from logger   import logger as lg
 from logger   import LOG_FILE
 from logger   import setup_logger
 from udp      import TSocketThread
-from watcher  import TWatcherThread
+from monitor  import AppMonitorThread
 
 #-------------------------------------------------------------------------------
 def get_app_qt5(*args, **kwargs):
@@ -101,7 +101,7 @@ class TSDCam(QObject, InternalIPKernel):
         #
         #    Thread objects
         #
-        self.wdthread = TWatcherThread(os.path.abspath(LOG_FILE))
+        self.amthread = AppMonitorThread(os.path.abspath(LOG_FILE))
         self.vfthread = TVFrameThread(sdc)
         self.usthread = TSocketThread()
         
@@ -109,7 +109,7 @@ class TSDCam(QObject, InternalIPKernel):
         #
         #    Signal/Slot connections
         #
-        self.wdthread.watcher.file_changed_signal.connect(self.mwin.LogWidget.update_slot,
+        self.amthread.monitor.file_changed_signal.connect(self.mwin.LogWidget.update_slot,
                                                           Qt.QueuedConnection)
         
         if args.console:
@@ -130,8 +130,8 @@ class TSDCam(QObject, InternalIPKernel):
         #
         #    Threads start
         #
-        self.wdthread.start()
-        lg.info('start watcher thread')
+        self.amthread.start()
+        lg.info('start application monitoring thread')
 
         self.vfthread.start()
         lg.info('start video frame thread')
@@ -146,8 +146,8 @@ class TSDCam(QObject, InternalIPKernel):
         self.usthread.join()
         self.vfthread.finish()
         self.vfthread.join()
-        self.wdthread.finish()
-        self.wdthread.join()
+        self.amthread.finish()
+        self.amthread.join()
 
         #-------------------------------------------------------------
         #

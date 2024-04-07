@@ -2,7 +2,7 @@
 #
 #    Project: Software-Defined Camera
 #
-#    Purpose: Watch log file changes and signal to update log window
+#    Purpose: Application monitoring
 #
 #    Copyright (c) 2016-2017, 2024, Camlab Project Team
 #
@@ -38,7 +38,7 @@ from   logger import logger as lg
 PERIOD = 0.25
 
 #-------------------------------------------------------------------------------
-class TWatcher(QObject):
+class AppMonitor(QObject):
 
     file_changed_signal = pyqtSignal( str )
 
@@ -56,18 +56,18 @@ class TWatcher(QObject):
             self.file_changed_signal.emit(self.fname)
         
 #-------------------------------------------------------------------------------
-class TWatcherThread(threading.Thread):
+class AppMonitorThread(threading.Thread):
 
     #-------------------------------------------------------
-    def __init__(self, log_file, name='Watcher Thread' ):
+    def __init__(self, log_file, name='AppMon Thread' ):
         super().__init__()
         self._finish_event = threading.Event()
-        self.watcher = TWatcher(log_file)
+        self.monitor = AppMonitor(log_file)
 
     #-------------------------------------------------------
     def finish(self):
         self._finish_event.set()
-        lg.info('Watcher Thread pending to finish')
+        lg.info('Application Monitor Thread pending to finish')
 
     #-------------------------------------------------------
     def run(self):
