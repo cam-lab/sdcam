@@ -76,7 +76,7 @@ const uint32_t OUT_PIX_MAXVAL = (1 << OUT_PIX_W) - 1;
 const size_t   FRAME_POOL_SIZE = 4;
 
 const uint16_t CFT_MASK        = 0x8000;
-const uint16_t VFT_MASK        = 0x4000;
+const uint16_t VST_MASK        = 0x4000;
 const uint16_t FTT_MASK        = 0x2000;
 const uint16_t LNUM_MASK       = (1 << 12) - 1;
 const uint16_t FRAME_MDB_SIZE  = 15;

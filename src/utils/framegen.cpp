@@ -166,7 +166,7 @@ int fgen(const size_t frame_count)
         };
 
         buf[idx++] = CFT_MASK;
-        buf[idx++] = VFT_MASK + FRAME_MDB_SIZE;
+        buf[idx++] = VST_MASK + FRAME_MDB_SIZE;
 
         buf[idx++] = (fnum >> 0)  & 0xff;
         buf[idx++] = (fnum >> 8)  & 0xff;
@@ -188,7 +188,7 @@ int fgen(const size_t frame_count)
 
         for(size_t row = 0; row < FRAME_SIZE_Y; ++row)
         {
-            put_data(VFT_MASK + FTT_MASK + 1);
+            put_data(VST_MASK + FTT_MASK + 1);
             put_data(row & LNUM_MASK);
 
             for(size_t col = 0; col < FRAME_SIZE_X; ++col)
