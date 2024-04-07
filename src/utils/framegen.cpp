@@ -59,8 +59,9 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#include "socket.h"
-#include "vframe.h"
+#include <socket.h>
+#include <vframe.h>
+#include <progressbar.h>
 
 const char     *SOCKET_IP   = "127.0.0.1";
 const uint16_t  SRC_PORT = 50000;
@@ -74,27 +75,45 @@ int fgen(const size_t count);
 
 
 //------------------------------------------------------------------------------
-int main()
+int main(int argc, char *argv[])
 {
     lg->set_pattern("%Y-%m-%d %H:%M:%S %n   %L : %v");
     
+    if(argc > 2)
+    {
+        print("E: too many arguments, supports ony one: frame count");
+        return -1;
+    }
+    
+    size_t frame_count = 10000;
+    if(argc == 2)
+    {
+        frame_count = std::stoi(argv[1]);
+    }
+
     try
     {
-        return fgen(1);
+        print("------------------------------------");
+        print("begin frame stream generating for {} frames\n", frame_count);
+        auto pkt_num = fgen(frame_count);
+        print("\nend frame stream generating, {} packets sent", pkt_num);
+        print("------------------------------------");
+
     }
     catch(TSocketException e)
     {
         lg->error("{}, socket fd: {}", e.msg, e.fd);
         return -1;
     }
+    
+    return 0;
 }
 //------------------------------------------------------------------------------
-int fgen(const size_t count)
+int fgen(const size_t frame_count)
 {
-    lg->info("------------------------------------");
     TSocket sock(lg, SOCKET_IP, SRC_PORT, false);
 
-    static uint32_t fnum = 0x12345678;
+    static uint32_t fnum = 0;
     static uint16_t org  = 0;
     
     //const size_t PKT_PAYLOAD_SIZE = 1472/2;
@@ -104,8 +123,12 @@ int fgen(const size_t count)
 
     uint16_t fpool[FRAME_SIZE_Y][FRAME_SIZE_X];
 
-    lg->info("begin frame stream generating");
-    for(size_t i = 0; i < count; ++i)
+    const size_t chunk_size = frame_count < 100 ? 1 : frame_count/100; // 1%
+    
+    ProgressBar progress{std::clog, 100u, "Frames:", '#'};
+
+    size_t pkt_num = 0;
+    for(size_t i = 0; i < frame_count; ++i)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(40));
         //TVFrame *f = free_frame_q.pop(std::chrono::milliseconds(1000));
@@ -134,15 +157,15 @@ int fgen(const size_t count)
 
         // send frame
         size_t idx     = 0;
-        size_t pkt_num = 0;
         
         auto put_data = [&](uint16_t data)
         {
             buf[idx++] = data;
             if(idx == PKT_PAYLOAD_SIZE)
             {
-                sock.write(reinterpret_cast<uint8_t*>(buf.data()), idx*2);
-                print("send pkt {}, count: {}", ++pkt_num, idx);
+                sock.write(reinterpret_cast<uint8_t *>(buf.data()), idx*2);
+                ++pkt_num;
+                //print("send pkt {}, count: {}", pkt_num, idx);
                 idx = 0;
             }
         };
@@ -179,13 +202,23 @@ int fgen(const size_t count)
                 put_data(fpool[row][col]);
             }
         }
-        sock.write(reinterpret_cast<uint8_t*>(buf.data()), idx*2);
-        print("send last pkt, pkt_num {}, count: {}", ++pkt_num, idx);
+//      for(size_t i = 0; i < 60; ++i)
+//      {
+//          print("{:04x}", buf[i]);
+//      }
+        sock.write(reinterpret_cast<uint8_t *>(buf.data()), idx*2);
+        //print("send last pkt, pkt_num {}, count: {}", ++pkt_num, idx);
+
+        if(fnum%chunk_size == 0)
+        {
+            double frame_num = fnum;
+            progress.write(frame_num/frame_count);
+        }
 
     }
     lg->info("end frame stream generating");
 
-    return 0;
+    return pkt_num;
 }
 //------------------------------------------------------------------------------
 
