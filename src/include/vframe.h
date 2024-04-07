@@ -67,11 +67,11 @@
 namespace bp = boost::python;
 namespace np = boost::python::numpy;
 
-const uint32_t INP_PIX_W      = INPUT_PIXEL_WIDTH;
-const uint32_t OUT_PIX_W      = OUTPUT_PIXEL_WIDTH;
+const uint32_t INP_PIX_W       = INPUT_PIXEL_WIDTH;
+const uint32_t OUT_PIX_W       = OUTPUT_PIXEL_WIDTH;
 
-const uint32_t INP_PIX_MAXVAL = (1 << INP_PIX_W) - 1;
-const uint32_t OUT_PIX_MAXVAL = (1 << OUT_PIX_W) - 1;
+const uint32_t INP_PIX_MAXVAL  = (1 << INP_PIX_W) - 1;
+const uint32_t OUT_PIX_MAXVAL  = (1 << OUT_PIX_W) - 1;
 
 const size_t   FRAME_POOL_SIZE = 4;
 
@@ -79,7 +79,12 @@ const uint16_t CFT_MASK        = 0x8000;
 const uint16_t VST_MASK        = 0x4000;
 const uint16_t FTT_MASK        = 0x2000;
 const uint16_t LNUM_MASK       = (1 << 12) - 1;
+const uint32_t MDBS_MASK       = ~(CFT_MASK | VST_MASK | FTT_MASK);
+
 const uint16_t FRAME_MDB_SIZE  = 15;
+
+const size_t   FNUM_SIZE       = 4;
+const size_t   TSTUMP_SIZE     = 8;
 
 //------------------------------------------------------------------------------
 struct TVFrame
@@ -96,8 +101,8 @@ struct TVFrame
 
     TVFrame  copy();
     
-    uint32_t retreive_fnum(uint16_t *p);
-    uint64_t retreive_tstamp(uint16_t *p);
+    void       retreive_fnum(uint16_t *p);
+    void       retreive_tstamp(uint16_t *p);
     
     void       rshift(int n);
     void       divide(double n);
@@ -114,10 +119,12 @@ struct TVFrame
 std::string vframe_str(TVFrame & r);
 std::string vframe_repr(TVFrame & r);
 
-extern std::thread        *vstream_thread;
-extern std::atomic_bool    vsthread_exit;
-extern tsqueue<TVFrame *>  free_frame_q;
-extern tsqueue<TVFrame *>  incoming_frame_q;
+using FrameQueue = tsqueue<TVFrame *>;
+
+extern std::thread      *vstream_thread;
+extern std::atomic_bool  vsthread_exit;
+extern FrameQueue        free_frame_q;
+extern FrameQueue        incoming_frame_q;
 
 void iframe_event_set();
 void vstream_fun();

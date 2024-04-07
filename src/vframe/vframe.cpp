@@ -61,14 +61,14 @@
 #include <array_indexing_suite.h>
 
 //------------------------------------------------------------------------------
-TVFrame            *frame_pool;
-std::thread        *vstream_thread;
-std::atomic_bool    vsthread_exit;
-tsqueue<TVFrame *>  free_frame_q("free_q");
-tsqueue<TVFrame *>  incoming_frame_q("incoming_q");
+TVFrame          *frame_pool;
+std::thread      *vstream_thread;
+std::atomic_bool  vsthread_exit;
+FrameQueue        free_frame_q("free_q");
+FrameQueue        incoming_frame_q("incoming_q");
 
-bp::object          inpframe_event;
-bp::object          vsthread_finish_event;
+bp::object        inpframe_event;
+bp::object        vsthread_finish_event;
 
 auto lg = spdlog::basic_logger_mt("vframe  ", "log/vframe.log", true);
 
@@ -112,26 +112,28 @@ TVFrame TVFrame::copy()
     return f;
 }
 //------------------------------------------------------------------------------
-uint32_t TVFrame::retreive_fnum(uint16_t *p)
+void TVFrame::retreive_fnum(uint16_t *p)
 {
-    return (  p[0] & 0xff)        +
+    fnum = (  p[0] & 0xff)        +
            ( (p[1] & 0xff) << 8)  +
            ( (p[2] & 0xff) << 16) +
            ( (p[3] & 0xff) << 24);
+
+    return;
 }
 //------------------------------------------------------------------------------
-uint64_t TVFrame::retreive_tstamp(uint16_t *p)
+void TVFrame::retreive_tstamp(uint16_t *p)
 {
-    uint64_t tstamp = ( static_cast<uint64_t>(p[0] & 0xff)     )  +
-                      ( static_cast<uint64_t>(p[1] & 0xff) << 8)  +
-                      ( static_cast<uint64_t>(p[2] & 0xff) << 16) +
-                      ( static_cast<uint64_t>(p[3] & 0xff) << 24) +
-                      ( static_cast<uint64_t>(p[4] & 0xff) << 32) +
-                      ( static_cast<uint64_t>(p[5] & 0xff) << 40) +
-                      ( static_cast<uint64_t>(p[6] & 0xff) << 48) +
-                      ( static_cast<uint64_t>(p[7] & 0xff) << 56);
+    tstamp = ( static_cast<uint64_t>(p[0] & 0xff)     )  +
+             ( static_cast<uint64_t>(p[1] & 0xff) << 8)  +
+             ( static_cast<uint64_t>(p[2] & 0xff) << 16) +
+             ( static_cast<uint64_t>(p[3] & 0xff) << 24) +
+             ( static_cast<uint64_t>(p[4] & 0xff) << 32) +
+             ( static_cast<uint64_t>(p[5] & 0xff) << 40) +
+             ( static_cast<uint64_t>(p[6] & 0xff) << 48) +
+             ( static_cast<uint64_t>(p[7] & 0xff) << 56);
 
-    return tstamp;
+    return;
 }
 //------------------------------------------------------------------------------
 //#pragma GCC push_options
@@ -257,7 +259,7 @@ np::ndarray make_display_frame(np::ndarray &pixbuf)
     
     size_t    count  = pixbuf.shape(0)*pixbuf.shape(1);
     uint16_t *idata  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
-    uint32_t *odata  = reinterpret_cast<uint32_t  *>( obuf.get_data() );
+    uint32_t *odata  = reinterpret_cast<uint32_t *>( obuf.get_data() );
 
     for(size_t i = 0; i < count; ++i)
     {
