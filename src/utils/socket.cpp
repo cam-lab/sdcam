@@ -75,8 +75,10 @@ int TSocket::read(uint8_t *buf, const size_t size)
     //lg->info("begin receiving");
     int             count;
     struct sockaddr raddr;
-    socklen_t       raddrlen;
-    
+    socklen_t       raddrlen = sizeof(raddr);
+
+    memset(&raddr, 0, raddrlen);
+
     count = recvfrom(fd, buf, size, 0, &raddr, &raddrlen);
     if(count < 0)
     {
@@ -84,7 +86,7 @@ int TSocket::read(uint8_t *buf, const size_t size)
     }
     else
     {
-        lg->info("received data count: {}", count);
+        //lg->info("received data count: {}", count);
     }
 
     return count;
@@ -92,8 +94,8 @@ int TSocket::read(uint8_t *buf, const size_t size)
 //------------------------------------------------------------------------------
 int TSocket::write(const uint8_t *src, const size_t size)
 {
-    lg->info("sendto: sockfd: {}, buf: {}, count: {}", fd, fmt::ptr(src), size);
-    lg->info("sendto: addr: {:x}, port: {}", addr.sin_addr.s_addr, ntohs(addr.sin_port));
+//  lg->info("sendto: sockfd: {}, buf: {}, count: {}", fd, fmt::ptr(src), size);
+//  lg->info("sendto: addr: {:x}, port: {}", addr.sin_addr.s_addr, ntohs(addr.sin_port));
 
     return sendto(fd, src, size, 0, reinterpret_cast<struct sockaddr *>(&addr), addrlen);
 }

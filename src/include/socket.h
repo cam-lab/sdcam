@@ -66,7 +66,7 @@ public:
             const char *a, uint16_t p, bool Binded=true)
         : lg(logger)
         , fd(0)
-        , addr{0, 0, 0, { } }
+        , addr{0, 0, 0, { 0 } }
         , addrlen(sizeof(addr))
         
     {
@@ -76,8 +76,7 @@ public:
             bind();
         }
     }
-    ~TSocket() { if(fd) close(); }
-
+    ~TSocket() { if(fd >= 0) close(); }
 
     void create(const char *addr, uint16_t port);
     void bind  ();
