@@ -116,8 +116,7 @@ int fgen(const size_t frame_count)
     static uint32_t fnum = 0;
     static uint16_t org  = 0;
     
-    //const size_t PKT_PAYLOAD_SIZE = 1472/2;
-    const size_t PKT_PAYLOAD_SIZE = 90/2;
+    const size_t PKT_PAYLOAD_SIZE = 1472/2;
     
     std::array<uint16_t, PKT_PAYLOAD_SIZE> buf;
 
@@ -131,7 +130,6 @@ int fgen(const size_t frame_count)
     for(size_t i = 0; i < frame_count; ++i)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(40));
-        //TVFrame *f = free_frame_q.pop(std::chrono::milliseconds(1000));
         
         for(size_t row = 0; row < FRAME_SIZE_Y; ++row)
         {
@@ -145,15 +143,13 @@ int fgen(const size_t frame_count)
 
         org += 10;
         
-        // frame number
         ++fnum;
 
         // timestamp
-        auto now    = std::chrono::high_resolution_clock::now();
-        auto epoch  = now.time_since_epoch();
+        auto now        = std::chrono::high_resolution_clock::now();
+        auto epoch      = now.time_since_epoch();
         uint64_t tstamp = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch).count()/10;
         
-        print("timestamp: {:x}", tstamp);
 
         // send frame
         size_t idx     = 0;
@@ -165,7 +161,6 @@ int fgen(const size_t frame_count)
             {
                 sock.write(reinterpret_cast<uint8_t *>(buf.data()), idx*2);
                 ++pkt_num;
-                //print("send pkt {}, count: {}", pkt_num, idx);
                 idx = 0;
             }
         };
@@ -198,16 +193,11 @@ int fgen(const size_t frame_count)
 
             for(size_t col = 0; col < FRAME_SIZE_X; ++col)
             {
-                print("row: {}, col: {}, val: {}, idx: {}", row, col, fpool[row][col], idx);
                 put_data(fpool[row][col]);
             }
         }
-//      for(size_t i = 0; i < 60; ++i)
-//      {
-//          print("{:04x}", buf[i]);
-//      }
+
         sock.write(reinterpret_cast<uint8_t *>(buf.data()), idx*2);
-        //print("send last pkt, pkt_num {}, count: {}", ++pkt_num, idx);
 
         if(fnum%chunk_size == 0)
         {
@@ -216,7 +206,6 @@ int fgen(const size_t frame_count)
         }
 
     }
-    lg->info("end frame stream generating");
 
     return pkt_num;
 }
