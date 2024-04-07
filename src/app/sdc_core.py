@@ -165,7 +165,7 @@ class TSDC_Core(QObject):
     #-------------------------------------------------------
     def display(self, pmap):
         if gui.fqueue.qsize() < 20:
-            gui.fqueue.put(pmap.astype(np.uint32))
+            gui.fqueue.put(pmap)
             self.frame_signal.emit(0)
             self._queue_limit_exceed = False
         else:
@@ -194,7 +194,6 @@ class TSDC_Core(QObject):
         fframe_org, fframe_top, fframe_scale = vframe.histogram(pbuf, self.fframe_histo, 30, 30, 0)
 
         self._pmap = vframe.make_display_frame(pbuf)
-        #pmap = vframe.make_display_frame(pbuf)
         self.display(self._pmap)
 
         vframe.put_free_frame(self._f)
