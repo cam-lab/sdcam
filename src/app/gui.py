@@ -51,7 +51,7 @@ import settings
 from logger   import logger as lg
 from badpix   import TBadPix
 
-from vframe   import FRAME_SIZE_X, FRAME_SIZE_Y, VIDEO_OUT_DATA_WIDTH
+from vframe   import FRAME_SIZE_X, FRAME_SIZE_Y, OUT_PIX_W
 
 run_path, filename = os.path.split(  os.path.abspath(__file__) )
 ico_path = os.path.join( run_path, 'ico' )
@@ -101,7 +101,7 @@ class TGraphicsView(QGraphicsView):
         
         cursor_on_scene = cursor_within_scene(spos)
         if cursor_on_scene:
-            pval = self.parent.img.pixelColor(sx, sy).rgba64().blue() >> (16 - VIDEO_OUT_DATA_WIDTH)
+            pval = self.parent.img.pixelColor(sx, sy).rgba64().blue() >> (16 - OUT_PIX_W)
         else:
             pval = None
 

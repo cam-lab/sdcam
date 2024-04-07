@@ -67,106 +67,64 @@
 namespace bp = boost::python;
 namespace np = boost::python::numpy;
 
-const uint16_t FRAME_SIZE_X = 640;
-const uint16_t FRAME_SIZE_Y = 512;
+const uint32_t INP_PIX_W       = INPUT_PIXEL_WIDTH;
+const uint32_t OUT_PIX_W       = OUTPUT_PIXEL_WIDTH;
 
-const uint32_t RAWBUF_SIZE = FRAME_SIZE_X*FRAME_SIZE_Y*2 + 2*1024;
+const uint32_t INP_PIX_MAXVAL  = (1 << INP_PIX_W) - 1;
+const uint32_t OUT_PIX_MAXVAL  = (1 << OUT_PIX_W) - 1;
 
-const uint32_t HOST_METABUF_SIZE    = 4 + 1024;
+const size_t   FRAME_POOL_SIZE = 4;
 
-const uint32_t VIDEO_DATA_WIDTH     = 14;
-const uint32_t VIDEO_DATA_MAX       = (1 << VIDEO_DATA_WIDTH) - 1;
+const uint16_t CFT_MASK        = 0x8000;
+const uint16_t VST_MASK        = 0x4000;
+const uint16_t FTT_MASK        = 0x2000;
+const uint16_t LNUM_MASK       = (1 << 12) - 1;
+const uint32_t MDBS_MASK       = ~(CFT_MASK | VST_MASK | FTT_MASK);
 
-const uint32_t VIDEO_OUT_DATA_WIDTH = 10;
-const uint32_t VIDEO_OUT_DATA_MAX   = (1 << VIDEO_OUT_DATA_WIDTH) - 1;
+const uint16_t FRAME_MDB_SIZE  = 15;
 
-const size_t   FRAME_POOL_SIZE      = 4;
-
+const size_t   FNUM_SIZE       = 4;
+const size_t   TSTUMP_SIZE     = 8;
 
 //------------------------------------------------------------------------------
 struct TVFrame
 {
-    static const int META_INFO_HEADER_OFFSET = 10;          // 32-bit words
-    static const int META_INFO_DATA_OFFSET   = 14;  
-           
-    static const int TSTAMP_OFFSET           = 4;                  // 16-bit words
-    static const int SIZE_X_OFFSET           = TSTAMP_OFFSET + 8;
-    static const int SIZE_Y_OFFSET           = SIZE_X_OFFSET + 1;
-    static const int PIXWIDTH_OFFSET         = SIZE_Y_OFFSET + 1;
-                                             
-    static const int DET_CR_OFFSET           = PIXWIDTH_OFFSET + 1; 
-    static const int DET_IEXP_OFFSET         = DET_CR_OFFSET   + 1; 
-    static const int DET_FEXP_OFFSET         = DET_IEXP_OFFSET + 1; 
-    static const int DET_PGA_CODE_OFFSET     = DET_FEXP_OFFSET + 1; 
-
-    static const int NPULSES_OFFSET          = DET_PGA_CODE_OFFSET + 1; 
-    static const int PINCH_OFFSET            = NPULSES_OFFSET      + 1; 
-    static const int DEPTH_OFFSET            = PINCH_OFFSET        + 1; 
-    static const int TRIM_OFFSET             = DEPTH_OFFSET        + 1; 
-                                                                   
-    static const int PWIDTH_OFFSET           = TRIM_OFFSET         + 1; 
+    static const int FNUM_OFFSET     = 0;
+    static const int TSTAMP_OFFSET   = FNUM_OFFSET   + 4;  // 16-bit words
+    static const int SIZE_X_OFFSET   = TSTAMP_OFFSET + 8;
+    static const int SIZE_Y_OFFSET   = SIZE_X_OFFSET + 1;
+    static const int PIXWIDTH_OFFSET = SIZE_Y_OFFSET + 1;
     
     TVFrame();
     
     bp::object pbuf() { return pixbuf; }
 
     TVFrame  copy();
-    bool     fill(uint8_t *src, uint32_t len);
     
-    uint32_t retreive_fnum(uint16_t *p);
-    uint64_t retreive_tstamp(uint16_t *p);
-    
-    char      *raw_buf()     const { return rawbuf.get_data(); }
-    uint32_t   raw_buf_len() const { return rawbuf.shape(0); }
+    void       retreive_fnum(uint16_t *p);
+    void       retreive_tstamp(uint16_t *p);
     
     void       rshift(int n);
     void       divide(double n);
-    
-    
-    uint32_t    host_fnum;
-    uint32_t    host_fpixsize;
-    uint32_t    host_fsize_x;
-    uint32_t    host_fsize_y;
-    
-    uint32_t    meta_buf_size;
-    uint32_t    meta_elem_size;
-    uint32_t    meta_info_size;
     
     uint32_t    fnum;
     uint64_t    tstamp;
     uint16_t    size_x;
     uint16_t    size_y;
     uint16_t    pixwidth;
-
-    uint16_t    det_cr;
-    uint16_t    det_iexp;
-    uint16_t    det_fexp;
-    uint16_t    det_pga_code;
-
-    uint16_t    npulses;
-    uint16_t    pinch;
-    uint16_t    depth;
-    uint16_t    trim;
-
-    uint16_t    pwidth;
-    
     
     np::ndarray pixbuf;
-    np::ndarray rawbuf;
 };
-//------------------------------------------------------------------------------
-inline bool deserialize_frame(void *frameObj, uint8_t *src, uint32_t len)
-{
-    return static_cast<TVFrame *>(frameObj)->fill(src, len);
-}
 //------------------------------------------------------------------------------
 std::string vframe_str(TVFrame & r);
 std::string vframe_repr(TVFrame & r);
 
-extern std::thread        *vstream_thread;
-extern std::atomic_bool    vsthread_exit;
-extern tsqueue<TVFrame *>  free_frame_q;
-extern tsqueue<TVFrame *>  incoming_frame_q;
+using FrameQueue = tsqueue<TVFrame *>;
+
+extern std::thread      *vstream_thread;
+extern std::atomic_bool  vsthread_exit;
+extern FrameQueue        free_frame_q;
+extern FrameQueue        incoming_frame_q;
 
 void iframe_event_set();
 void vstream_fun();

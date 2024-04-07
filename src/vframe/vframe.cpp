@@ -61,16 +61,16 @@
 #include <array_indexing_suite.h>
 
 //------------------------------------------------------------------------------
-TVFrame            *frame_pool;
-std::thread        *vstream_thread;
-std::atomic_bool    vsthread_exit;
-tsqueue<TVFrame *>  free_frame_q("free_q");
-tsqueue<TVFrame *>  incoming_frame_q("incoming_q");
+TVFrame          *frame_pool;
+std::thread      *vstream_thread;
+std::atomic_bool  vsthread_exit;
+FrameQueue        free_frame_q("free_q");
+FrameQueue        incoming_frame_q("incoming_q");
 
-bp::object          inpframe_event;
-bp::object          vsthread_finish_event;
+bp::object        inpframe_event;
+bp::object        vsthread_finish_event;
 
-auto lg = spdlog::basic_logger_mt("vframe", "log/vframe.log", true);
+auto lg = spdlog::basic_logger_mt("vframe  ", "log/vframe.log", true);
 
 //------------------------------------------------------------------------------
 void init_numpy()
@@ -94,35 +94,12 @@ void delete_frame_pool()
 }
 //------------------------------------------------------------------------------
 TVFrame::TVFrame()
-    : host_fnum      ( 0 )
-    , host_fpixsize  ( 2 )             // bytes
-    , host_fsize_x   ( FRAME_SIZE_X )  
-    , host_fsize_y   ( FRAME_SIZE_Y )  
-    
-    , meta_buf_size  ( 0 )
-    , meta_elem_size ( 0 )
-    , meta_info_size ( 0 )
-
-    , fnum           ( 0 )
+    : fnum           ( 0 )
     , tstamp         ( 0 )
     , size_x         ( 0 )
     , size_y         ( 0 )
     , pixwidth       ( 0 )
-                     
-    , det_cr         ( 0 )
-    , det_iexp       ( 0 )
-    , det_fexp       ( 0 )
-    , det_pga_code   ( 0 )
-                     
-    , npulses        ( 0 )
-    , pinch          ( 0 )
-    , depth          ( 0 )
-    , trim           ( 0 )
-
-    , pwidth         ( 0 )
-     
     , pixbuf(np::empty(bp::make_tuple(FRAME_SIZE_Y, FRAME_SIZE_X), np::dtype::get_builtin<uint16_t>()))
-    , rawbuf(np::empty(bp::make_tuple(RAWBUF_SIZE/sizeof(uint32_t)), np::dtype::get_builtin<uint32_t>()))
 {
 }
 //------------------------------------------------------------------------------
@@ -135,77 +112,28 @@ TVFrame TVFrame::copy()
     return f;
 }
 //------------------------------------------------------------------------------
-bool TVFrame::fill(uint8_t *src, uint32_t len)
+void TVFrame::retreive_fnum(uint16_t *p)
 {
-    uint32_t *buf = reinterpret_cast<uint32_t *>(src);
-    
-    //--------------------------------------------------------------------------
-    //
-    //   Host data
-    //
-    if(buf[0] != 0) return false;
-
-    host_fnum = buf[6];
-
-    if(buf[7] != host_fpixsize) return false;
-    if(buf[8] != host_fsize_y)  return false;
-    if(buf[9] != host_fsize_x)  return false;
-    
-    //--------------------------------------------------------------------------
-    //
-    //   Meta info
-    //
-    meta_buf_size  = buf[META_INFO_HEADER_OFFSET];
-    meta_elem_size = buf[META_INFO_HEADER_OFFSET+1];
-    meta_info_size = buf[META_INFO_HEADER_OFFSET+2];
-    
-    uint16_t *minfo = reinterpret_cast<uint16_t *>(buf + META_INFO_DATA_OFFSET);
-    
-    fnum          = retreive_fnum(minfo);
-    tstamp        = retreive_tstamp(minfo + TSTAMP_OFFSET); 
-    size_x        = minfo[SIZE_X_OFFSET];
-    size_y        = minfo[SIZE_Y_OFFSET];
-    pixwidth      = minfo[PIXWIDTH_OFFSET];
-                  
-    det_cr        = minfo[DET_CR_OFFSET];
-    det_iexp      = minfo[DET_IEXP_OFFSET]; 
-    det_fexp      = minfo[DET_FEXP_OFFSET]; 
-    det_pga_code  = minfo[DET_PGA_CODE_OFFSET]; 
-
-    npulses       = minfo[NPULSES_OFFSET]; 
-    pinch         = minfo[PINCH_OFFSET]; 
-    depth         = minfo[DEPTH_OFFSET]; 
-    trim          = minfo[TRIM_OFFSET];
-    
-    pwidth        = minfo[PWIDTH_OFFSET];
-    
-    //--------------------------------------------------------------------------
-    //
-    //   Check length
-    //
-    if(META_INFO_DATA_OFFSET*sizeof(uint32_t) + meta_buf_size + host_fsize_x*host_fsize_y*host_fpixsize != len)
-    {
-        std::cout << "E: incorrect chunk data length" << std::endl;
-        return false;
-    }
-
-    //--------------------------------------------------------------------------
-    //
-    //   Pixel array
-    //
-    std::memcpy(pixbuf.get_data(), 
-                src + META_INFO_DATA_OFFSET*sizeof(uint32_t) + meta_buf_size, 
-                host_fsize_x*host_fsize_y*host_fpixsize);
-    
-    return true;
-}
-//------------------------------------------------------------------------------
-uint32_t TVFrame::retreive_fnum(uint16_t *p)
-{
-    return (  p[0] & 0xff)        +
+    fnum = (  p[0] & 0xff)        +
            ( (p[1] & 0xff) << 8)  +
            ( (p[2] & 0xff) << 16) +
            ( (p[3] & 0xff) << 24);
+
+    return;
+}
+//------------------------------------------------------------------------------
+void TVFrame::retreive_tstamp(uint16_t *p)
+{
+    tstamp = ( static_cast<uint64_t>(p[0] & 0xff)     )  +
+             ( static_cast<uint64_t>(p[1] & 0xff) << 8)  +
+             ( static_cast<uint64_t>(p[2] & 0xff) << 16) +
+             ( static_cast<uint64_t>(p[3] & 0xff) << 24) +
+             ( static_cast<uint64_t>(p[4] & 0xff) << 32) +
+             ( static_cast<uint64_t>(p[5] & 0xff) << 40) +
+             ( static_cast<uint64_t>(p[6] & 0xff) << 48) +
+             ( static_cast<uint64_t>(p[7] & 0xff) << 56);
+
+    return;
 }
 //------------------------------------------------------------------------------
 //#pragma GCC push_options
@@ -231,38 +159,14 @@ void TVFrame::divide(double n)
     }
 }
 //------------------------------------------------------------------------------
-uint64_t TVFrame::retreive_tstamp(uint16_t *p)
-{
-    uint32_t l = (  p[0] & 0xff)        +
-                 ( (p[1] & 0xff) << 8)  +
-                 ( (p[2] & 0xff) << 16) +
-                 ( (p[3] & 0xff) << 24);
-    
-    uint64_t h = (  p[4] & 0xff)        +
-                 ( (p[5] & 0xff) << 8)  +
-                 ( (p[6] & 0xff) << 16) +
-                 ( (p[7] & 0xff) << 24);
-        
-    return l + (h << 32);
-}
-//------------------------------------------------------------------------------
 std::string vframe_str(TVFrame & r)
 {
     std::stringstream out;
-    out << "    host_fnum     : " << r.host_fnum     << std::endl
-        << "    fnum          : " << r.fnum          << std::endl
-        << "    size_x        : " << r.size_x        << std::endl
-        << "    size_y        : " << r.size_y        << std::endl
-        << "    pixwidth      : " << r.pixwidth      << std::endl
-        << "    det_cr        : " << r.det_cr        << std::endl
-        << "    det_iexp      : " << r.det_iexp      << std::endl
-        << "    det_fexp      : " << r.det_fexp      << std::endl
-        << "    det_pga_code  : " << r.det_pga_code  << std::endl
-        << "    npulses       : " << r.npulses       << std::endl
-        << "    pinch         : " << r.pinch         << std::endl
-        << "    depth         : " << r.depth         << std::endl
-        << "    trim          : " << r.trim          << std::endl
-        << "    pwidth        : " << r.pwidth        << std::endl; 
+
+    out << "    fnum          : " << r.fnum     << "\n";
+    out << "    size_x        : " << r.size_x   << "\n";
+    out << "    size_y        : " << r.size_y   << "\n";
+    out << "    pixwidth      : " << r.pixwidth << std::endl;
 
     return out.str();
 }
@@ -276,7 +180,7 @@ std::string vframe_repr(TVFrame & r)
 //------------------------------------------------------------------------------
 bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t orgThreshold, uint16_t topThreshold, float discardLevel)
 {
-    int scale = (1 << VIDEO_DATA_WIDTH)/histo.shape(0); 
+    int scale = (1 << INP_PIX_W)/histo.shape(0);
     int shift = log2(scale);
     int count = data.shape(0)*data.shape(1);
     uint16_t *pixbuf  = reinterpret_cast<uint16_t *>( data.get_data() );
@@ -340,8 +244,8 @@ void scale(np::ndarray &pixbuf, int sub, double k)
         {
             val -= sub;
             uint32_t res = val*k;
-            if(res > VIDEO_DATA_MAX) 
-                buf[i] = VIDEO_DATA_MAX;
+            if(res > INP_PIX_MAXVAL)
+                buf[i] = INP_PIX_MAXVAL;
             else 
                 buf[i] = res;
         }
@@ -355,7 +259,7 @@ np::ndarray make_display_frame(np::ndarray &pixbuf)
     
     size_t    count  = pixbuf.shape(0)*pixbuf.shape(1);
     uint16_t *idata  = reinterpret_cast<uint16_t *>( pixbuf.get_data() );
-    uint32_t *odata  = reinterpret_cast<uint32_t  *>( obuf.get_data() );
+    uint32_t *odata  = reinterpret_cast<uint32_t *>( obuf.get_data() );
 
     for(size_t i = 0; i < count; ++i)
     {
@@ -378,7 +282,7 @@ int get_frame(TVFrame &f)
     {
         for(size_t col = 0; col < FRAME_SIZE_X; ++col)
         {
-            buf[row][col] = (org + row + col + 1) & VIDEO_OUT_DATA_MAX;
+            buf[row][col] = (org + row + col + 1) & OUT_PIX_MAXVAL;
             if(row == 100 && col == 100) buf[row][col] = 1023;
             if(row == 100 && col == 101) buf[row][col] = 1023/2;
         }
@@ -492,9 +396,9 @@ BOOST_PYTHON_MODULE(vframe)
 {
     using namespace boost::python;
 
-    scope().attr("FRAME_SIZE_X")         = FRAME_SIZE_X;
-    scope().attr("FRAME_SIZE_Y")         = FRAME_SIZE_Y;
-    scope().attr("VIDEO_OUT_DATA_WIDTH") = VIDEO_OUT_DATA_WIDTH;
+    scope().attr("FRAME_SIZE_X") = FRAME_SIZE_X;
+    scope().attr("FRAME_SIZE_Y") = FRAME_SIZE_Y;
+    scope().attr("OUT_PIX_W")    = OUT_PIX_W;
 
     //--------------------------------------------------------------------------
     //
@@ -503,15 +407,11 @@ BOOST_PYTHON_MODULE(vframe)
     {
         scope vframe_scope =
         class_<TVFrame>("TVFrame", init<>())
-            .add_property("host_fnum", &TVFrame::host_fnum)
             .add_property("fnum",   &TVFrame::fnum)
             .add_property("tstamp", &TVFrame::tstamp)
             .add_property("size_x", &TVFrame::size_x)
             .add_property("size_y", &TVFrame::size_y)
-            .add_property("iexp",   &TVFrame::det_iexp)
-            .add_property("fexp",   &TVFrame::det_fexp)
             .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
-            .add_property("rawbuf", make_getter(&TVFrame::rawbuf))
             .def("copy",   &TVFrame::copy)
             .def("rshift", &TVFrame::rshift)
             .def("divide", &TVFrame::divide)

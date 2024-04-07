@@ -24,18 +24,27 @@ Platform = env['PLATFORM']
 CurDir = os.path.abspath(str(Dir('.').srcnode()))
 env['CURDIR'] = CurDir
 
-
-logpath = Path('log')
-
-if not logpath.exists():
-    Execute(Mkdir(logpath))
-
 #-------------------------------------------------------------------------------
 #
 #     Setup sources and target
 #
-Sources = [ 'vframe.cpp', 'video.cpp']
-Target = os.path.join(env['BINDIR'], ProductName)
+Sources    = ['vframe.cpp', 'video.cpp']
+ExtSources = ['#src/utils/socket.cpp']
+
+Target = str(env['BINDIR'] / ProductName)
+
+#  VariantDir
+src_path   = str(Dir('#src'))
+build_path = str(env['BUILDPATH'])
+
+build_vframe_path = str(env['BUILDPATH'] / ProductName)
+build_utils_path  = str(env['BUILDPATH'] / 'utils')
+
+VariantDir(build_vframe_path, '#src/vframe', duplicate=0)
+VariantDir(build_utils_path,  '#src/utils',  duplicate=0)
+
+Src    = [str(env['BUILDPATH'] / ProductName / s) for s in Sources]
+ExtSrc = [s.replace('#src/utils', build_utils_path) for s in ExtSources]
 
 #-------------------------------------------------------------------------------
 #
@@ -67,7 +76,7 @@ env.Append(CPPPATH = [os.path.join(BOOST_PATH, 'include'), str(FMTPATH / 'includ
 env.Append(CPPPATH = [PYTHON_INCLUDE])
 env.Append(LIBPATH = [str(BOOST_PATH / 'lib'), str(FMTPATH / 'lib'), str(SPDLOGPATH / 'lib')])
 env.Append(LIBS = [PYTHON_LIBRARY, BOOST_PYTHON_LIB, BOOST_NUMPY_LIB, 'fmt', 'spdlog'])
-env.Append(CXXFLAGS = '-std=c++17 -DSPDLOG_COMPILED_LIB')
+env.Append(CXXFLAGS = '-DSPDLOG_COMPILED_LIB')
 
 env['SHLIBPREFIX'] = ''
 if Platform == 'win32':
@@ -77,7 +86,7 @@ if Platform == 'win32':
 #
 #     Build the targets
 #
-env.SharedLibrary( Target, Sources ) 
+env.SharedLibrary( Target, Src + ExtSrc)
 
 #-------------------------------------------------------------------------------
 

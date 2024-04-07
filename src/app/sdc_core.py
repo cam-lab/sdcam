@@ -194,8 +194,8 @@ class TSDC_Core(QObject):
         fframe_org, fframe_top, fframe_scale = vframe.histogram(pbuf, self.fframe_histo, 30, 30, 0)
 
         self._pmap = vframe.make_display_frame(pbuf)
-        pmap = vframe.make_display_frame(pbuf)
-        self.display(pmap)
+        #pmap = vframe.make_display_frame(pbuf)
+        self.display(self._pmap)
 
         vframe.put_free_frame(self._f)
 

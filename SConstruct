@@ -5,9 +5,11 @@
 import os
 import sys
 
+from pathlib import Path
+
 sys.path.append( '.scons' )
 
-from helpers import *
+import helpers as hlp
 
 #-------------------------------------------------------------------------------
 #
@@ -15,11 +17,20 @@ from helpers import *
 #
 BOOST_VERSION = '1_84_0'
 
-INCDIR        = ['#inc', '#src/include']
-BINDIR        = '#bin'
-BUILDPATH     = '#build'
-LIBDIR        = '#lib'
+INCDIR        = [hlp.abspath('#src/include')]
+BINDIR        = hlp.abspath('#bin')
+BUILDPATH     = hlp.abspath('#build')
+LIBDIR        = hlp.abspath('#lib')
+LOGPATH       = hlp.abspath('#log')
+
 DEFINES       = []
+
+APP_SETTINGS = {
+    'FRAME_SIZE_X'         : 640,
+    'FRAME_SIZE_Y'         : 512,
+    'INPUT_PIXEL_WIDTH'    : 14, # bit
+    'OUTPUT_PIXEL_WIDTH'   : 10  # bit
+}
 
 #-------------------------------------------------------------------------------
 #
@@ -33,13 +44,13 @@ env['BOOST_VERSION'] = BOOST_VERSION
 #     Platform-specific settings
 #
 Platform  = env['PLATFORM']
-Toolchain = ARGUMENTS.get('toolchain', DEFAULT_TOOLCHAIN[Platform])
+Toolchain = ARGUMENTS.get('toolchain', hlp.DEFAULT_TOOLCHAIN[Platform])
 
 #------------------------------------------------------------
 if Platform == 'win32':
-    DEFINES  += ['ENA_WIN_API']
+    DEFINES.append('ENA_WIN_API')
 elif Platform == 'posix':
-    DEFINES += []
+    pass
 else:
     print('E: scons: unsupported platform. Supported platforms are: "win32", "posix"')
     Exit(1)
@@ -57,35 +68,48 @@ AddOption('--verbose', action='store_true',  help='print full command lines of l
 
 #     Process options and user's variables
 if GetOption('verbose') == None:
-    set_comstr(env)
+    hlp.set_comstr(env)
 
 #     Check build variant
-Variant = ARGUMENTS.get('variant', 'release')
+Variant = ARGUMENTS.get('bv', 'release')
 
 if not Variant in ['release', 'debug']:
     print('E: scons: invalid variant "%s" specified in command line. Supported variants are: "release", "debug"' % Variant)
     Exit(1)
 
 #     Toolchain flags
-CCFLAGS   = ccflags(Toolchain)
-CXXFLAGS  = cxxflags(Toolchain)
-OPTFLAGS  = optflags(Toolchain, Variant)
+CCFLAGS   = hlp.ccflags(Toolchain)
+CXXFLAGS  = hlp.cxxflags(Toolchain)
+OPTFLAGS  = hlp.optflags(Toolchain, Variant)
+
+for k in APP_SETTINGS:
+    DEFINES.append('{}={}'.format(k, APP_SETTINGS[k]))
+
+DEFINES.append('BOOST_NO_AUTO_PTR')
 
 env['VARIANT'] = Variant
-env.Append(CPPPATH   = INCDIR)
-env.Append(CCFLAGS   = CCFLAGS + OPTFLAGS)
-env.Append(CXXFLAGS  = CXXFLAGS)
+env.Append(CPPPATH    = INCDIR)
+env.Append(CCFLAGS    = CCFLAGS + OPTFLAGS)
+env.Append(CXXFLAGS   = CXXFLAGS)
+env.Append(CPPDEFINES = DEFINES)
+
 env.Append(INCDIR    = INCDIR)
-env.Append(BINDIR    = os.path.join(BINDIR, Variant))
-env.Append(BUILDPATH = os.path.join(BUILDPATH, Variant))
-env.Append(LIBPATH   = os.path.join(LIBDIR, Variant))
+env.Append(BINDIR    = BINDIR / Variant)
+env.Append(BUILDPATH = BUILDPATH / Variant)
+env.Append(LIBPATH   = LIBDIR / Variant)
+env.Append(LOGPATH   = LOGPATH)
+
+
+if not LOGPATH.exists():
+    Execute(Mkdir(LOGPATH))
+
 
 #-------------------------------------------------------------------------------
 #
 #     Build hierarchy
 #
-SConscript('src/vframe/vframe.scons', 
-            exports = 'env',
-            variant_dir = '#build/%s/%s' % (env['VARIANT'], 'vframe' ), duplicate = 0)
+SConscript('src/vframe/vframe.scons',  exports = 'env')
+SConscript('src/utils/framegen.scons', exports = 'env')
+
 #-------------------------------------------------------------------------------
 

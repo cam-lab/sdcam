@@ -4,7 +4,10 @@
 //
 //    Purpose: Boost.Python array indexing support
 //
-//    Copyright (c) 2016-2017, 2024, Camlab Project Team
+//    Derived from example:
+//
+//    https://stackoverflow.com/questions/17885639/exposing-a-c-style-array-data-member-to-python-via-boost-python
+//
 //
 //    Permission is hereby granted, free of charge, to any person
 //    obtaining  a copy of this software and associated documentation
