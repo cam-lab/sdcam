@@ -30,6 +30,8 @@
 #ifndef PROJECT_UTILS_H
 #define PROJECT_UTILS_H
         
+#include <iostream>
+
 //#define FMT_HEADER_ONLY
 //#include <fmt/core.h>
 //#include <fmt/ranges.h>
@@ -37,6 +39,9 @@
 #include <boost/python.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
+
+using Logger = std::shared_ptr<spdlog::logger>;
+
 //------------------------------------------------------------------------------
 class GilLock
 {

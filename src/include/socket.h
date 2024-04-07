@@ -44,11 +44,10 @@
 #include <arpa/inet.h>
 #include <net/ethernet.h>
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
+#include <utils.h>
 
-const size_t MIN_ETH_PACKET_SIZE    = 40;
-const size_t BUF_SIZE               = 2048;
+const size_t MIN_ETH_PACKET_SIZE = 40;
+const size_t BUF_SIZE            = 2048;
 
 //------------------------------------------------------------------------------
 struct TSocketException
@@ -87,10 +86,10 @@ public:
     void set_recv_timeout(const std::chrono::milliseconds timeout);
 
 private:
-    std::shared_ptr<spdlog::logger> lg;
-    int                             fd;
-    struct sockaddr_in              addr;
-    socklen_t                       addrlen;
+    Logger              lg;
+    int                 fd;
+    struct sockaddr_in  addr;
+    socklen_t           addrlen;
 };
 //------------------------------------------------------------------------------
 #endif // SOCKET_API_H

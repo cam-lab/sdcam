@@ -26,8 +26,8 @@ LOGPATH       = hlp.abspath('#log')
 DEFINES       = []
 
 APP_SETTINGS = {
-    'FRAME_SIZE_X'     : 640,
-    'FRAME_SIZE_Y'     : 512,
+    'FRAME_SIZE_X'         : 640,
+    'FRAME_SIZE_Y'         : 512,
     'INPUT_PIXEL_WIDTH'    : 14, # bit
     'OUTPUT_PIXEL_WIDTH'   : 10  # bit
 }
@@ -84,6 +84,8 @@ OPTFLAGS  = hlp.optflags(Toolchain, Variant)
 
 for k in APP_SETTINGS:
     DEFINES.append('{}={}'.format(k, APP_SETTINGS[k]))
+
+DEFINES.append('BOOST_NO_AUTO_PTR')
 
 env['VARIANT'] = Variant
 env.Append(CPPPATH    = INCDIR)
