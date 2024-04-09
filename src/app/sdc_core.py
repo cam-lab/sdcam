@@ -48,7 +48,7 @@ vsthread_finish_event = threading.Event()
 #-------------------------------------------------------------------------------
 class TSDC_Core(QObject):
 
-    frame_signal         = pyqtSignal( 'quint64' )
+    frame_signal         = pyqtSignal( list  )
     display_frame_signal = pyqtSignal( int )
     
     #-------------------------------------------------------
@@ -189,7 +189,7 @@ class TSDC_Core(QObject):
 
         pbuf = self._f.pixbuf
 
-        self.frame_signal.emit(self._f.tstamp)
+        self.frame_signal.emit([self._f.tstamp, time.time()*1e8])
 
         self.fframe_histo.fill(0)
         self.window_histo.fill(0)

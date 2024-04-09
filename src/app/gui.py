@@ -577,6 +577,12 @@ class TelemetryWidget(QTableWidget):
         self.setItem(self.DEV, self.MAX,   self.create_item() )
         self.setItem(self.DEV, self.SDEV,  self.create_item() )
         
+        self.setItem(self.SDC, self.VALUE, self.create_item() )
+        self.setItem(self.SDC, self.MEAN,  self.create_item() )
+        self.setItem(self.SDC, self.MIN,   self.create_item() )
+        self.setItem(self.SDC, self.MAX,   self.create_item() )
+        self.setItem(self.SDC, self.SDEV,  self.create_item() )
+
     #-----------------------------------------------------------------
     def create_item(self, val=''):
 
@@ -589,14 +595,23 @@ class TelemetryWidget(QTableWidget):
     #-----------------------------------------------------------------
     def update_slot(self, msg):
 
-        dev_fps = msg[0]
-        
-        self.item(self.DEV, self.VALUE).setText ('{:.3f}'.format(dev_fps.value))
-        self.item(self.DEV, self.MEAN).setText  ('{:.3f}'.format(dev_fps.mean))
-        self.item(self.DEV, self.MIN).setText   ('{:.3f}'.format(dev_fps.min))
-        self.item(self.DEV, self.MAX).setText   ('{:.3f}'.format(dev_fps.max))
-        self.item(self.DEV, self.SDEV).setText  ('{:.3f}'.format(dev_fps.sdev))
+        if msg[0] == 0:
+            dev_fps = msg[1]
 
+            self.item(self.DEV, self.VALUE).setText ('{:.3f}'.format(dev_fps.value))
+            self.item(self.DEV, self.MEAN).setText  ('{:.3f}'.format(dev_fps.mean))
+            self.item(self.DEV, self.MIN).setText   ('{:.3f}'.format(dev_fps.min))
+            self.item(self.DEV, self.MAX).setText   ('{:.3f}'.format(dev_fps.max))
+            self.item(self.DEV, self.SDEV).setText  ('{:.3f}'.format(dev_fps.sdev))
+
+        if msg[0] == 1:
+            sdc_fps = msg[1]
+
+            self.item(self.SDC, self.VALUE).setText ('{:.3f}'.format(sdc_fps.value))
+            self.item(self.SDC, self.MEAN).setText  ('{:.3f}'.format(sdc_fps.mean))
+            self.item(self.SDC, self.MIN).setText   ('{:.3f}'.format(sdc_fps.min))
+            self.item(self.SDC, self.MAX).setText   ('{:.3f}'.format(sdc_fps.max))
+            self.item(self.SDC, self.SDEV).setText  ('{:.3f}'.format(sdc_fps.sdev))
 
 #-------------------------------------------------------------------------------
         

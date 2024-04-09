@@ -114,6 +114,7 @@ class AppMonitor(QObject):
         self.prev_fcount = 0
 
         self.dev_fps = FrameParam()
+        self.sdc_fps = FrameParam()
         
     #-------------------------------------------------------    
     def processing(self):
@@ -123,11 +124,16 @@ class AppMonitor(QObject):
             self.file_changed_signal.emit(self.fname)
         
     #-------------------------------------------------------
-    def frame_slot(self, tstamp):
+    def frame_slot(self, t):
         self.frame_count += 1
         
+        tstamp, sdc_tpoint = t[0], t[1]
+
         if self.dev_fps.processing(tstamp):
-            self.update_data_signal.emit([self.dev_fps])
+            self.update_data_signal.emit([0, self.dev_fps])
+
+        if self.sdc_fps.processing(sdc_tpoint):
+            self.update_data_signal.emit([1, self.sdc_fps])
 
 #-------------------------------------------------------------------------------
 class AppMonitorThread(threading.Thread):
