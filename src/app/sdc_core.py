@@ -48,7 +48,8 @@ vsthread_finish_event = threading.Event()
 #-------------------------------------------------------------------------------
 class TSDC_Core(QObject):
 
-    frame_signal = pyqtSignal( int )
+    frame_signal         = pyqtSignal( 'quint64' )
+    display_frame_signal = pyqtSignal( int )
     
     #-------------------------------------------------------
     def __init__(self, parent):
@@ -166,7 +167,7 @@ class TSDC_Core(QObject):
     def display(self, pmap):
         if gui.fqueue.qsize() < 20:
             gui.fqueue.put(pmap)
-            self.frame_signal.emit(0)
+            self.display_frame_signal.emit(0)
             self._queue_limit_exceed = False
         else:
             if not self._queue_limit_exceed:
@@ -183,9 +184,12 @@ class TSDC_Core(QObject):
         #vframe.get_inp_frame(self._f)
         if not self._vstream_on:     # prevent spurious pop from incoming queue
             return
+
         self._f = vframe.get_iframe()
 
         pbuf = self._f.pixbuf
+
+        self.frame_signal.emit(self._f.tstamp)
 
         self.fframe_histo.fill(0)
         self.window_histo.fill(0)

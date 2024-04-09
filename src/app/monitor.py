@@ -32,22 +32,89 @@ import os
 import time
 import threading
 
+import numpy as np
+
 from   PyQt5.QtCore import QObject, pyqtSignal
 from   logger import logger as lg
 
-PERIOD = 0.25
+PERIOD = 0.1
+
+#-------------------------------------------------------------------------------
+class FrameParam:
+
+    def __init__(self, buf_len = 50):
+        self.value       = 0
+        self.mean        = 0
+        self.min         = 1000
+        self.max         = 0
+        self.sdev        = 0
+        
+        self.val_buf     = np.zeros(buf_len, dtype='double')
+        self.buf_count   = 0
+        
+        self.tpoint      = 0
+        self.tstamp      = 0
+        
+        self.accumulator = 0
+        self.total_count = 0
+
+    def processing(self, tstamp):
+
+        if not self.tpoint:
+            self.tpoint = time.time()
+            return False
+
+        if self.tstamp:
+            dt = (tstamp - self.tstamp)/1e8
+            f  = 1/dt
+            self.val_buf[self.buf_count] = f
+            self.buf_count += 1
+            
+            if f > self.max:
+                self.max = f
+
+            if f < self.min:
+                self.min = f
+                
+            if time.time() - self.tpoint > 1:
+                self.tpoint = time.time()
+                self.value  = self.val_buf[ :self.buf_count].mean()
+                
+                self.accumulator += self.val_buf.sum()
+                self.total_count += self.buf_count
+                self.mean         = self.accumulator/self.total_count
+                
+                self.sdev         = self.val_buf[ :self.buf_count].std()
+                
+                # reset tmp buffer
+                self.val_buf.fill(0)
+                self.buf_count = 0
+
+                #
+                self.tstamp = tstamp
+                return True
+
+
+        self.tstamp = tstamp
+        return False
+
 
 #-------------------------------------------------------------------------------
 class AppMonitor(QObject):
 
     file_changed_signal = pyqtSignal( str )
+    update_data_signal  = pyqtSignal( list )
 
     #-------------------------------------------------------    
     def __init__(self, fname):
         super().__init__()
-        self.stamp = 0
-        self.fname = fname
+        self.stamp       = 0
+        self.fname       = fname
+        self.frame_count = 0
+        self.prev_fcount = 0
 
+        self.dev_fps = FrameParam()
+        
     #-------------------------------------------------------    
     def processing(self):
         stamp = os.stat(self.fname).st_mtime
@@ -55,6 +122,13 @@ class AppMonitor(QObject):
             self.stamp = stamp
             self.file_changed_signal.emit(self.fname)
         
+    #-------------------------------------------------------
+    def frame_slot(self, tstamp):
+        self.frame_count += 1
+        
+        if self.dev_fps.processing(tstamp):
+            self.update_data_signal.emit([self.dev_fps])
+
 #-------------------------------------------------------------------------------
 class AppMonitorThread(threading.Thread):
 
@@ -73,7 +147,7 @@ class AppMonitorThread(threading.Thread):
     def run(self):
         while True:
             time.sleep(PERIOD)
-            self.watcher.processing()
+            self.monitor.processing()
             if self._finish_event.is_set():
                 return
             

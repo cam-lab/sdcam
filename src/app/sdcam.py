@@ -121,7 +121,10 @@ class TSDCam(QObject, InternalIPKernel):
 
         self.mwin.agcAction.trig_signal.connect(self.vfthread.core.agc_slot, Qt.QueuedConnection)
         self.mwin.vstreamAction.trig_signal.connect(self.vfthread.core.vstream_slot, Qt.QueuedConnection)
-        self.vfthread.core.frame_signal.connect(self.mwin.show_frame_slot, Qt.QueuedConnection)
+        self.vfthread.core.display_frame_signal.connect(self.mwin.show_frame_slot, Qt.QueuedConnection)
+        self.vfthread.core.frame_signal.connect(self.amthread.monitor.frame_slot, Qt.QueuedConnection)
+        
+        self.amthread.monitor.update_data_signal.connect(self.mwin.TelemetryWidget.update_slot, Qt.QueuedConnection)
 
         self.mwin.close_signal.connect(self.finish)
         self.mwin.close_signal.connect(app.quit)

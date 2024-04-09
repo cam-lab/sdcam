@@ -415,6 +415,15 @@ class MainWindow(QMainWindow):
         self.Log.setWidget(self.LogWidget)
         
     #---------------------------------------------------------------------------
+    def create_telemetry_window(self):
+        self.Telemetry = QDockWidget('Telemetry', self, Qt.WindowCloseButtonHint)
+        self.Telemetry.setObjectName('Telemetry Window')
+        self.Telemetry.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
+        self.Telemetry.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        self.TelemetryWidget = TelemetryWidget(self)
+        self.Telemetry.setWidget(self.TelemetryWidget)
+
+    #---------------------------------------------------------------------------
     def initUI(self):
 
         #----------------------------------------------------
@@ -423,8 +432,10 @@ class MainWindow(QMainWindow):
         #
         self.setup_main_scene()
         self.create_log_window()
+        self.create_telemetry_window()
 
         self.addDockWidget(Qt.BottomDockWidgetArea, self.Log)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.Telemetry)
         self.setCentralWidget(self.MainView)
         
         self.restore_main_window()
@@ -465,6 +476,8 @@ class MainWindow(QMainWindow):
                 
 #-------------------------------------------------------------------------------
 class TLogWidget(QTableWidget):
+
+    #-----------------------------------------------------------------
     def __init__(self, parent):
         super().__init__(0, 4, parent)
         
@@ -485,6 +498,7 @@ class TLogWidget(QTableWidget):
                                  'WARNING' : '#FFFF00',
                                  'ERROR'   : '#FF0000' }
 
+    #-----------------------------------------------------------------
     def update_slot(self, s):
         with open(s, 'rb') as f:
             text = f.read().decode()
@@ -522,5 +536,67 @@ class TLogWidget(QTableWidget):
             
         self.scrollToBottom()
             
+#-------------------------------------------------------------------------------
+class TelemetryWidget(QTableWidget):
+
+    #-----------------------------------------------------------------
+    def __init__(self, parent):
+        super().__init__(4, 6, parent)
+
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
+#       self.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+#       self.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.horizontalHeader().resizeSection(0, 200)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.verticalHeader().setDefaultSectionSize(20)
+        self.setTabKeyNavigation(False)
+        self.setAlternatingRowColors(True)
+        self.setHorizontalHeaderLabels( ['Name', 'Value', 'Mean', 'Min', 'Max', 'SDev'] )
+
+        self.setRowCount(4)
+        
+
+        self.DEV = 0
+        self.SDC = 1
+        
+        self.NAME  = 0
+        self.VALUE = 1
+        self.MEAN  = 2
+        self.MIN   = 3
+        self.MAX   = 4
+        self.SDEV  = 5
+
+        self.setItem(self.DEV, self.NAME, self.create_item('Dev FPS') )
+        self.setItem(self.SDC, self.NAME, self.create_item('SDC FPS') )
+
+        self.setItem(self.DEV, self.VALUE, self.create_item() )
+        self.setItem(self.DEV, self.MEAN,  self.create_item() )
+        self.setItem(self.DEV, self.MIN,   self.create_item() )
+        self.setItem(self.DEV, self.MAX,   self.create_item() )
+        self.setItem(self.DEV, self.SDEV,  self.create_item() )
+        
+    #-----------------------------------------------------------------
+    def create_item(self, val=''):
+
+        item = QTableWidgetItem(val)
+        item.setForeground(QColor('#F0F0F0'))
+        item.setTextAlignment(Qt.AlignTop)
+        
+        return item
+
+    #-----------------------------------------------------------------
+    def update_slot(self, msg):
+
+        dev_fps = msg[0]
+        
+        self.item(self.DEV, self.VALUE).setText ('{:.3f}'.format(dev_fps.value))
+        self.item(self.DEV, self.MEAN).setText  ('{:.3f}'.format(dev_fps.mean))
+        self.item(self.DEV, self.MIN).setText   ('{:.3f}'.format(dev_fps.min))
+        self.item(self.DEV, self.MAX).setText   ('{:.3f}'.format(dev_fps.max))
+        self.item(self.DEV, self.SDEV).setText  ('{:.3f}'.format(dev_fps.sdev))
+
+
 #-------------------------------------------------------------------------------
         
