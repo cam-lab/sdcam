@@ -362,6 +362,12 @@ class MainWindow(QMainWindow):
         self.sdlgAction.setStatusTip('Edit settings')
         self.sdlgAction.triggered.connect(self.edit_settings)
         
+        #-------------------------------------------------------------
+        self.rstatAction = QAction(QIcon( os.path.join(ico_path, 'reset-stat-24.png') ), 'Reset Statistics', self)
+        self.rstatAction.setShortcut('F11')
+        self.rstatAction.setStatusTip('Reset statistics. Hotkey: "F11"')
+        #self.rstatAction.triggered.connect(self.MainView.reset_statistics)
+
     #---------------------------------------------------------------------------
     def setup_menu(self):
         self.menubar = self.menuBar()
@@ -370,6 +376,7 @@ class MainWindow(QMainWindow):
         self.controlMenu.addAction(self.ipyQtConsoleAction)
         self.controlMenu.addAction(self.vstreamAction)
         self.controlMenu.addAction(self.agcAction)
+        self.controlMenu.addAction(self.rstatAction)
         self.controlMenu.addAction(self.sdlgAction)
         self.controlMenu.addAction(self.exitAction)
         
@@ -387,11 +394,12 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.agcAction)
         self.toolbar.addAction(self.zffAction)
         self.toolbar.addAction(self.sdlgAction)
+        self.toolbar.addAction(self.rstatAction)
 
     #---------------------------------------------------------------------------
     def edit_settings(self):
         self.SettingsDialog.show()
-
+        
     #---------------------------------------------------------------------------
     def setup_main_scene(self):
         self.MainScene = TGraphicsScene(self)
@@ -541,7 +549,7 @@ class TelemetryWidget(QTableWidget):
 
     #-----------------------------------------------------------------
     def __init__(self, parent):
-        super().__init__(4, 6, parent)
+        super().__init__(4, 7, parent)
 
         self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
@@ -553,7 +561,7 @@ class TelemetryWidget(QTableWidget):
         self.verticalHeader().setDefaultSectionSize(20)
         self.setTabKeyNavigation(False)
         self.setAlternatingRowColors(True)
-        self.setHorizontalHeaderLabels( ['Name', 'Value', 'Mean', 'Min', 'Max', 'SDev'] )
+        self.setHorizontalHeaderLabels( ['Name', 'Value', 'Mean', 'Min', 'Max', 'SDev', 'Frame Count'] )
 
         self.setRowCount(4)
         
@@ -567,6 +575,7 @@ class TelemetryWidget(QTableWidget):
         self.MIN   = 3
         self.MAX   = 4
         self.SDEV  = 5
+        self.FCNT  = 6
 
         self.setItem(self.DEV, self.NAME, self.create_item('Dev FPS') )
         self.setItem(self.SDC, self.NAME, self.create_item('SDC FPS') )
@@ -576,12 +585,14 @@ class TelemetryWidget(QTableWidget):
         self.setItem(self.DEV, self.MIN,   self.create_item() )
         self.setItem(self.DEV, self.MAX,   self.create_item() )
         self.setItem(self.DEV, self.SDEV,  self.create_item() )
+        self.setItem(self.DEV, self.FCNT,  self.create_item() )
         
         self.setItem(self.SDC, self.VALUE, self.create_item() )
         self.setItem(self.SDC, self.MEAN,  self.create_item() )
         self.setItem(self.SDC, self.MIN,   self.create_item() )
         self.setItem(self.SDC, self.MAX,   self.create_item() )
         self.setItem(self.SDC, self.SDEV,  self.create_item() )
+        self.setItem(self.SDC, self.FCNT,  self.create_item() )
 
     #-----------------------------------------------------------------
     def create_item(self, val=''):
@@ -603,6 +614,7 @@ class TelemetryWidget(QTableWidget):
             self.item(self.DEV, self.MIN).setText   ('{:.3f}'.format(dev_fps.min))
             self.item(self.DEV, self.MAX).setText   ('{:.3f}'.format(dev_fps.max))
             self.item(self.DEV, self.SDEV).setText  ('{:.3f}'.format(dev_fps.sdev))
+            self.item(self.DEV, self.FCNT).setText  (   '{:}'.format(dev_fps.frame_count))
 
         if msg[0] == 1:
             sdc_fps = msg[1]
@@ -612,6 +624,7 @@ class TelemetryWidget(QTableWidget):
             self.item(self.SDC, self.MIN).setText   ('{:.3f}'.format(sdc_fps.min))
             self.item(self.SDC, self.MAX).setText   ('{:.3f}'.format(sdc_fps.max))
             self.item(self.SDC, self.SDEV).setText  ('{:.3f}'.format(sdc_fps.sdev))
+            self.item(self.SDC, self.FCNT).setText  (   '{:}'.format(sdc_fps.frame_count))
 
 #-------------------------------------------------------------------------------
         

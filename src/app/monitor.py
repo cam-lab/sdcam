@@ -42,6 +42,7 @@ PERIOD = 0.1
 #-------------------------------------------------------------------------------
 class FrameParam:
 
+    #-------------------------------------------------------
     def __init__(self, buf_len = 50):
         self.value       = 0
         self.mean        = 0
@@ -57,8 +58,32 @@ class FrameParam:
         
         self.accumulator = 0
         self.total_count = 0
+        
+        self.frame_count = 0
 
+    #-------------------------------------------------------
+    def reset(self):
+        self.value       = 0
+        self.mean        = 0
+        self.min         = 1000
+        self.max         = 0
+        self.sdev        = 0
+
+        self.val_buf.fill(0)
+        self.buf_count   = 0
+
+        self.tpoint      = 0
+        self.tstamp      = 0
+
+        self.accumulator = 0
+        self.total_count = 0
+        
+        self.frame_count = 0
+
+    #-------------------------------------------------------
     def processing(self, tstamp):
+
+        self.frame_count += 1
 
         if not self.tpoint:
             self.tpoint = time.time()
@@ -116,7 +141,9 @@ class AppMonitor(QObject):
         self.dev_fps = FrameParam()
         self.sdc_fps = FrameParam()
         
-    #-------------------------------------------------------    
+        self._reset_stat_event = threading.Event()
+        
+    #-------------------------------------------------------
     def processing(self):
         stamp = os.stat(self.fname).st_mtime
         if stamp != self.stamp:
@@ -129,11 +156,23 @@ class AppMonitor(QObject):
         
         tstamp, sdc_tpoint = t[0], t[1]
 
+        if self._reset_stat_event.is_set():
+            self._reset_stat_event.clear()
+            self.dev_fps.reset()
+            self.sdc_fps.reset()
+            self.update_data_signal.emit([0, self.dev_fps])
+            self.update_data_signal.emit([1, self.sdc_fps])
+            return
+
         if self.dev_fps.processing(tstamp):
             self.update_data_signal.emit([0, self.dev_fps])
 
         if self.sdc_fps.processing(sdc_tpoint):
             self.update_data_signal.emit([1, self.sdc_fps])
+
+    #-------------------------------------------------------
+    def reset_statistics(self):
+        self._reset_stat_event.set()
 
 #-------------------------------------------------------------------------------
 class AppMonitorThread(threading.Thread):
