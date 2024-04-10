@@ -64,8 +64,8 @@
 TVFrame          *frame_pool;
 std::thread      *vstream_thread;
 std::atomic_bool  vsthread_exit;
-FrameQueue        free_frame_q("free_q");
-FrameQueue        incoming_frame_q("incoming_q");
+FrameQueue        free_frame_q    ("free_q  ");
+FrameQueue        incoming_frame_q("incom_q ");
 
 bp::object        inpframe_event;
 bp::object        vsthread_finish_event;

@@ -126,10 +126,17 @@ int fgen(const size_t frame_count)
     
     ProgressBar progress{std::clog, 100u, "Frames:", '#'};
 
-    size_t pkt_num = 0;
+    size_t pkt_num     = 0;
+    auto tpoint_before = std::chrono::high_resolution_clock::now();
+    auto tpoint_after  = std::chrono::high_resolution_clock::now();
+    
     for(size_t i = 0; i < frame_count; ++i)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(40));
+        auto dtime = std::chrono::milliseconds(40) - (tpoint_after - tpoint_before);
+        
+        std::this_thread::sleep_for(dtime);
+        
+        tpoint_before = std::chrono::high_resolution_clock::now();
         
         for(size_t row = 0; row < FRAME_SIZE_Y; ++row)
         {
@@ -150,7 +157,6 @@ int fgen(const size_t frame_count)
         auto epoch      = now.time_since_epoch();
         uint64_t tstamp = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch).count()/10;
         
-
         // send frame
         size_t idx     = 0;
         
@@ -204,6 +210,8 @@ int fgen(const size_t frame_count)
             double frame_num = fnum;
             progress.write(frame_num/frame_count);
         }
+        
+        tpoint_after  = std::chrono::high_resolution_clock::now();
 
     }
 

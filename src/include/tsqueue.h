@@ -92,7 +92,7 @@ public:
             return item;
         }
         
-        lg->warn("timeout or spurious wakeup while {}.pop()", name);
+        lg->warn("timeout or spurious wakeup while pop of {}", name);
         return nullptr;   // timeout expired
     }
     
