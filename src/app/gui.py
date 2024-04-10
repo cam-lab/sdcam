@@ -577,8 +577,8 @@ class TelemetryWidget(QTableWidget):
         self.SDEV  = 5
         self.FCNT  = 6
 
-        self.setItem(self.DEV, self.NAME, self.create_item('Dev FPS') )
-        self.setItem(self.SDC, self.NAME, self.create_item('SDC FPS') )
+        self.setItem(self.DEV, self.NAME, self.create_item('Device Camera FPS') )
+        self.setItem(self.SDC, self.NAME, self.create_item('SD Camera FPS') )
 
         self.setItem(self.DEV, self.VALUE, self.create_item() )
         self.setItem(self.DEV, self.MEAN,  self.create_item() )
