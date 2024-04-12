@@ -74,7 +74,7 @@ class SdcCore(QObject):
         vframe.init_numpy()
         vframe.create_frame_pool()
 
-        self._f = vframe.TVFrame()
+        self._f = vframe.Vframe()
         vframe.reg_pyobject(iframe_event,          0)
         vframe.reg_pyobject(vsthread_finish_event, 1)
 

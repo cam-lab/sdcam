@@ -114,10 +114,10 @@ public:
     }
 
 private:
-    std::queue<T>                   queue;
-    std::mutex                      mtx;
-    std::condition_variable         flag;
-    std::shared_ptr<spdlog::logger> lg;
+    std::queue<T>           queue;
+    std::mutex              mtx;
+    std::condition_variable flag;
+    Logger                  lg;
 };
 
 //------------------------------------------------------------------------------
