@@ -40,13 +40,13 @@ from logger import logger as lg
 import vframe
 import gui
 
-from udp import command_queue, TSocket
+from udp import command_queue, Socket
  
 iframe_event          = threading.Event()
 vsthread_finish_event = threading.Event()
 
 #-------------------------------------------------------------------------------
-class TSDC_Core(QObject):
+class SdcCore(QObject):
 
     frame_signal         = pyqtSignal( list  )
     display_frame_signal = pyqtSignal( int )
@@ -118,7 +118,7 @@ class TSDC_Core(QObject):
         #
         #    UDP socket
         #
-        self._sock = TSocket()
+        self._sock = Socket()
 
     #-------------------------------------------------------
     def deinit(self):
@@ -288,7 +288,7 @@ class TSDC_Core(QObject):
         self._sock_transaction(self._rcam, [addr])
                  
 #-------------------------------------------------------------------------------
-class TVFrameThread(threading.Thread):
+class VframeThread(threading.Thread):
 
     #-------------------------------------------------------
     def __init__(self, sdc, name='VFrame Thread' ):

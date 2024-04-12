@@ -46,7 +46,7 @@ command_queue = queue.Queue()
 vhex = np.vectorize(hex)
 
 #-------------------------------------------------------------------------------
-class TSocket(QObject):
+class Socket(QObject):
 
     #-------------------------------------------------------
     def __init__(self):
@@ -72,7 +72,7 @@ class TSocket(QObject):
         self.sock.close()
         
 #-------------------------------------------------------------------------------
-class TSocketThread(threading.Thread):
+class SocketThread(threading.Thread):
 
     #-------------------------------------------------------
     def __init__(self, name='Socket Thread' ):
