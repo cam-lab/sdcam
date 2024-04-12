@@ -83,7 +83,7 @@ class FrameReceiver
 public:
     FrameReceiver(FrameQueue &fq,
                   FrameQueue &iq,
-                  TSocket    &s,
+                  Socket     &s,
                   Logger      logger)
        : sock             ( s          )
        , pkt_idx          ( 0          )
@@ -113,24 +113,24 @@ private:
     inline void check_test_frame ();
 
 private:
-    TSocket    &sock;
-    size_t      pkt_idx;
-    size_t      pkt_count;
-    State       state;
-    FrameQueue &free_frame_q;
-    FrameQueue &incoming_frame_q;
-    TVFrame    *frame;
-    Logger      lg;
+    Socket      &sock;
+    size_t       pkt_idx;
+    size_t       pkt_count;
+    State        state;
+    FrameQueue  &free_frame_q;
+    FrameQueue  &incoming_frame_q;
+    Vframe      *frame;
+    Logger       lg;
 
-    FieldBuf    field_buf;
-    size_t      field_idx;
-    SockBuf     pkt;
-    size_t      row;
-    size_t      col;
+    FieldBuf     field_buf;
+    size_t       field_idx;
+    SockBuf      pkt;
+    size_t       row;
+    size_t       col;
 
-    size_t      size_x;
-    size_t      size_y;
-    size_t      row_cnt;
+    size_t       size_x;
+    size_t       size_y;
+    size_t       row_cnt;
 };
 //------------------------------------------------------------------------------
 void FrameReceiver::recv()

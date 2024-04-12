@@ -37,7 +37,7 @@ void vstream_fun()
 {
     lg->set_pattern("%Y-%m-%d %H:%M:%S %n   %L : %v");
     
-    TSocket sock(lg, SOCKET_IP, SRC_PORT);
+    Socket sock(lg, SOCKET_IP, SRC_PORT);
     
     sock.set_recv_timeout(std::chrono::milliseconds(500));
 

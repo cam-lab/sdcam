@@ -34,7 +34,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from logger import logger as lg
 
 #-------------------------------------------------------------------------------
-class TBadPix(QObject):
+class BadPix(QObject):
 
     def __init__(self):
         super().__init__()

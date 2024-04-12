@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
         print("------------------------------------");
 
     }
-    catch(TSocketException e)
+    catch(SocketException e)
     {
         lg->error("{}, socket fd: {}", e.msg, e.fd);
         return -1;
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 //------------------------------------------------------------------------------
 int fgen(const size_t frame_count)
 {
-    TSocket sock(lg, SOCKET_IP, SRC_PORT, false);
+    Socket sock(lg, SOCKET_IP, SRC_PORT, false);
 
     static uint32_t fnum = 0;
     static uint16_t org  = 0;

@@ -66,7 +66,7 @@ def read(key):
     return settings
 
 #-------------------------------------------------------------------------------
-class TSettingsDialog(QDialog):
+class SettingsDialog(QDialog):
 
     def __init__(self, settings, parent):
         super().__init__(parent)

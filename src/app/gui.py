@@ -49,7 +49,7 @@ from PyQt5.QtCore    import QT_VERSION_STR
 import settings
 
 from logger   import logger as lg
-from badpix   import TBadPix
+from badpix   import BadPix
 
 from vframe   import FRAME_SIZE_X, FRAME_SIZE_Y, OUT_PIX_W
 
@@ -69,7 +69,7 @@ def cursor_within_scene(pos):
         return False
 
 #-------------------------------------------------------------------------------
-class TGraphicsView(QGraphicsView):
+class GraphicsView(QGraphicsView):
     
     #  zoom by rect selection
     rectChanged = pyqtSignal(QRect)
@@ -200,7 +200,7 @@ class TGraphicsView(QGraphicsView):
         QGraphicsView.mouseReleaseEvent(self, event)
                 
 #-------------------------------------------------------------------------------
-class TGraphicsScene(QGraphicsScene):
+class GraphicsScene(QGraphicsScene):
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -229,10 +229,10 @@ class MainWindow(QMainWindow):
         self.scene_cpos_x = 0
         self.scene_cpos_y = 0
         
-        scene_org = self.MainView.pos() + self.MainView.mapFromScene(0, 0)
+        scene_org = self.main_view.pos() + self.main_view.mapFromScene(0, 0)
         QCursor().setPos( self.geometry().topLeft() + scene_org)
         
-        self.bad_pix = TBadPix()
+        self.bad_pix = BadPix()
         
         
     #---------------------------------------------------------------------------
@@ -295,10 +295,10 @@ class MainWindow(QMainWindow):
     #---------------------------------------------------------------------------
     def show_image(self, img):
         pmap = QPixmap.fromImage(img)
-        self.PixmapItem.setPixmap(pmap)
+        self.pixmap_item.setPixmap(pmap)
     
     #---------------------------------------------------------------------------
-    class TCheckedAction(QAction):
+    class CheckedAction(QAction):
 
         trig_signal = pyqtSignal( bool )
 
@@ -341,12 +341,12 @@ class MainWindow(QMainWindow):
         self.ipyQtConsoleAction.triggered.connect(self.parent.launch_jupyter_qtconsole_slot)
         
         #-------------------------------------------------------------
-        self.vstreamAction = self.TCheckedAction('play-24.png', 'pause-24.png', 'Start/Stop Video', self)
+        self.vstreamAction = self.CheckedAction('play-24.png', 'pause-24.png', 'Start/Stop Video', self)
         self.vstreamAction.setShortcut('F5')
         self.vstreamAction.trigAction()
 
         #-------------------------------------------------------------
-        self.agcAction = self.TCheckedAction('automatic-off-24.png', 'automatic-on-24.png', 'Automatic Gain Control', self)
+        self.agcAction = self.CheckedAction('automatic-off-24.png', 'automatic-on-24.png', 'Automatic Gain Control', self)
         self.agcAction.setShortcut('F6')
         self.agcAction.trigAction()
 
@@ -354,7 +354,7 @@ class MainWindow(QMainWindow):
         self.zffAction = QAction(QIcon( os.path.join(ico_path, 'zoom-fit-frame-24.png') ), 'Fit Frame', self)
         self.zffAction.setShortcut('Ctrl+1')
         self.zffAction.setStatusTip('Zoom: Fit Frame. Hotkey: "Ctrl+1"')
-        self.zffAction.triggered.connect(self.MainView.fit_scene_to_view)
+        self.zffAction.triggered.connect(self.main_view.fit_scene_to_view)
         
         #-------------------------------------------------------------
         self.sdlgAction = QAction(QIcon( os.path.join(ico_path, 'settings-24.png') ), 'Settings', self)
@@ -366,7 +366,7 @@ class MainWindow(QMainWindow):
         self.rstatAction = QAction(QIcon( os.path.join(ico_path, 'reset-stat-24.png') ), 'Reset Statistics', self)
         self.rstatAction.setShortcut('F11')
         self.rstatAction.setStatusTip('Reset statistics. Hotkey: "F11"')
-        #self.rstatAction.triggered.connect(self.MainView.reset_statistics)
+        #self.rstatAction.triggered.connect(self.main_view.reset_statistics)
 
     #---------------------------------------------------------------------------
     def setup_menu(self):
@@ -398,38 +398,38 @@ class MainWindow(QMainWindow):
 
     #---------------------------------------------------------------------------
     def edit_settings(self):
-        self.SettingsDialog.show()
+        self.settings_dialog.show()
         
     #---------------------------------------------------------------------------
     def setup_main_scene(self):
-        self.MainScene = TGraphicsScene(self)
-        self.MainScene.setBackgroundBrush(QColor(0x20,0x20,0x20))
-        self.NoVStreamPixmap = QPixmap(FRAME_SIZE_X, FRAME_SIZE_Y)
-        self.NoVStreamPixmap.fill(QColor(0x00,0x00,0x40,255))
-        self.PixmapItem = self.init_pixmap_item(FRAME_SIZE_X, FRAME_SIZE_Y, self.NoVStreamPixmap, 1)
-        self.MainScene.addItem(self.PixmapItem)
-        self.img = self.PixmapItem.pixmap().toImage()
+        self.main_scene = GraphicsScene(self)
+        self.main_scene.setBackgroundBrush(QColor(0x20, 0x20, 0x20))
+        self.no_vstream_pixmap = QPixmap(FRAME_SIZE_X, FRAME_SIZE_Y)
+        self.no_vstream_pixmap.fill(QColor(0x00,0x00,0x40,255))
+        self.pixmap_item = self.init_pixmap_item(FRAME_SIZE_X, FRAME_SIZE_Y, self.no_vstream_pixmap, 1)
+        self.main_scene.addItem(self.pixmap_item)
+        self.img = self.pixmap_item.pixmap().toImage()
 
-        self.MainView = TGraphicsView(self.MainScene, self)
-        self.MainView.setFrameStyle(QFrame.NoFrame)
+        self.main_view = GraphicsView(self.main_scene, self)
+        self.main_view.setFrameStyle(QFrame.NoFrame)
     
     #---------------------------------------------------------------------------
     def create_log_window(self):
-        self.Log = QDockWidget('Log', self, Qt.WindowCloseButtonHint)
-        self.Log.setObjectName('Log Window')
-        self.Log.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
-        self.Log.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
-        self.LogWidget = TLogWidget(self)
-        self.Log.setWidget(self.LogWidget)
+        self.log = QDockWidget('Log', self, Qt.WindowCloseButtonHint)
+        self.log.setObjectName('Log Window')
+        self.log.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
+        self.log.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        self.log_widget = LogWidget(self)
+        self.log.setWidget(self.log_widget)
         
     #---------------------------------------------------------------------------
     def create_telemetry_window(self):
-        self.Telemetry = QDockWidget('Telemetry', self, Qt.WindowCloseButtonHint)
-        self.Telemetry.setObjectName('Telemetry Window')
-        self.Telemetry.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
-        self.Telemetry.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
-        self.TelemetryWidget = TelemetryWidget(self)
-        self.Telemetry.setWidget(self.TelemetryWidget)
+        self.telemetry = QDockWidget('Telemetry', self, Qt.WindowCloseButtonHint)
+        self.telemetry.setObjectName('Telemetry Window')
+        self.telemetry.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
+        self.telemetry.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        self.telemetry_widget = TelemetryWidget(self)
+        self.telemetry.setWidget(self.telemetry_widget)
 
     #---------------------------------------------------------------------------
     def initUI(self):
@@ -442,9 +442,9 @@ class MainWindow(QMainWindow):
         self.create_log_window()
         self.create_telemetry_window()
 
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.Log)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.Telemetry)
-        self.setCentralWidget(self.MainView)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.log)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.telemetry)
+        self.setCentralWidget(self.main_view)
         
         self.restore_main_window()
 
@@ -454,13 +454,13 @@ class MainWindow(QMainWindow):
 
         self.set_title()
         
-        self.SettingsDialog = settings.TSettingsDialog(self.parent.settings, self)
+        self.settings_dialog = settings.SettingsDialog(self.parent.settings, self)
 
         self.statusBar().showMessage('Ready')
         
         self.show()
         if self.parent.settings['Frame']['ZoomFit']:
-            self.MainView.fit_scene_to_view()
+            self.main_view.fit_scene_to_view()
         
     #---------------------------------------------------------------------------
     def update_status_bar(self):
@@ -483,7 +483,7 @@ class MainWindow(QMainWindow):
         self.update_status_bar()
                 
 #-------------------------------------------------------------------------------
-class TLogWidget(QTableWidget):
+class LogWidget(QTableWidget):
 
     #-----------------------------------------------------------------
     def __init__(self, parent):
@@ -553,8 +553,6 @@ class TelemetryWidget(QTableWidget):
 
         self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
-#       self.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-#       self.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.horizontalHeader().resizeSection(0, 200)
         self.horizontalHeader().setStretchLastSection(True)
         self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)

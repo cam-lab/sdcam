@@ -62,7 +62,7 @@ import settings
 from logger   import logger as lg
 from logger   import LOG_FILE
 from logger   import setup_logger
-from udp      import TSocketThread
+from udp      import SocketThread
 from monitor  import AppMonitorThread
 
 #-------------------------------------------------------------------------------
@@ -76,7 +76,7 @@ def get_app_qt5(*args, **kwargs):
     return app
 
 #-------------------------------------------------------------------------------
-class TSDCam(QObject, InternalIPKernel):
+class Sdcam(QObject, InternalIPKernel):
 
     def __init__(self, app, args):
         
@@ -87,7 +87,7 @@ class TSDCam(QObject, InternalIPKernel):
 
         self.restore_settings()
         
-        sdc = TSDC_Core(self)
+        sdc = SdcCore(self)
         self.init_ipkernel('qt5', { 'sdcam' : self, 'sdc' : sdc })
 
         #-------------------------------------------------------------
@@ -102,14 +102,14 @@ class TSDCam(QObject, InternalIPKernel):
         #    Thread objects
         #
         self.amthread = AppMonitorThread(os.path.abspath(LOG_FILE))
-        self.vfthread = TVFrameThread(sdc)
-        self.usthread = TSocketThread()
+        self.vfthread = VframeThread(sdc)
+        self.usthread = SocketThread()
         
         #-------------------------------------------------------------
         #
         #    Signal/Slot connections
         #
-        self.amthread.monitor.file_changed_signal.connect(self.mwin.LogWidget.update_slot,
+        self.amthread.monitor.file_changed_signal.connect(self.mwin.log_widget.update_slot,
                                                           Qt.QueuedConnection)
         
         if args.console:
@@ -124,7 +124,7 @@ class TSDCam(QObject, InternalIPKernel):
         self.vfthread.core.display_frame_signal.connect(self.mwin.show_frame_slot, Qt.QueuedConnection)
         self.vfthread.core.frame_signal.connect(self.amthread.monitor.frame_slot, Qt.QueuedConnection)
         
-        self.amthread.monitor.update_data_signal.connect(self.mwin.TelemetryWidget.update_slot, Qt.QueuedConnection)
+        self.amthread.monitor.update_data_signal.connect(self.mwin.telemetry_widget.update_slot, Qt.QueuedConnection)
         self.mwin.rstatAction.triggered.connect(self.amthread.monitor.reset_statistics, Qt.QueuedConnection)
 
         self.mwin.close_signal.connect(self.finish)
@@ -220,7 +220,7 @@ def main():
     app.setStyleSheet(qss)
     app.setWindowIcon(QIcon(os.path.join(resources_path, 'ico', 'camlab.jpeg')))
 
-    sdcam = TSDCam(app, args)
+    sdcam = Sdcam(app, args)
     
     # Very important, IPython-specific step: this gets GUI event loop
     # integration going, and it replaces calling app.exec()

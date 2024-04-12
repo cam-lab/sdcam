@@ -50,24 +50,23 @@ const size_t MIN_ETH_PACKET_SIZE = 40;
 const size_t BUF_SIZE            = 2048;
 
 //------------------------------------------------------------------------------
-struct TSocketException
+struct SocketException
 {
-    TSocketException(std::string s, int sd) : msg(s), fd(sd) { }
+    SocketException(std::string s, int sd) : msg(s), fd(sd) { }
 
     std::string msg;
     int         fd;
 };
 //------------------------------------------------------------------------------
-class TSocket
+class Socket
 {
 public:
-    TSocket(std::shared_ptr<spdlog::logger> logger,
-            const char *a, uint16_t p, bool Binded=true)
-        : lg(logger)
-        , fd(0)
-        , addr{0, 0, 0, { 0 } }
-        , addrlen(sizeof(addr))
-        
+    Socket(Logger logger, const char *a, uint16_t p, bool Binded=true)
+       : lg(logger)
+       , fd(0)
+       , addr{0, 0, 0, { 0 } }
+       , addrlen(sizeof(addr))
+
     {
         create(a, p);
         if(Binded)
@@ -75,7 +74,7 @@ public:
             bind();
         }
     }
-    ~TSocket() { if(fd >= 0) close(); }
+    ~Socket() { if(fd >= 0) close(); }
 
     void create(const char *addr, uint16_t port);
     void bind  ();

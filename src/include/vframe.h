@@ -87,7 +87,7 @@ const size_t   FNUM_SIZE       = 4;
 const size_t   TSTUMP_SIZE     = 8;
 
 //------------------------------------------------------------------------------
-struct TVFrame
+struct Vframe
 {
     static const int FNUM_OFFSET     = 0;
     static const int TSTAMP_OFFSET   = FNUM_OFFSET   + 4;  // 16-bit words
@@ -95,11 +95,11 @@ struct TVFrame
     static const int SIZE_Y_OFFSET   = SIZE_X_OFFSET + 1;
     static const int PIXWIDTH_OFFSET = SIZE_Y_OFFSET + 1;
     
-    TVFrame();
+    Vframe();
     
     bp::object pbuf() { return pixbuf; }
 
-    TVFrame  copy();
+    Vframe  copy();
     
     void       retreive_fnum(uint16_t *p);
     void       retreive_tstamp(uint16_t *p);
@@ -116,10 +116,10 @@ struct TVFrame
     np::ndarray pixbuf;
 };
 //------------------------------------------------------------------------------
-std::string vframe_str(TVFrame & r);
-std::string vframe_repr(TVFrame & r);
+std::string vframe_str(Vframe & r);
+std::string vframe_repr(Vframe & r);
 
-using FrameQueue = tsqueue<TVFrame *>;
+using FrameQueue = tsqueue<Vframe *>;
 
 extern std::thread      *vstream_thread;
 extern std::atomic_bool  vsthread_exit;

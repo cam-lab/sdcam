@@ -61,7 +61,7 @@
 #include <array_indexing_suite.h>
 
 //------------------------------------------------------------------------------
-TVFrame          *frame_pool;
+Vframe           *frame_pool;
 std::thread      *vstream_thread;
 std::atomic_bool  vsthread_exit;
 FrameQueue        free_frame_q    ("free_q  ");
@@ -83,7 +83,7 @@ void create_frame_pool()
     lg->set_pattern("%Y-%m-%d %H:%M:%S %n   %L : %v");
     spdlog::flush_on(spdlog::level::info);
 
-    frame_pool = new TVFrame[FRAME_POOL_SIZE];
+    frame_pool = new Vframe[FRAME_POOL_SIZE];
     lg->info("create video frame pool");
 }
 //------------------------------------------------------------------------------
@@ -93,7 +93,7 @@ void delete_frame_pool()
     lg->info("delete video frame pool");
 }
 //------------------------------------------------------------------------------
-TVFrame::TVFrame()
+Vframe::Vframe()
     : fnum           ( 0 )
     , tstamp         ( 0 )
     , size_x         ( 0 )
@@ -103,16 +103,16 @@ TVFrame::TVFrame()
 {
 }
 //------------------------------------------------------------------------------
-TVFrame TVFrame::copy()
+Vframe Vframe::copy()
 {
-    TVFrame f = *this;
+    Vframe f = *this;
     
     f.pixbuf = pixbuf.copy();
     
     return f;
 }
 //------------------------------------------------------------------------------
-void TVFrame::retreive_fnum(uint16_t *p)
+void Vframe::retreive_fnum(uint16_t *p)
 {
     fnum = (  p[0] & 0xff)        +
            ( (p[1] & 0xff) << 8)  +
@@ -122,7 +122,7 @@ void TVFrame::retreive_fnum(uint16_t *p)
     return;
 }
 //------------------------------------------------------------------------------
-void TVFrame::retreive_tstamp(uint16_t *p)
+void Vframe::retreive_tstamp(uint16_t *p)
 {
     tstamp = ( static_cast<uint64_t>(p[0] & 0xff)     )  +
              ( static_cast<uint64_t>(p[1] & 0xff) << 8)  +
@@ -139,7 +139,7 @@ void TVFrame::retreive_tstamp(uint16_t *p)
 //#pragma GCC push_options
 //#pragma GCC optimize ("unroll-lools")
 
-void TVFrame::rshift(int n)
+void Vframe::rshift(int n)
 {
     uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
     
@@ -149,7 +149,7 @@ void TVFrame::rshift(int n)
     }
 }
 //------------------------------------------------------------------------------
-void TVFrame::divide(double n)
+void Vframe::divide(double n)
 {
     uint16_t *buf = reinterpret_cast<uint16_t *>(pixbuf.get_data());
     
@@ -159,7 +159,7 @@ void TVFrame::divide(double n)
     }
 }
 //------------------------------------------------------------------------------
-std::string vframe_str(TVFrame & r)
+std::string vframe_str(Vframe & r)
 {
     std::stringstream out;
 
@@ -171,10 +171,10 @@ std::string vframe_str(TVFrame & r)
     return out.str();
 }
 //------------------------------------------------------------------------------
-std::string vframe_repr(TVFrame & r)
+std::string vframe_repr(Vframe & r)
 {
     std::stringstream out;
-    out << "class 'TVFrame': { " << std::endl << vframe_str(r) << "}";
+    out << "class 'Vframe': { " << std::endl << vframe_str(r) << "}";
     return out.str();
 }
 //------------------------------------------------------------------------------
@@ -272,7 +272,7 @@ np::ndarray make_display_frame(np::ndarray &pixbuf)
 //------------------------------------------------------------------------------
 #include <unistd.h>
 
-int get_frame(TVFrame &f)
+int get_frame(Vframe &f)
 {
     static uint16_t org = 0;
 
@@ -319,14 +319,14 @@ void iframe_event_set()
     inpframe_event.attr("set")();
 }
 //------------------------------------------------------------------------------
-void put_free_frame(TVFrame &f)
+void put_free_frame(Vframe &f)
 {
     free_frame_q.push(&f);
 }
 //------------------------------------------------------------------------------
-TVFrame *get_iframe()
+Vframe *get_iframe()
 {
-    TVFrame *f = incoming_frame_q.pop(std::chrono::milliseconds(4000));
+    Vframe *f = incoming_frame_q.pop(std::chrono::milliseconds(4000));
     return f;
 }
 //------------------------------------------------------------------------------
@@ -340,7 +340,7 @@ void start_vstream_thread()
     
     for(size_t i = 0; i < FRAME_POOL_SIZE; ++i)
     {
-        TVFrame *pf = &frame_pool[i];
+        Vframe *pf = &frame_pool[i];
         pf->fnum = i;
         free_frame_q.push(pf);
         lg->info("free frame queue init: frame addr: {}", fmt::ptr(pf));
@@ -406,15 +406,15 @@ BOOST_PYTHON_MODULE(vframe)
     //
     {
         scope vframe_scope =
-        class_<TVFrame>("TVFrame", init<>())
-            .add_property("fnum",   &TVFrame::fnum)
-            .add_property("tstamp", &TVFrame::tstamp)
-            .add_property("size_x", &TVFrame::size_x)
-            .add_property("size_y", &TVFrame::size_y)
-            .add_property("pixbuf", make_getter(&TVFrame::pixbuf))
-            .def("copy",   &TVFrame::copy)
-            .def("rshift", &TVFrame::rshift)
-            .def("divide", &TVFrame::divide)
+        class_<Vframe>("Vframe", init<>())
+            .add_property("fnum",   &Vframe::fnum)
+            .add_property("tstamp", &Vframe::tstamp)
+            .add_property("size_x", &Vframe::size_x)
+            .add_property("size_y", &Vframe::size_y)
+            .add_property("pixbuf", make_getter(&Vframe::pixbuf))
+            .def("copy",   &Vframe::copy)
+            .def("rshift", &Vframe::rshift)
+            .def("divide", &Vframe::divide)
             .def("__str__",  vframe_str)
             .def("__repr__", vframe_repr)
         ;

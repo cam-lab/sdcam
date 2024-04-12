@@ -30,14 +30,14 @@
 #include "socket.h"
 
 //------------------------------------------------------------------------------
-void TSocket::create(const char *a, uint16_t p)
+void Socket::create(const char *a, uint16_t p)
 {
     lg->info("create socket");
     fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     if(fd < 0)
     {
-        throw TSocketException("cannot create socket", fd);
+        throw SocketException("cannot create socket", fd);
     }
     
     addr.sin_family      = AF_INET;
@@ -47,17 +47,17 @@ void TSocket::create(const char *a, uint16_t p)
     lg->info("success, sockfd: {}", fd);
 }
 //------------------------------------------------------------------------------
-void TSocket::bind()
+void Socket::bind()
 {
     lg->info("try to bind socket {}:{}", addr.sin_addr.s_addr, ntohs(addr.sin_port));
     if(::bind(fd, reinterpret_cast<struct sockaddr *>(&addr), addrlen))
     {
-        throw TSocketException("cannot bind socket", fd);
+        throw SocketException("cannot bind socket", fd);
     }
     lg->info("socket bind successful");
 }
 //------------------------------------------------------------------------------
-void TSocket::close()
+void Socket::close()
 {
     if(fd > 0)
     {
@@ -66,11 +66,11 @@ void TSocket::close()
     }
     else
     {
-        throw TSocketException("cannot close socket bacause socket descriptor has inconsistent value", fd);
+        throw SocketException("cannot close socket bacause socket descriptor has inconsistent value", fd);
     }
 }
 //------------------------------------------------------------------------------
-int TSocket::read(uint8_t *buf, const size_t size)
+int Socket::read(uint8_t *buf, const size_t size)
 {
     //lg->info("begin receiving");
     int             count;
@@ -92,7 +92,7 @@ int TSocket::read(uint8_t *buf, const size_t size)
     return count;
 }
 //------------------------------------------------------------------------------
-int TSocket::write(const uint8_t *src, const size_t size)
+int Socket::write(const uint8_t *src, const size_t size)
 {
 //  lg->info("sendto: sockfd: {}, buf: {}, count: {}", fd, fmt::ptr(src), size);
 //  lg->info("sendto: addr: {:x}, port: {}", addr.sin_addr.s_addr, ntohs(addr.sin_port));
@@ -100,14 +100,14 @@ int TSocket::write(const uint8_t *src, const size_t size)
     return sendto(fd, src, size, 0, reinterpret_cast<struct sockaddr *>(&addr), addrlen);
 }
 //------------------------------------------------------------------------------
-void TSocket::set_recv_timeout(const std::chrono::milliseconds timeout)
+void Socket::set_recv_timeout(const std::chrono::milliseconds timeout)
 {
     struct timeval tv;
     tv.tv_sec = 0;
     tv.tv_usec = timeout.count()*1000;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0)
     {
-        throw TSocketException("cannot set timeout for socket", fd);
+        throw SocketException("cannot set timeout for socket", fd);
     }
     lg->info("set timeout: {} ms for receiving data from the socket", timeout.count());
 }
