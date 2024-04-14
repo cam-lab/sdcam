@@ -43,7 +43,7 @@ PERIOD = 0.1
 class FrameParam:
 
     #-------------------------------------------------------
-    def __init__(self, buf_len = 50):
+    def __init__(self, buf_len = 100):
         self.value       = 0
         self.mean        = 0
         self.min         = 1000
