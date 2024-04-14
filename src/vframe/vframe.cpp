@@ -163,10 +163,11 @@ std::string vframe_str(Vframe & r)
 {
     std::stringstream out;
 
-    out << "    fnum          : " << r.fnum     << "\n";
-    out << "    size_x        : " << r.size_x   << "\n";
-    out << "    size_y        : " << r.size_y   << "\n";
-    out << "    pixwidth      : " << r.pixwidth << std::endl;
+    out << "    fnum          : " << r.fnum           << "\n";
+    out << "    size_x        : " << r.size_x         << "\n";
+    out << "    size_y        : " << r.size_y         << "\n";
+    out << "    pixwidth      : " << r.pixwidth       << std::endl;
+    out << "    pixbuf        : " << "numpy::ndarray" << std::endl;
 
     return out.str();
 }
