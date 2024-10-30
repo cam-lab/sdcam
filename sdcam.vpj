@@ -15,7 +15,7 @@
                 RunFromDir="%rw"
                 CaptureOutputWith="ProcessBuffer"
                 ClearProcessBuffer="1">
-                <Exec CmdLine="scons -Q -s -D Obj/%n.doj"/>
+                <Exec CmdLine="scons "/>
             </Target>
             <Target
                 Name="Build"
@@ -92,8 +92,6 @@
             Filters=""
             GUID="{BDC6DF1B-0CA1-4747-BDB7-B09CB7E1996E}"></Folder>
     </CustomFolders>
-    <List Name="RTE">
-    </List>
     <Files AutoFolders="DirectoryView">
         <Folder Name="src">
             <F
@@ -131,4 +129,6 @@
             Type="Makefile"/>
         <F N="SConstruct"/>
     </Files>
+    <List Name="RTE">
+    </List>
 </Project>

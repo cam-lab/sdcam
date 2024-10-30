@@ -1,0 +1,70 @@
+#-------------------------------------------------------------------------------
+#
+#     UDP Load Test build construction script
+#
+import os
+import sys
+
+from pathlib import Path
+
+sys.path.append( '.scons' )
+
+from helpers import *
+
+#-------------------------------------------------------------------------------
+#
+#     General
+#
+ProductName = 'udptest'
+
+Import('env')
+
+Platform = env['PLATFORM']
+
+CurDir = os.path.abspath(str(Dir('.').srcnode()))
+env['CURDIR'] = CurDir
+
+#-------------------------------------------------------------------------------
+#
+#     Setup sources and target
+#
+Sources = [ 'udptest.cpp', 'socket.cpp']
+Target  = str(env['BINDIR'] / ProductName)
+
+#  VariandDir
+build_path = str(env['BUILDPATH'] / ProductName)
+
+VariantDir(build_path, '#src/utils', duplicate=0)
+
+Src = [str(env['BUILDPATH'] / ProductName / s) for s in Sources]
+#-------------------------------------------------------------------------------
+#
+#     Setup local construction environment
+#
+
+DEFINES = ['ENA_FW_QT']
+
+if Platform == 'win32':
+    DEFINES += ['BOOST_ALL_NO_LIB']
+
+FMTPATH    = Path(os.environ['EXTERNAL_LIB']) / 'fmt'
+SPDLOGPATH = Path(os.environ['EXTERNAL_LIB']) / 'spdlog'
+
+env.Append(CCFLAGS = ['-D'+ d for d in DEFINES] )
+env.Append(CPPPATH = [str(FMTPATH / 'include'), str(SPDLOGPATH / 'include')])
+env.Append(LIBPATH = [str(FMTPATH / 'lib'), str(SPDLOGPATH / 'lib')])
+env.Append(LIBS = ['fmt', 'spdlog'])
+env.Append(CXXFLAGS = '-std=c++17 -DSPDLOG_COMPILED_LIB')
+
+env['SHLIBPREFIX'] = ''
+if Platform == 'win32':
+    env['SHLIBSUFFIX'] = '.pyd'
+
+#-------------------------------------------------------------------------------
+#
+#     Build the targets
+#
+env.Program( Target, Src )
+
+#-------------------------------------------------------------------------------
+
