@@ -64,8 +64,9 @@
 #include <progressbar.h>
 
 const char     *SOCKET_IP   = "127.0.0.1";
+const char     *DST_IP      = "127.0.0.1";
 const uint16_t  SRC_PORT = 50000;
-const uint16_t  DST_PORT = 50001;
+const uint16_t  DST_PORT = 50000;
 
 //------------------------------------------------------------------------------
 
@@ -124,6 +125,13 @@ int fgen(const size_t frame_count)
 
     const size_t chunk_size = frame_count < 100 ? 1 : frame_count/100; // 1%
     
+    struct sockaddr_in dst_addr;
+
+    dst_addr.sin_family      = AF_INET;
+    dst_addr.sin_addr.s_addr = inet_addr(DST_IP);
+    dst_addr.sin_port        = htons(DST_PORT);
+
+
     ProgressBar progress{std::clog, 100u, "Frames:", '#'};
 
     size_t pkt_num     = 0;
@@ -165,7 +173,7 @@ int fgen(const size_t frame_count)
             buf[idx++] = data;
             if(idx == PKT_PAYLOAD_SIZE)
             {
-                sock.write(reinterpret_cast<uint8_t *>(buf.data()), idx*2);
+                sock.write(dst_addr, reinterpret_cast<uint8_t *>(buf.data()), idx*2);
                 ++pkt_num;
                 idx = 0;
             }
@@ -203,7 +211,7 @@ int fgen(const size_t frame_count)
             }
         }
 
-        sock.write(reinterpret_cast<uint8_t *>(buf.data()), idx*2);
+        sock.write(dst_addr, reinterpret_cast<uint8_t *>(buf.data()), idx*2);
 
         if(fnum%chunk_size == 0)
         {

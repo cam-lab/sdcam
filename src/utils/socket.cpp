@@ -49,12 +49,17 @@ void Socket::create(const char *a, uint16_t p)
 //------------------------------------------------------------------------------
 void Socket::bind()
 {
-    lg->info("try to bind socket {}:{}", addr.sin_addr.s_addr, ntohs(addr.sin_port));
+    char buf[128];
+    
+    inet_ntop(AF_INET, &addr.sin_addr.s_addr, buf, sizeof(buf));
+
+    lg->info("try to bind socket {}:{}", buf, ntohs(addr.sin_port));
     if(::bind(fd, reinterpret_cast<struct sockaddr *>(&addr), addrlen))
     {
+        lg->error("cannot bind socket {}:{}", buf, ntohs(addr.sin_port));
         throw SocketException("cannot bind socket", fd);
     }
-    lg->info("socket bind successful");
+    lg->info("bind socket {}:{} successful", buf, ntohs(addr.sin_port));
 }
 //------------------------------------------------------------------------------
 void Socket::close()
@@ -92,12 +97,12 @@ int Socket::read(uint8_t *buf, const size_t size)
     return count;
 }
 //------------------------------------------------------------------------------
-int Socket::write(const uint8_t *src, const size_t size)
+int Socket::write(struct sockaddr_in a, const uint8_t *src, const size_t size)
 {
 //  lg->info("sendto: sockfd: {}, buf: {}, count: {}", fd, fmt::ptr(src), size);
 //  lg->info("sendto: addr: {:x}, port: {}", addr.sin_addr.s_addr, ntohs(addr.sin_port));
 
-    return sendto(fd, src, size, 0, reinterpret_cast<struct sockaddr *>(&addr), addrlen);
+    return sendto(fd, src, size, 0, reinterpret_cast<struct sockaddr *>(&a), sizeof(a));
 }
 //------------------------------------------------------------------------------
 void Socket::set_recv_timeout(const std::chrono::milliseconds timeout)

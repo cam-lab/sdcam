@@ -79,8 +79,8 @@ public:
     void create(const char *addr, uint16_t port);
     void bind  ();
     void close ();
-    int  read  (      uint8_t *dst, const size_t size);
-    int  write (const uint8_t *src, const size_t size);
+    int  read  (uint8_t *dst, const size_t size);
+    int  write (struct sockaddr_in a, const uint8_t *src, const size_t size);
     
     void set_recv_timeout(const std::chrono::milliseconds timeout);
 
