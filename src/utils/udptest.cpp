@@ -136,6 +136,24 @@ void udp_tx(size_t count)
         sock.write(reinterpret_cast<uint8_t *>(buf.data()), PKT_PAYLOAD_SIZE*2);
     }
 
+//------------------------------------------------------------------------------
+void dump(uint8_t *p, size_t size)
+{
+    for(size_t i = 0; i < size; ++i)
+    {
+        if( i%16 == 0)
+        {
+            fmt::print("\n");
+            fmt::print("{:04x}: ", i);
+        }
+
+        fmt::print("{:02x} ", p[i]);
+        if( (i+1)%8 == 0)
+        {
+            fmt::print(" ");
+        }
+    }
+    fmt::print("\n");
 }
 //------------------------------------------------------------------------------
 
