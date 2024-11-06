@@ -155,6 +155,9 @@ void udp_tx(size_t count)
     dst_addr.sin_addr.s_addr = inet_addr(DEV_IP);
     dst_addr.sin_port        = htons(DST_PORT);
 
+    uint64_t total_size      = 0;
+    auto tpoint_before       = std::chrono::high_resolution_clock::now();
+
     for(size_t p = 0; p < count; ++p)
     {
         buf[idx++] = LAN_AGENT_IDX;
@@ -168,6 +171,8 @@ void udp_tx(size_t count)
         idx = 0;
 
         sock.write(dst_addr, reinterpret_cast<uint8_t *>(buf.data()), PKT_PAYLOAD_SIZE*2);
+        total_size += PKT_PAYLOAD_SIZE*2;
+
         if(p%chunk_size == 0)
         {
             double num = p;
@@ -175,6 +180,13 @@ void udp_tx(size_t count)
         }
     }
     progress.write(1);
+    auto tpoint_after = std::chrono::high_resolution_clock::now();
+    
+    auto dtime = tpoint_after - tpoint_before;
+    
+    auto speed = total_size*8e3/std::chrono::duration_cast<std::chrono::nanoseconds>(dtime).count();
+    
+    print("\nTx speed: {:3.3f} Mpbs, total size: {} bytes", speed, total_size);
 }
 //------------------------------------------------------------------------------
 void udp_rx()
