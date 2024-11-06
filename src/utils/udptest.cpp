@@ -141,11 +141,15 @@ void udp_tx(size_t count)
 
     uint16_t idx  = 0;
     uint32_t pnum = 0;
+    
+    const size_t chunk_size = count < 100 ? 1 : count/100; // 1%
 
-    const size_t PKT_PAYLOAD_SIZE = 16; // 1472/2;
+    const size_t PKT_PAYLOAD_SIZE = 1472/2;
 
     SockBuf buf;
     struct sockaddr_in dst_addr;
+    
+    ProgressBar progress{std::clog, 100u, "Packets:", '#'};
     
     dst_addr.sin_family      = AF_INET;
     dst_addr.sin_addr.s_addr = inet_addr(DEV_IP);
@@ -164,7 +168,13 @@ void udp_tx(size_t count)
         idx = 0;
 
         sock.write(dst_addr, reinterpret_cast<uint8_t *>(buf.data()), PKT_PAYLOAD_SIZE*2);
+        if(p%chunk_size == 0)
+        {
+            double num = p;
+            progress.write(num/count);
+        }
     }
+    progress.write(1);
 }
 //------------------------------------------------------------------------------
 void udp_rx()
