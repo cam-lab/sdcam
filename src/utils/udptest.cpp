@@ -54,14 +54,14 @@
 
 #endif //  __GNUC__
 
-#include <vframe.h>
 
+#include <vector>
+#include <socket.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#include <socket.h>
-#include <vframe.h>
 #include <progressbar.h>
+#include <vframe.h>
 
 const char     *SOCKET_IP      = "192.168.10.1";
 const char     *DEV_IP         = "192.168.10.10";
@@ -77,7 +77,7 @@ using SockBuf = std::array<uint16_t, PKT_SIZE/sizeof(uint16_t)>;
 static auto lg = spdlog::basic_logger_mt("udptest", "log/udptest.log");
 
 void udp_tx(size_t count);
-void udp_rx();
+void udp_rx(size_t send_pkt_count);
 void dump(uint8_t *p, size_t size);
 
 std::atomic_bool udp_rx_thread_start;
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
         print("------------------------------------");
         udp_rx_thread_start.store(false);
         udp_rx_thread_socket_fail.store(false);
-        auto rx_thread = new std::thread(udp_rx);
+        auto rx_thread = new std::thread(udp_rx, pkt_count);
         while(!udp_rx_thread_start)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -194,7 +194,7 @@ void udp_tx(size_t count)
     print("\nTx speed: {:3.3f} Mpbs, total size: {} bytes", speed, total_size);
 }
 //------------------------------------------------------------------------------
-void udp_rx()
+void udp_rx(size_t send_pkt_count)
 {
     try
     {
@@ -206,19 +206,86 @@ void udp_rx()
         udp_rx_thread_start.store(true);
         lg->info("create and bind Rx socket");
 
-        SockBuf pkt;
-        uint32_t id = 1;
+        size_t   pkt_count           = 0;
+        size_t   incorrect_pkt_count = 0;
+
+        std::vector<bool> ids(send_pkt_count);
+        
+        for(auto i : ids)
+        {
+            i = false;
+        }
+        ids[0] = true;
+        
+        uint64_t total_size = 0;
+        std::chrono::time_point<std::chrono::high_resolution_clock> tpoint_begin;
+        std::chrono::time_point<std::chrono::high_resolution_clock> tpoint_end;
+        bool begin = false;
         for(;;)
         {
-            int count;
-            count = sock.read(reinterpret_cast<uint8_t *>(pkt.data()), PKT_SIZE);
+            int     count;
+            uint8_t rxbuf[PKT_SIZE];
+            
+            count = sock.read(rxbuf, PKT_SIZE);
+            
             if(count >= 0)
             {
-                dump(reinterpret_cast<uint8_t *>(pkt.data()), count);
+                if( !begin )
+                {
+                    begin = true;
+                    tpoint_begin = std::chrono::high_resolution_clock::now();
+                }
+                tpoint_end = std::chrono::high_resolution_clock::now();
+                total_size += count;
+                
+                uint16_t idx = rxbuf[0] + (rxbuf[1] << 8);
+                uint32_t id  = rxbuf[2] + (rxbuf[3] << 8) + (rxbuf[4] << 16) + (rxbuf[5] << 24);
+
+                if(idx != LAN_AGENT_IDX)
+                {
+                    lg->error("rx: packet id: {}, invalid index field {}, must be {}", id, idx, LAN_AGENT_IDX);
+                    continue;
+                }
+
+                ids[id] = true;
+                
+                size_t cnt = count;
+                for(size_t i = 6; i < cnt; ++i)
+                {
+                    uint8_t exp = id + i - 6;
+                    if(rxbuf[i] != exp)
+                    {
+                        lg->error("rx: packet data at {} mismatch: expected {:x}, actual {:x}", i, exp, rxbuf[i]);
+                        dump(rxbuf, count);
+                        ++incorrect_pkt_count;
+                        break;
+                    }
+                }
+
+                ++pkt_count;
             }
             
             if(!udp_rx_thread_start)
             {
+                auto dtime = tpoint_end - tpoint_begin;
+
+                auto speed = total_size*8e3/std::chrono::duration_cast<std::chrono::nanoseconds>(dtime).count();
+                
+                size_t lost_pkt_count = 0;
+                for(auto i : ids)
+                {
+                    if( !i )
+                    {
+                        ++lost_pkt_count;
+                    }
+                }
+
+                print("\nRx speed: {:3.3f} Mpbs, total size: {} bytes, Rx time elapsed: {} ms",
+                      speed, total_size, std::chrono::duration_cast<std::chrono::milliseconds>(dtime).count());
+
+                print("received packet count:  {}", pkt_count);
+                print("lost packet count:      {}", lost_pkt_count);
+                print("incorrect packet count: {}", incorrect_pkt_count);
                 return;
             }
         }
