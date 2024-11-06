@@ -70,7 +70,7 @@ const uint16_t  DST_PORT       = 50000;
 const size_t    PKT_SIZE       = 2048;
 const uint16_t  LAN_AGENT_IDX  = 0;
 
-using SockBuf    = std::array<uint16_t, PKT_SIZE/sizeof(uint16_t)>;
+using SockBuf = std::array<uint16_t, PKT_SIZE/sizeof(uint16_t)>;
 
 //------------------------------------------------------------------------------
 
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
         print("begin packet stream generating for {} packets\n", pkt_count);
         udp_tx(pkt_count);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
         udp_rx_thread_start.store(false);
         rx_thread->join();
