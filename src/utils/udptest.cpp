@@ -184,8 +184,12 @@ void udp_tx(size_t count)
             progress.write(num/count);
         }
     }
-    progress.write(1);
+    while(true)
+    {
+        if(!sock.get_tx_buf_level()) break;
+    }
     auto tpoint_after = std::chrono::high_resolution_clock::now();
+    progress.write(1);
     
     auto dtime = tpoint_after - tpoint_before;
     
