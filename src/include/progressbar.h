@@ -47,14 +47,16 @@ class ProgressBar
     const std::size_t  bar_width;
     std::string        message;
     const std::string  full_bar;
+    const bool         final_print;
 
  public:
     ProgressBar(std::ostream& os, std::size_t line_width,
-                 std::string message_, const char symbol = '.')
+                 std::string message_, const char symbol = '.', bool final_print=false)
         : os{os}
         , bar_width{line_width - overhead}
         , message{std::move(message_)}
         , full_bar{std::string(bar_width, symbol) + std::string(bar_width, ' ')}
+        , final_print(final_print)
     {
         if (message.size()+1 >= bar_width || message.find('\n') != message.npos) {
             os << message << '\n';
@@ -71,8 +73,11 @@ class ProgressBar
 
     ~ProgressBar()
     {
-        write(1.0);
-        os << '\n';
+        if(final_print)
+        {
+            write(1.0);
+            os << '\n';
+        }
     }
 
     void write(double fraction);
