@@ -171,6 +171,11 @@ void udp_tx(size_t count)
         idx = 0;
 
         sock.write(dst_addr, reinterpret_cast<uint8_t *>(buf.data()), PKT_PAYLOAD_SIZE*2);
+        if(sock.get_tx_buf_level() > 1024*1024*2)
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(10000));
+        }
+
         total_size += PKT_PAYLOAD_SIZE*2;
 
         if(p%chunk_size == 0)
