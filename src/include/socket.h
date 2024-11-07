@@ -43,6 +43,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>
+#include <sys/ioctl.h>
 
 #include <utils.h>
 
@@ -79,8 +80,15 @@ public:
     void create(const char *addr, uint16_t port);
     void bind  ();
     void close ();
-    int  read  (      uint8_t *dst, const size_t size);
-    int  write (const uint8_t *src, const size_t size);
+    int  read  (uint8_t *dst, const size_t size);
+    int  write (struct sockaddr_in a, const uint8_t *src, const size_t size);
+    
+    int  get_tx_buf_level() const
+    {
+        int val;
+        ioctl(fd, TIOCOUTQ, &val);
+        return val;
+    }
     
     void set_recv_timeout(const std::chrono::milliseconds timeout);
 

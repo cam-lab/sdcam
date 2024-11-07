@@ -110,6 +110,7 @@ if not LOGPATH.exists():
 #
 SConscript('src/vframe/vframe.scons',  exports = 'env')
 SConscript('src/utils/framegen.scons', exports = 'env')
+SConscript('src/utils/udptest.scons',  exports = 'env')
 
 #-------------------------------------------------------------------------------
 
