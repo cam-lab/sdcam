@@ -58,8 +58,9 @@
 #include "vframe.h"
 #include "socket.h"
 
-const char     *SOCKET_IP = "127.0.0.1";
-const uint16_t  SRC_PORT  = 50000;
+//const char     *SOCKET_IP = "127.0.0.1";
+const char     *SOCKET_IP = "192.168.10.1";
+const uint16_t  SRC_PORT  = 50001;
 const size_t    PKT_SIZE  = 2048;
 
 class FrameReceiver
