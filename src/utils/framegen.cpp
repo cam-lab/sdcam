@@ -63,8 +63,10 @@
 #include <vframe.h>
 #include <progressbar.h>
 
-const char     *SOCKET_IP   = "127.0.0.1";
-const char     *DST_IP      = "127.0.0.1";
+//const char     *SOCKET_IP   = "127.0.0.1";
+//const char     *DST_IP      = "127.0.0.1";
+const char     *SOCKET_IP   = "192.168.10.1";
+const char     *DST_IP      = "192.168.10.10";
 const uint16_t  SRC_PORT = 50000;
 const uint16_t  DST_PORT = 50000;
 
