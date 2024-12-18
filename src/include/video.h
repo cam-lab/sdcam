@@ -88,7 +88,7 @@ public:
                   Logger      logger)
        : sock             ( s          )
        , pkt_idx          ( 0          )
-       , pkt_count        ( 0          )
+       , pkt_len          ( 0          )
        , state            ( stateFSYNC )
        , free_frame_q     ( fq         )
        , incoming_frame_q ( iq         )
@@ -116,7 +116,7 @@ private:
 private:
     Socket      &sock;
     size_t       pkt_idx;
-    size_t       pkt_count;
+    size_t       pkt_len;
     State        state;
     FrameQueue  &free_frame_q;
     FrameQueue  &incoming_frame_q;
@@ -139,7 +139,7 @@ void FrameReceiver::recv()
     while(1)
     {
         int count = 0;
-        if( !pkt_count )
+        if( !pkt_len )
         {
             //lg->info("before sock.read, pkt_count: {}", pkt_count);
             count = sock.read(reinterpret_cast<uint8_t *>(pkt.data()), PKT_SIZE);
@@ -147,9 +147,9 @@ void FrameReceiver::recv()
         
         if(count >= 0)
         {
-            pkt_count = count/sizeof(uint16_t);
+            pkt_len = count/sizeof(uint16_t);
             //lg->info("pkt count: {}", pkt_count);
-            for(auto i = pkt_idx; i < pkt_count; ++i)
+            for(auto i = pkt_idx; i < pkt_len; ++i)
             {
                 //lg->info("{:03} : {:04x}", i, pkt[i]);
                 switch(state)
@@ -172,8 +172,8 @@ void FrameReceiver::recv()
                     }
                 }
             }
-            pkt_count = 0;  // make ready to get data from socket
-            pkt_idx   = 0;
+            pkt_len = 0;  // make ready to get data from socket
+            pkt_idx = 0;
         }
         else
         {
