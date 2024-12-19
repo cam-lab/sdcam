@@ -331,7 +331,6 @@ class MainWindow(QMainWindow):
         self.exitAction.triggered.connect(self.close)
         
         #-------------------------------------------------------------
-
         self.ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
         self.ipyConsoleAction.setShortcut('Alt+S')
         self.ipyConsoleAction.setStatusTip('Launch Jupyter Console')
@@ -538,7 +537,7 @@ class LogWidget(QTableWidget):
         l = re.split('(\d\d\d\d-\d\d-\d\d\s\d\d\:\d\d\:\d\d)\s+', text)[1:]
         loglist = list(zip(l[::2], l[1::2]))
         ll_len  = len(loglist)
-        count   = ll_len if ll_len < 30 else 30
+        count   = ll_len #if ll_len < 30 else 30
         self.setRowCount(count)
 
         for idx, logitem in enumerate(loglist[ll_len-count:]):
