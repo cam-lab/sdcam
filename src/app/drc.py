@@ -58,6 +58,8 @@ resp_code[3] = 'invalid MMR index for specified module'
 resp_code[4] = 'unsupported operation code'
 resp_code[5] = 'incorrect parameter count for specified operation'
 resp_code[6] = 'invalid parameter value for specified operation'
+CAMERA_ENA_MASK     = 0x0001
+VFG_ENA_MASK        = 0x0002
 
 MMR_WRITE                     = 1
 MMR_READ                      = 2

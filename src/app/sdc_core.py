@@ -86,10 +86,14 @@ class SdcCore(QObject):
 
         self.hook = HookStub()
 
-        self._agc_ena     = False
-        self._vstream_ena = False
+        self._agc_ena         = False
+        self._vstream_ena     = False
+        self._camera_ena      = False
+        self._camvfg_ena         = False
 
-        self._vstream_on  = False
+        self._vstream_on      = False
+        self._camera_on       = False
+        self._camvfg_on          = False
         
         self.org_thres = 5
         self.top_thres = 5
@@ -138,6 +142,14 @@ class SdcCore(QObject):
     #-------------------------------------------------------
     def vstream_slot(self, checked):
         self._vstream_ena = checked
+
+    #-------------------------------------------------------
+    def camera_ena_slot(self, checked):
+        self._camera_ena = checked
+
+    #-------------------------------------------------------
+    def camvfg_ena_slot(self, checked):
+        self._camvfg_ena = checked
 
     #-------------------------------------------------------
     def generate(self):
@@ -220,6 +232,32 @@ class SdcCore(QObject):
                 vsthread_finish_event.wait()
                 self._vstream_on = False
                 lg.info('stop low-level incoming video stream thread')
+
+        if not self._camera_on:
+            if self._camera_ena:
+                lg.info('try to turn on camera')
+                if self._wmmr(drc.cam.cr_s, drc.CAMERA_ENA_MASK):
+                    self._camera_on = True
+                    lg.info('camera successfully turned on')
+        else:
+            if not self._camera_ena:
+                lg.info('try to turn off camera')
+                if self._wmmr(drc.cam.cr_c, drc.CAMERA_ENA_MASK):
+                    self._camera_on = False
+                    lg.info('camera successfully turned off')
+                
+        if not self._camvfg_on:
+            if self._camvfg_ena:
+                lg.info('try to turn on camera VFG')
+                if self._wmmr(drc.cam.cr_s, drc.VFG_ENA_MASK):
+                    self._camvfg_on = True
+                    lg.info('video test generator successfully turned on')
+        else:
+            if not self._camvfg_ena:
+                lg.info('try to turn off camera VFG')
+                if self._wmmr(drc.cam.cr_c, drc.VFG_ENA_MASK):
+                    self._camvfg_on = False
+                    lg.info('video test generator successfully turned off')
 
     #-----------------------------------------------------------------
     #
@@ -333,6 +371,8 @@ class VframeThread(threading.Thread):
     #-------------------------------------------------------
     def run(self):
         self.core._vstream_ena = self.core.parent.sdc_core_opt['Start/Stop Video']
+        self.core._camera_ena  = self.core.parent.sdc_core_opt['Start/Stop Camera']
+        self.core._camvfg_ena  = self.core.parent.sdc_core_opt['Start/Stop CamVFG']
         while True:
             self.core.processing()
             if self._finish_event.is_set():
