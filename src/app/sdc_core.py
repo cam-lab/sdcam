@@ -269,7 +269,7 @@ class SdcCore(QObject):
             print('MMR write failed')
         
     #-------------------------------------------------------
-    def _dev_exec_op(self, *args):
+    def _dev_fun_exec(self, *args):
         self._drc_msg_num += 1
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.FUN_EXEC << drc.ID_TYPE_OFFSET)
         oc      = (args[0] & drc.OPCODE_MASK) + ((len(args) - 1) << drc.PCOUNT_OFFSET)
