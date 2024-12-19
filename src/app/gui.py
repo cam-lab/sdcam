@@ -311,6 +311,8 @@ class MainWindow(QMainWindow):
             
             self.setStatusTip(text)
             self.setCheckable(True)
+            if not text in parent.parent.sdc_core_opt:
+                parent.parent.sdc_core_opt[text] = parent.parent.default_sdc_core_opt[text]
             self.setChecked(parent.parent.sdc_core_opt[text])
 
         def updateIcon(self):
@@ -327,6 +329,7 @@ class MainWindow(QMainWindow):
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.setStatusTip('Exit application')
         self.exitAction.triggered.connect(self.close)
+        
         #-------------------------------------------------------------
 
         self.ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
