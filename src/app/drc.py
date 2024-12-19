@@ -33,39 +33,51 @@ import numpy as np
 vhex = np.vectorize(hex)
 
 
-ID_NUMBER_MASK                = 0x00ff
-ID_TYPE_MASK                  = 0x7f00
-ID_RESPONSE_MASK              = 0x7f00
-ID_ORG_MASK                   = 0x8000
-MMR_IDX_MASK                  = 0x03ff
-MOD_IDX_MASK                  = ~MMR_IDX_MASK & 0xffff
-OPCODE_MASK                   = 0x00ff
-PCOUNT_MASK                   = 0xff00
+#-------------------------------------------------------------------------------
+#
+#    Constants
+#
+ID_NUMBER_MASK      = 0x00ff
+ID_TYPE_MASK        = 0x7f00
+ID_RESPONSE_MASK    = 0x7f00
+ID_ORG_MASK         = 0x8000
+MMR_IDX_MASK        = 0x03ff
+MOD_IDX_MASK        = ~MMR_IDX_MASK & 0xffff
+OPCODE_MASK         = 0x00ff
+PCOUNT_MASK         = 0xff00
 
-ID_NUMBER_OFFSET              = 0
-ID_TYPE_OFFSET                = 8
-ID_ORG_OFFSET                 = 15
-ID_RESPONSE_OFFSET            = ID_TYPE_OFFSET
-MOD_IDX_OFFSET                = 10
-PCOUNT_OFFSET                 = 8
+ID_NUMBER_OFFSET    = 0
+ID_TYPE_OFFSET      = 8
+ID_ORG_OFFSET       = 15
+ID_RESPONSE_OFFSET  = ID_TYPE_OFFSET
+MOD_IDX_OFFSET      = 10
+PCOUNT_OFFSET       = 8
 
-resp_code = { }
+MMR_WRITE           = 1
+MMR_READ            = 2
+FUN_EXEC            = 3
+DEV_NOTIFY          = 4
 
-resp_code[0] = 'Ok'
-resp_code[1] = 'malformed request message'
-resp_code[2] = 'unsupported module index'
-resp_code[3] = 'invalid MMR index for specified module'
-resp_code[4] = 'unsupported operation code'
-resp_code[5] = 'incorrect parameter count for specified operation'
-resp_code[6] = 'invalid parameter value for specified operation'
 CAMERA_ENA_MASK     = 0x0001
 VFG_ENA_MASK        = 0x0002
 
-MMR_WRITE                     = 1
-MMR_READ                      = 2
-FUN_EXEC                      = 3
-DEV_NOTIFY                    = 4
+#-------------------------------------------------------------------------------
+#
+#    Responce stuff
+#
+resp_code           = { }
+resp_code[0]        = 'Ok'
+resp_code[1]        = 'malformed request message'
+resp_code[2]        = 'unsupported module index'
+resp_code[3]        = 'invalid MMR index for specified module'
+resp_code[4]        = 'unsupported operation code'
+resp_code[5]        = 'incorrect parameter count for specified operation'
+resp_code[6]        = 'invalid parameter value for specified operation'
 
+#-------------------------------------------------------------------------------
+#
+#    MMRs
+#
 class SysMod:
     def __init__(self):
         self._mod = 0
@@ -123,7 +135,10 @@ cam    = CamMod()
 lan    = LanMod()
 lens   = LensMod()
 
-
+#-------------------------------------------------------------------------------
+#
+#    Code
+#
 def check_resp(num, resp):
     if not resp:
         print('E: no response from device. Be sure the device is online')
@@ -153,4 +168,6 @@ def check_resp(num, resp):
         return False
 
     return True
+
+#-------------------------------------------------------------------------------
 
