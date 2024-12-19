@@ -41,6 +41,8 @@ import vframe
 import gui
 
 from udp import command_queue, Socket
+
+import drc
  
 iframe_event          = threading.Event()
 vsthread_finish_event = threading.Event()
@@ -119,6 +121,7 @@ class SdcCore(QObject):
         #    UDP socket
         #
         self._sock = Socket()
+        self._drc_msg_num = 0
 
     #-------------------------------------------------------
     def deinit(self):
@@ -231,61 +234,82 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _rmmr(self, *args):
-        addr    = args[0]
-        data    = np.array( [0x55aa, self.READ_MMR, addr, 0], dtype=np.uint16 )
-        data[3] = np.bitwise_xor.reduce(data)
-        res     = self._sock.processing(data)
-        cs      = np.bitwise_xor.reduce(res)
-        if cs:
-            lg.error('incorrect udp responce')
-            
-        return res[3]
+        rid     = args[0]()
+        self._drc_msg_num += 1
+        id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
+        data    = np.array( [id, rid], dtype=np.uint16 )
+        resp    = self._sock.processing(data)
+        if drc.check_resp(self._drc_msg_num, resp):
+            return resp[1] + (resp[2] << 16)
+        else:
+            return None
         
-    def rmmr(self, addr):
-        self._sock_transaction(self._rmmr, [addr])
+    def rmmr(self, rid):
+        res = self._rmmr(rid)
+        if res != None:
+            return res
+        else:
+            print('MMR read failed')
         
     #-------------------------------------------------------
     def _wmmr(self, *args):
-        addr    = args[0]
-        data    = args[1]
-        data    = np.array( [0x55aa, self.WRITE_MMR, addr, data, 0], dtype=np.uint16 )
-        data[4] = np.bitwise_xor.reduce(data)
-        res     = self._sock.processing(data)
-        cs      = np.bitwise_xor.reduce(res)
-        if cs:
-            lg.error('incorrect udp responce')
+        rid     = args[0]()
+        datal   = args[1]
+        datah   = args[1] >> 16
+        self._drc_msg_num += 1
+        id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
+        data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
+        resp    = self._sock.processing(data)
+        return drc.check_resp(self._drc_msg_num, resp)
         
-    def wmmr(self, addr, data):
-        self._sock_transaction(self._wmmr, [addr, data])
-        
-    #-------------------------------------------------------
-    def _wcam(self, *args):
-        addr = args[0]
-        data = args[1]
-        cmd  = self.WR | addr
-        
-        self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
-        self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
-        self._wmmr(self.SPI_DR,  data); # send value to write
-        self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
-        
-    def wcam(self, addr, data):
-        self._sock_transaction(self._wcam, [addr, data])
+    def wmmr(self, rid, data):
+        if self._wmmr(rid, data):
+            print('successful MMR write')
+        else:
+            print('MMR write failed')
         
     #-------------------------------------------------------
-    def _rcam(self, *args):
-        addr = args[0]
-        cmd  = self.RD | addr;
-    
-        self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
-        self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
-        self._wmmr(self.SPI_DR,     0); # transaction to take data from camera
-        self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
-        return self._rmmr(self.SPI_DR);
+    def _dev_exec_op(self, *args):
+        self._drc_msg_num += 1
+        id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.FUN_EXEC << drc.ID_TYPE_OFFSET)
+        oc      = (args[0] & drc.OPCODE_MASK) + ((len(args) - 1) << drc.PCOUNT_OFFSET)
+        hdr     = np.array( [id, oc], dtype=np.uint16 )
+        params  = np.array( args[1:], dtype=np.uint16)
+        data    = np.concatenate((hdr, params))
+        resp    = self._sock.processing(data)
+        res     = drc.check_resp(self._drc_msg_num, resp)
+        if res:
+            return resp[1:]
+        else:
+            return False
+
+#   def _wcam(self, *args):
+#       addr = args[0]
+#       data = args[1]
+#       cmd  = self.WR | addr
+#
+#       self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
+#       self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
+#       self._wmmr(self.SPI_DR,  data); # send value to write
+#       self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
+#
+#   def wcam(self, addr, data):
+#       self._sock_transaction(self._wcam, [addr, data])
+        
+    #-------------------------------------------------------
+#   def _rcam(self, *args):
+#       addr = args[0]
+#       cmd  = self.RD | addr;
+#
+#       self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
+#       self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
+#       self._wmmr(self.SPI_DR,     0); # transaction to take data from camera
+#       self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
+#       return self._rmmr(self.SPI_DR);
          
     #-------------------------------------------------------
-    def rcam(self, addr):
-        self._sock_transaction(self._rcam, [addr])
+#   def rcam(self, addr):
+#       self._sock_transaction(self._rcam, [addr])
                  
 #-------------------------------------------------------------------------------
 class VframeThread(threading.Thread):

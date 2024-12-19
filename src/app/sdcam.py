@@ -65,6 +65,8 @@ from logger   import setup_logger
 from udp      import SocketThread
 from monitor  import AppMonitorThread
 
+import drc
+
 #-------------------------------------------------------------------------------
 def get_app_qt5(*args, **kwargs):
     """Create a new qt5 app or return an existing one."""
@@ -88,7 +90,9 @@ class Sdcam(QObject, InternalIPKernel):
         self.restore_settings()
         
         sdc = SdcCore(self)
-        self.init_ipkernel('qt5', { 'sdcam' : self, 'sdc' : sdc })
+        self.init_ipkernel('qt5', { 'sdcam' : self,
+                                    'sdc'   : sdc,
+                                    'drc'   : drc })
 
         #-------------------------------------------------------------
         #
