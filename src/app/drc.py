@@ -152,7 +152,7 @@ def check_resp(num, resp):
     id = resp[0]
     
     if num != id & ID_NUMBER_MASK:
-        print( 'E: incorrect message number: {}'.format( id & ID_NUMBER_MASK, os.linesep ) )
+        print( 'E: incorrect message number: {}, should be {}{}'.format( id & ID_NUMBER_MASK, num, os.linesep ) )
         print(vhex(resp))
         return False
 
