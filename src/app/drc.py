@@ -140,7 +140,7 @@ lens   = LensMod()
 #    Code
 #
 def check_resp(num, resp):
-    if not resp:
+    if resp is None:
         print('E: no response from device. Be sure the device is online')
         return False
 
