@@ -276,6 +276,7 @@ class SdcCore(QObject):
         self._drc_msg_num += 1
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
+        self._sock.empty()
         resp    = self._sock.processing(data)
         if drc.check_resp(self._drc_msg_num, resp):
             return resp[1] + (resp[2] << 16)
@@ -297,6 +298,7 @@ class SdcCore(QObject):
         self._drc_msg_num += 1
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
+        self._sock.empty()
         resp    = self._sock.processing(data)
         return drc.check_resp(self._drc_msg_num, resp)
         
