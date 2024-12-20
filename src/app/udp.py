@@ -38,8 +38,8 @@ from   logger import logger as lg
 
 
 host_ip   = '192.168.10.1'
-device_ip = '192.168.10.3'
-udp_port  = 50014
+device_ip = '192.168.10.10'
+udp_port  = 50002
 
 command_queue = queue.Queue()
 
@@ -60,12 +60,23 @@ class Socket(QObject):
     def processing(self, data):
         self.sock.sendto(data, (device_ip, udp_port))
         try:
-            res = np.frombuffer( self.sock.recv(1472), dtype=np.uint16)
+            res = np.frombuffer( self.sock.recv(2048), dtype=np.uint16)
             #lg.debug(vhex(res))
             return res
         except timeout:
             lg.warning('socket timeout')
             return None
+
+    #-------------------------------------------------------
+    def empty(self):
+        """Empty the UDP buffer."""
+        self.sock.settimeout(0.0)
+        while True:
+            try:
+                self.sock.recv(2048)
+            except:
+                self.sock.settimeout(0.5)
+                return
 
     #-------------------------------------------------------
     def close(self):

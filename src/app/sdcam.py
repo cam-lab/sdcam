@@ -65,6 +65,8 @@ from logger   import setup_logger
 from udp      import SocketThread
 from monitor  import AppMonitorThread
 
+import drc
+
 #-------------------------------------------------------------------------------
 def get_app_qt5(*args, **kwargs):
     """Create a new qt5 app or return an existing one."""
@@ -83,12 +85,16 @@ class Sdcam(QObject, InternalIPKernel):
         super().__init__()
         
         self.default_sdc_core_opt = { 'Start/Stop Video'       : False,
-                                      'Automatic Gain Control' : False }
+                                      'Automatic Gain Control' : False,
+                                      'Start/Stop Camera'      : False,
+                                      'Start/Stop CamVFG'      : False }
 
         self.restore_settings()
         
         sdc = SdcCore(self)
-        self.init_ipkernel('qt5', { 'sdcam' : self, 'sdc' : sdc })
+        self.init_ipkernel('qt5', { 'sdcam' : self,
+                                    'sdc'   : sdc,
+                                    'drc'   : drc })
 
         #-------------------------------------------------------------
         #
@@ -121,6 +127,9 @@ class Sdcam(QObject, InternalIPKernel):
 
         self.mwin.agcAction.trig_signal.connect(self.vfthread.core.agc_slot, Qt.QueuedConnection)
         self.mwin.vstreamAction.trig_signal.connect(self.vfthread.core.vstream_slot, Qt.QueuedConnection)
+        self.mwin.cameraEnableAction.trig_signal.connect(self.vfthread.core.camera_ena_slot, Qt.QueuedConnection)
+        self.mwin.camvfgEnableAction.trig_signal.connect(self.vfthread.core.camvfg_ena_slot, Qt.QueuedConnection)
+
         self.vfthread.core.display_frame_signal.connect(self.mwin.show_frame_slot, Qt.QueuedConnection)
         self.vfthread.core.frame_signal.connect(self.amthread.monitor.frame_slot, Qt.QueuedConnection)
         

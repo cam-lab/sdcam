@@ -311,6 +311,8 @@ class MainWindow(QMainWindow):
             
             self.setStatusTip(text)
             self.setCheckable(True)
+            if not text in parent.parent.sdc_core_opt:
+                parent.parent.sdc_core_opt[text] = parent.parent.default_sdc_core_opt[text]
             self.setChecked(parent.parent.sdc_core_opt[text])
 
         def updateIcon(self):
@@ -327,8 +329,8 @@ class MainWindow(QMainWindow):
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.setStatusTip('Exit application')
         self.exitAction.triggered.connect(self.close)
+        
         #-------------------------------------------------------------
-
         self.ipyConsoleAction = QAction(QIcon( os.path.join(ico_path, 'ipy-console-24.png') ), 'Jupyter Console', self)
         self.ipyConsoleAction.setShortcut('Alt+S')
         self.ipyConsoleAction.setStatusTip('Launch Jupyter Console')
@@ -368,6 +370,18 @@ class MainWindow(QMainWindow):
         self.rstatAction.setStatusTip('Reset statistics. Hotkey: "F11"')
         #self.rstatAction.triggered.connect(self.main_view.reset_statistics)
 
+        #-------------------------------------------------------------
+        self.cameraEnableAction = self.CheckedAction('camera-off-24.png', 'camera-on-24.png', 'Start/Stop Camera', self)
+        self.cameraEnableAction.setShortcut('F9')
+        self.cameraEnableAction.setStatusTip('Turn On/Off device camera. Hotkey: "F9"')
+        self.cameraEnableAction.trigAction()
+
+        #-------------------------------------------------------------
+        self.camvfgEnableAction = self.CheckedAction('vfg-off-24.png', 'vfg-on-24.png', 'Start/Stop CamVFG', self)
+        self.camvfgEnableAction.setShortcut('F10')
+        self.camvfgEnableAction.setStatusTip('Turn On/Off video test generator. Hotkey: "F10"')
+        self.camvfgEnableAction.trigAction()
+
     #---------------------------------------------------------------------------
     def setup_menu(self):
         self.menubar = self.menuBar()
@@ -380,21 +394,30 @@ class MainWindow(QMainWindow):
         self.controlMenu.addAction(self.sdlgAction)
         self.controlMenu.addAction(self.exitAction)
         
+        self.cameraMenu = self.menubar.addMenu('&Camera')
+        self.cameraMenu.addAction(self.cameraEnableAction)
+        self.cameraMenu.addAction(self.camvfgEnableAction)
+
         self.viewMenu = self.menubar.addMenu('&Zoom')
         self.viewMenu.addAction(self.zffAction)
         
     #---------------------------------------------------------------------------
     def setup_toolbar(self):
-        self.toolbar = self.addToolBar('MainToolbar')
-        self.toolbar.setObjectName('main-toolbar')
-        self.toolbar.addAction(self.exitAction)        
-        self.toolbar.addAction(self.ipyConsoleAction)        
-        self.toolbar.addAction(self.ipyQtConsoleAction)        
-        self.toolbar.addAction(self.vstreamAction)
-        self.toolbar.addAction(self.agcAction)
-        self.toolbar.addAction(self.zffAction)
-        self.toolbar.addAction(self.sdlgAction)
-        self.toolbar.addAction(self.rstatAction)
+        self.tbMain = self.addToolBar('MainToolbar')
+        self.tbMain.setObjectName('main-toolbar')
+        self.tbMain.addAction(self.exitAction)
+        self.tbMain.addAction(self.ipyConsoleAction)
+        self.tbMain.addAction(self.ipyQtConsoleAction)
+        self.tbMain.addAction(self.vstreamAction)
+        self.tbMain.addAction(self.agcAction)
+        self.tbMain.addAction(self.zffAction)
+        self.tbMain.addAction(self.sdlgAction)
+        self.tbMain.addAction(self.rstatAction)
+
+        self.tbCamera = self.addToolBar('CameraToolbar')
+        self.tbCamera.setObjectName('camera-toolbar')
+        self.tbCamera.addAction(self.cameraEnableAction)
+        self.tbCamera.addAction(self.camvfgEnableAction)
 
     #---------------------------------------------------------------------------
     def edit_settings(self):
@@ -514,7 +537,7 @@ class LogWidget(QTableWidget):
         l = re.split('(\d\d\d\d-\d\d-\d\d\s\d\d\:\d\d\:\d\d)\s+', text)[1:]
         loglist = list(zip(l[::2], l[1::2]))
         ll_len  = len(loglist)
-        count   = ll_len if ll_len < 30 else 30
+        count   = ll_len #if ll_len < 30 else 30
         self.setRowCount(count)
 
         for idx, logitem in enumerate(loglist[ll_len-count:]):
