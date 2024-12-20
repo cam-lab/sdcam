@@ -68,6 +68,20 @@ class Socket(QObject):
             return None
 
     #-------------------------------------------------------
+    def empty(self):
+        """Empty the UDP buffer."""
+        self.sock.settimeout(0.0)
+        while True:
+            try:
+                lg.info('>>>> flush socket begin')
+                self.sock.recv(2048)
+                lg.info('flush socket')
+            except:
+                lg.info('flush socket end')
+                self.sock.settimeout(0.5)
+                return
+
+    #-------------------------------------------------------
     def close(self):
         self.sock.close()
         
