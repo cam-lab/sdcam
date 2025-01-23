@@ -334,7 +334,7 @@ bool FrameReceiver::data(uint16_t item)
 
             prev_fnum = frame->fnum;
 
-            check_test_frame();
+            //check_test_frame();
 
             //lg->info("frame {:x} complete", frame->fnum);
             incoming_frame_q.push(frame);

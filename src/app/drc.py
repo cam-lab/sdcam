@@ -87,16 +87,19 @@ class SysMod:
     
 class CamMod:
     def __init__(self):
-        self._mod  = 1
-        self._cr   = 0
-        self._cr_s = 1
-        self._cr_c = 2
-        self._sr   = 3
+        self._mod         = 1
+        self._cr          = 0
+        self._cr_s        = 1
+        self._cr_c        = 2
+        self._sr          = 3
+        self._dba_csr     = 16
+        self._dba_serdatr = 17
     
-    def cr(self):   return (self._mod << MOD_IDX_OFFSET) + self._cr
-    def cr_s(self): return (self._mod << MOD_IDX_OFFSET) + self._cr_s
-    def cr_c(self): return (self._mod << MOD_IDX_OFFSET) + self._cr_c
-    def sr(self):   return (self._mod << MOD_IDX_OFFSET) + self._sr
+    def cr(self):      return (self._mod << MOD_IDX_OFFSET) + self._cr
+    def cr_s(self):    return (self._mod << MOD_IDX_OFFSET) + self._cr_s
+    def cr_c(self):    return (self._mod << MOD_IDX_OFFSET) + self._cr_c
+    def sr(self):      return (self._mod << MOD_IDX_OFFSET) + self._sr
+    def dba_csr(self): return (self._mod << MOD_IDX_OFFSET) + self._dba_csr
 
 
 class LanMod:
