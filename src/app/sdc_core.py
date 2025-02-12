@@ -286,7 +286,7 @@ class SdcCore(QObject):
     def rmmr(self, rid):
         res = self._rmmr(rid)
         if res != None:
-            return res
+            return res, hex(res)
         else:
             print('MMR read failed')
         
