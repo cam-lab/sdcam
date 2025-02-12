@@ -92,14 +92,17 @@ class CamMod:
         self._cr_s        = 1
         self._cr_c        = 2
         self._sr          = 3
+        self._shtr        = 4
         self._dba_csr     = 16
         self._dba_serdatr = 17
     
-    def cr(self):      return (self._mod << MOD_IDX_OFFSET) + self._cr
-    def cr_s(self):    return (self._mod << MOD_IDX_OFFSET) + self._cr_s
-    def cr_c(self):    return (self._mod << MOD_IDX_OFFSET) + self._cr_c
-    def sr(self):      return (self._mod << MOD_IDX_OFFSET) + self._sr
-    def dba_csr(self): return (self._mod << MOD_IDX_OFFSET) + self._dba_csr
+    def cr(self):          return (self._mod << MOD_IDX_OFFSET) + self._cr
+    def cr_s(self):        return (self._mod << MOD_IDX_OFFSET) + self._cr_s
+    def cr_c(self):        return (self._mod << MOD_IDX_OFFSET) + self._cr_c
+    def sr(self):          return (self._mod << MOD_IDX_OFFSET) + self._sr
+    def shtr(self):        return (self._mod << MOD_IDX_OFFSET) + self._shtr
+    def dba_csr(self):     return (self._mod << MOD_IDX_OFFSET) + self._dba_csr
+    def dba_serdatr(self): return (self._mod << MOD_IDX_OFFSET) + self._dba_serdatr
 
 
 class LanMod:
