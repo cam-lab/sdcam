@@ -15,8 +15,6 @@ import helpers as hlp
 #
 #     Common settings
 #
-BOOST_VERSION = '1_84_0'
-
 INCDIR        = [hlp.abspath('#src/include')]
 BINDIR        = hlp.abspath('#bin')
 BUILDPATH     = hlp.abspath('#build')
@@ -37,7 +35,8 @@ APP_SETTINGS = {
 #     Environment
 #
 env                  = Environment()
-env['BOOST_VERSION'] = BOOST_VERSION
+env['BOOST_VERSION']  = os.environ['BOOST_VERSION']
+env['PYTHON_VERSION'] = os.environ['PYTHON_VERSION']
 
 #-------------------------------------------------------------------------------
 #

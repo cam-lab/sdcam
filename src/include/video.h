@@ -78,6 +78,7 @@ class FrameReceiver
         stateFRAME_WIDTH,
         stateFRAME_HEIGHT,
         statePIXEL_WIDTH,
+        stateFRAME_ATTR,
         stateDATA
     };
 
@@ -109,6 +110,7 @@ private:
     inline void frame_width      (uint16_t item);
     inline void frame_height     (uint16_t item);
     inline void pixel_width      (uint16_t item);
+    inline void frame_attr       (uint16_t item);
     inline bool data             (uint16_t item);
 
     inline void check_test_frame ();
@@ -160,6 +162,7 @@ void FrameReceiver::recv()
                 case stateFRAME_WIDTH  : frame_width  ( pkt[i] ); break;
                 case stateFRAME_HEIGHT : frame_height ( pkt[i] ); break;
                 case statePIXEL_WIDTH  : pixel_width  ( pkt[i] ); break;
+                case stateFRAME_ATTR   : frame_attr   ( pkt[i] ); break;
                 case stateLSYNC        : lsync        ( pkt[i] ); break;
                 case stateLINE_NUM     : line_num     ( pkt[i] ); break;
                 case stateDATA         :
@@ -300,8 +303,15 @@ void FrameReceiver::frame_height(uint16_t item)
 void FrameReceiver::pixel_width(uint16_t item)
 {
     frame->pixwidth = item;
-    state           = stateLSYNC;
+    state           = stateFRAME_ATTR;
     //lg->info("Pixel Width: {}", frame->pixwidth);
+}
+//------------------------------------------------------------------------------
+void FrameReceiver::frame_attr(uint16_t item)
+{
+    frame->fattr = item;
+    state        = stateLSYNC;
+    //lg->info("Frame Attr: {}", frame->fattr);
 }
 //------------------------------------------------------------------------------
 void FrameReceiver::line_num(uint16_t item)

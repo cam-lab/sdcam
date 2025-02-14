@@ -162,12 +162,14 @@ void Vframe::divide(double n)
 std::string vframe_str(Vframe & r)
 {
     std::stringstream out;
+    std::string shutter_state = (r.fattr & 0x1) ? "On" : "Off";
 
-    out << "    fnum          : " << r.fnum           << "\n";
-    out << "    size_x        : " << r.size_x         << "\n";
-    out << "    size_y        : " << r.size_y         << "\n";
-    out << "    pixwidth      : " << r.pixwidth       << std::endl;
-    out << "    pixbuf        : " << "numpy::ndarray" << std::endl;
+    out << "    fnum          : " << r.fnum             << "\n";
+    out << "    size_x        : " << r.size_x           << "\n";
+    out << "    size_y        : " << r.size_y           << "\n";
+    out << "    pixwidth      : " << r.pixwidth         << "\n";
+    out << "    shutter       : " << shutter_state      << "\n";
+    out << "    pixbuf        : " << "numpy::ndarray"   << std::endl;
 
     return out.str();
 }
@@ -395,6 +397,9 @@ void finish_vstream_thread()
 //
 BOOST_PYTHON_MODULE(vframe)
 {
+    Py_Initialize();
+    np::initialize();
+
     using namespace boost::python;
 
     scope().attr("FRAME_SIZE_X") = FRAME_SIZE_X;
@@ -408,14 +413,16 @@ BOOST_PYTHON_MODULE(vframe)
     {
         scope vframe_scope =
         class_<Vframe>("Vframe", init<>())
-            .add_property("fnum",   &Vframe::fnum)
-            .add_property("tstamp", &Vframe::tstamp)
-            .add_property("size_x", &Vframe::size_x)
-            .add_property("size_y", &Vframe::size_y)
+            .add_property("fnum",    &Vframe::fnum)
+            .add_property("tstamp",  &Vframe::tstamp)
+            .add_property("size_x",  &Vframe::size_x)
+            .add_property("size_y",  &Vframe::size_y)
+            .add_property("fattr",   &Vframe::fattr)
             .add_property("pixbuf", make_getter(&Vframe::pixbuf))
-            .def("copy",   &Vframe::copy)
-            .def("rshift", &Vframe::rshift)
-            .def("divide", &Vframe::divide)
+            .def("copy",     &Vframe::copy)
+            .def("rshift",   &Vframe::rshift)
+            .def("divide",   &Vframe::divide)
+            .def("shtr_on",  &Vframe::shtr_on)
             .def("__str__",  vframe_str)
             .def("__repr__", vframe_repr)
         ;

@@ -81,7 +81,7 @@ const uint16_t FTT_MASK        = 0x2000;
 const uint16_t LNUM_MASK       = (1 << 12) - 1;
 const uint32_t MDBS_MASK       = ~(CFT_MASK | VST_MASK | FTT_MASK);
 
-const uint16_t FRAME_MDB_SIZE  = 15;
+const uint16_t FRAME_MDB_SIZE  = 16;
 
 const size_t   FNUM_SIZE       = 4;
 const size_t   TSTUMP_SIZE     = 8;
@@ -106,12 +106,14 @@ struct Vframe
     
     void       rshift(int n);
     void       divide(double n);
+    bool       shtr_on() const { return fattr & 0x1; }
     
     uint32_t    fnum;
     uint64_t    tstamp;
     uint16_t    size_x;
     uint16_t    size_y;
     uint16_t    pixwidth;
+    uint16_t    fattr;
     
     np::ndarray pixbuf;
 };
