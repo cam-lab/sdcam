@@ -397,6 +397,9 @@ void finish_vstream_thread()
 //
 BOOST_PYTHON_MODULE(vframe)
 {
+    Py_Initialize();
+    np::initialize();
+
     using namespace boost::python;
 
     scope().attr("FRAME_SIZE_X") = FRAME_SIZE_X;
