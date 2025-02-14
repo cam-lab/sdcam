@@ -48,6 +48,55 @@ iframe_event          = threading.Event()
 vsthread_finish_event = threading.Event()
 
 #-------------------------------------------------------------------------------
+class Nuc:
+    def __init__(self, host):
+        self.host      = host
+        self.prep_rqst = False
+        self.fcnt      = 0
+        self.fpool     = []
+        self.cframe    = None
+        
+        self.apply     = False
+        
+        self.shtr_begin_line = 10
+        
+    def launch(self):
+        self.fcnt       = 0;
+        self.fpool      = []
+        self.prep_rqst  = True
+        self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)
+
+    def processing(self):
+        if self.prep_rqst:
+            self.prep_cf()
+
+    def prep_cf(self):
+        f = self.host._f.copy()
+        self.fpool.append(f)
+        #if self.fcnt == 4:
+        if f.shtr_on():
+            self.fcnt += 1
+            if self.fcnt == 1:
+                self.cframe = f.pixbuf.copy()
+            elif self.fcnt <= 4:
+                pass
+                self.cframe += f.pixbuf
+                if self.fcnt == 4:
+                    self.cframe = self.cframe >> 2
+
+        elif self.fcnt:
+            if not f.shtr_on():
+                self.prep_rqst = False
+                s = ' '.join([str(int(f.shtr_on())) for f in self.fpool])
+                lg.info('NUC complete, frames {}, {}'.format(len(self.fpool), s))
+                
+                shtr_end_line = self.host._rmmr(drc.cam.shtr)
+                shtr_begin_line = self.shtr_begin_line
+                self.shtr_begin_line = vframe.FRAME_SIZE_Y - (shtr_end_line - self.shtr_begin_line + 10)
+                
+                lg.info('bl: {}, el: {}, bl_new: {}'.format(shtr_begin_line, shtr_end_line, self.shtr_begin_line))
+
+#-------------------------------------------------------------------------------
 class SdcCore(QObject):
 
     frame_signal         = pyqtSignal( list  )
@@ -76,7 +125,9 @@ class SdcCore(QObject):
         vframe.init_numpy()
         vframe.create_frame_pool()
 
-        self._f = vframe.Vframe()
+        self._f  = vframe.Vframe()
+        self.nuc = Nuc(self)
+
         vframe.reg_pyobject(iframe_event,          0)
         vframe.reg_pyobject(vsthread_finish_event, 1)
 
@@ -86,14 +137,16 @@ class SdcCore(QObject):
 
         self.hook = HookStub()
 
+        self._init_done     = False
+
         self._agc_ena         = False
         self._vstream_ena     = False
         self._camera_ena      = False
-        self._camvfg_ena         = False
+        self._camvfg_ena      = False
 
         self._vstream_on      = False
         self._camera_on       = False
-        self._camvfg_on          = False
+        self._camvfg_on       = False
         
         self.org_thres = 5
         self.top_thres = 5
@@ -215,9 +268,11 @@ class SdcCore(QObject):
         self._pmap = vframe.make_display_frame(pbuf)
         self.display(self._pmap)
 
+        self.nuc.processing()
+        self.hook.run(self)
+
         vframe.put_free_frame(self._f)
 
-        self.hook.run(self)
            
     #-----------------------------------------------------------------
     def vsthread_control(self):
@@ -258,6 +313,14 @@ class SdcCore(QObject):
                 if self._wmmr(drc.cam.cr_c, drc.VFG_ENA_MASK):
                     self._camvfg_on = False
                     lg.info('video test generator successfully turned off')
+                    
+        if not self._init_done:
+            if self._wmmr(drc.cam.cr_s, 4 << 16):
+                lg.info('successful set shuttered frame count to 4')
+            else:
+                lg.warning('set shuttered frame count failed')
+                
+            self._init_done = True
 
     #-----------------------------------------------------------------
     #
