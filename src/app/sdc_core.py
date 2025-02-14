@@ -64,7 +64,7 @@ class Nuc:
         self.fcnt       = 0;
         self.fpool      = []
         self.prep_rqst  = True
-        self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)
+        return self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
 
     def processing(self):
         if self.prep_rqst:
@@ -143,10 +143,12 @@ class SdcCore(QObject):
         self._vstream_ena     = False
         self._camera_ena      = False
         self._camvfg_ena      = False
+        self._nuc_ena         = False
 
         self._vstream_on      = False
         self._camera_on       = False
         self._camvfg_on       = False
+        self._nuc_on          = False
         
         self.org_thres = 5
         self.top_thres = 5
@@ -203,6 +205,10 @@ class SdcCore(QObject):
     #-------------------------------------------------------
     def camvfg_ena_slot(self, checked):
         self._camvfg_ena = checked
+
+    #-------------------------------------------------------
+    def nuc_ena_slot(self, checked):
+        self._nuc_ena = checked
 
     #-------------------------------------------------------
     def generate(self):
@@ -268,7 +274,9 @@ class SdcCore(QObject):
         self._pmap = vframe.make_display_frame(pbuf)
         self.display(self._pmap)
 
-        self.nuc.processing()
+        if self._nuc_on:
+            self.nuc.processing()
+            
         self.hook.run(self)
 
         vframe.put_free_frame(self._f)
@@ -314,6 +322,18 @@ class SdcCore(QObject):
                     self._camvfg_on = False
                     lg.info('video test generator successfully turned off')
                     
+
+        if not self._nuc_on:
+            if self._nuc_ena:
+                lg.info('try to turn on NUC')
+                if self.nuc.launch():
+                    self._nuc_on = True
+                    lg.info('NUC turned on')
+        else:
+            if not self._nuc_ena:
+                lg.info('turn off NUC')
+                self._nuc_on = False
+
         if not self._init_done:
             if self._wmmr(drc.cam.cr_s, 4 << 16):
                 lg.info('successful set shuttered frame count to 4')

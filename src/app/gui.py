@@ -382,6 +382,12 @@ class MainWindow(QMainWindow):
         self.camvfgEnableAction.setStatusTip('Turn On/Off video test generator. Hotkey: "F10"')
         self.camvfgEnableAction.trigAction()
 
+        #-------------------------------------------------------------
+        self.nucEnableAction = self.CheckedAction('shutter-off-24.png', 'shutter-on-24.png', 'NUC On/Off', self)
+        self.nucEnableAction.setShortcut('F2')
+        self.nucEnableAction.setStatusTip('NUC On/Off. Hotkey: "F2"')
+        self.nucEnableAction.trigAction()
+        
     #---------------------------------------------------------------------------
     def setup_menu(self):
         self.menubar = self.menuBar()
@@ -397,6 +403,7 @@ class MainWindow(QMainWindow):
         self.cameraMenu = self.menubar.addMenu('&Camera')
         self.cameraMenu.addAction(self.cameraEnableAction)
         self.cameraMenu.addAction(self.camvfgEnableAction)
+        self.cameraMenu.addAction(self.nucEnableAction)
 
         self.viewMenu = self.menubar.addMenu('&Zoom')
         self.viewMenu.addAction(self.zffAction)
@@ -418,6 +425,7 @@ class MainWindow(QMainWindow):
         self.tbCamera.setObjectName('camera-toolbar')
         self.tbCamera.addAction(self.cameraEnableAction)
         self.tbCamera.addAction(self.camvfgEnableAction)
+        self.tbCamera.addAction(self.nucEnableAction)
 
     #---------------------------------------------------------------------------
     def edit_settings(self):
