@@ -182,7 +182,7 @@ class SdcCore(QObject):
         #
         #    UDP socket
         #
-        self._sock = Socket()
+        self._sock        = Socket()
         self._drc_msg_num = 0
 
     #-------------------------------------------------------
@@ -374,7 +374,7 @@ class SdcCore(QObject):
     #-------------------------------------------------------
     def _rmmr(self, *args):
         rid     = args[0]()
-        self._drc_msg_num += 1
+        self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
         self._sock.empty()
@@ -396,7 +396,7 @@ class SdcCore(QObject):
         rid     = args[0]()
         datal   = args[1]
         datah   = args[1] >> 16
-        self._drc_msg_num += 1
+        self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
         self._sock.empty()
