@@ -150,6 +150,9 @@ class SdcCore(QObject):
         self._camvfg_on       = False
         self._nuc_on          = False
         
+        self._fpa_toc         = 0
+        self._fpa_tocr_qtime  = 0
+
         self.org_thres = 5
         self.top_thres = 5
         self.discard   = 0.005
@@ -211,6 +214,19 @@ class SdcCore(QObject):
         self._nuc_ena = checked
 
     #-------------------------------------------------------
+    def fpa_tocr_query(self):
+        t = time.time();
+        if t - self._fpa_tocr_qtime >= 1:
+            resp = self._rmmr(drc.cam.dba_tocr)
+            if resp:
+                self._fpa_toc = resp
+                lg.info('toc: {}'.format(self._fpa_toc))
+            else:
+                lg.error('device not respond while cam.dba.tocr query')
+
+            self._fpa_tocr_qtime = t
+
+    #-------------------------------------------------------
     def generate(self):
         time.sleep(0.04)
         self._pmap = np.right_shift( self._pixmap, 4 ).astype(dtype=np.uint8)
@@ -255,6 +271,7 @@ class SdcCore(QObject):
             return
 
         iframe_event.clear()
+
         #vframe.get_inp_frame(self._f)
         if not self._vstream_on:     # prevent spurious pop from incoming queue
             return
@@ -281,7 +298,8 @@ class SdcCore(QObject):
 
         vframe.put_free_frame(self._f)
 
-           
+        #self.fpa_tocr_query()
+
     #-----------------------------------------------------------------
     def vsthread_control(self):
         if not self._vstream_on:
