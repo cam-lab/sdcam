@@ -30,6 +30,9 @@
 import os
 import numpy as np
 
+from logger import logger as lg
+
+
 vhex = np.vectorize(hex)
 
 
@@ -149,30 +152,30 @@ lens   = LensMod()
 #
 def check_resp(num, resp):
     if resp is None:
-        print('E: no response from device. Be sure the device is online')
+        lg.error('E: no response from device. Be sure the device is online')
         return False
 
     if len(resp) == 0:
-        print( 'E: invalid response length: {}'.format( len(resp), os.linesep ) )
-        print(vhex(resp))
+        lg.error( 'E: invalid response length: {}'.format( len(resp), os.linesep ) )
+        lg.info('resp: {}'.format(vhex(resp)))
         return False
 
     id = resp[0]
     
     if num != id & ID_NUMBER_MASK:
-        print( 'E: incorrect message number: {}, should be {}{}'.format( id & ID_NUMBER_MASK, num, os.linesep ) )
-        print(vhex(resp))
+        lg.error( 'E: incorrect message number: {}, should be {}{}'.format( id & ID_NUMBER_MASK, num, os.linesep ) )
+        lg.info('resp: {}'.format(vhex(resp)))
         return False
 
     rc = (id & ID_RESPONSE_MASK) >> ID_RESPONSE_OFFSET
     if rc > len(resp_code):
-        print( 'E: unknown response code: {}'.format( rc, os.linesep ) )
-        print(vhex(resp))
+        lg.error( 'E: unknown response code: {}'.format( rc, os.linesep ) )
+        lg.info('resp: {}'.format(vhex(resp)))
         return False
         
     if rc != 0:
-        print( 'E: request returns error code: "{}"'.format( resp_code[rc], os.linesep ) )
-        print(vhex(resp))
+        lg.error( 'E: request returns error code: "{}"'.format( resp_code[rc], os.linesep ))
+        lg.info('resp: {}'.format(vhex(resp)))
         return False
 
     return True

@@ -340,7 +340,6 @@ class SdcCore(QObject):
                     self._camvfg_on = False
                     lg.info('video test generator successfully turned off')
                     
-
         if not self._nuc_on:
             if self._nuc_ena:
                 lg.info('try to turn on NUC')
@@ -389,7 +388,7 @@ class SdcCore(QObject):
         if res != None:
             return res, hex(res)
         else:
-            print('MMR read failed')
+            lg.error('MMR read failed')
         
     #-------------------------------------------------------
     def _wmmr(self, *args):
@@ -405,9 +404,9 @@ class SdcCore(QObject):
         
     def wmmr(self, rid, data):
         if self._wmmr(rid, data):
-            print('successful MMR write')
+            lg.info('successful MMR write')
         else:
-            print('MMR write failed')
+            lg.error('MMR write failed')
         
     #-------------------------------------------------------
     def _dev_fun_exec(self, *args):
