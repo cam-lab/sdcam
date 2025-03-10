@@ -590,13 +590,14 @@ class TelemetryWidget(QTableWidget):
         self.verticalHeader().setDefaultSectionSize(20)
         self.setTabKeyNavigation(False)
         self.setAlternatingRowColors(True)
-        self.setHorizontalHeaderLabels( ['Name', 'Value', 'Mean', 'Min', 'Max', 'SDev', 'Frame Count'] )
+        self.setHorizontalHeaderLabels( ['Name', 'Value', 'Mean', 'Min', 'Max', 'SDev', 'Count'] )
 
         self.setRowCount(4)
         
 
-        self.DEV = 0
-        self.SDC = 1
+        self.DEV      = 0
+        self.SDC      = 1
+        self.FPA_TEMP = 2
         
         self.NAME  = 0
         self.VALUE = 1
@@ -604,24 +605,32 @@ class TelemetryWidget(QTableWidget):
         self.MIN   = 3
         self.MAX   = 4
         self.SDEV  = 5
-        self.FCNT  = 6
+        self.CNT   = 6
 
-        self.setItem(self.DEV, self.NAME, self.create_item('Device Camera FPS') )
-        self.setItem(self.SDC, self.NAME, self.create_item('SD Camera FPS') )
+        self.setItem(self.DEV,      self.NAME, self.create_item('Device Camera FPS') )
+        self.setItem(self.SDC,      self.NAME, self.create_item('SD Camera FPS') )
+        self.setItem(self.FPA_TEMP, self.NAME, self.create_item('FPA Temp °C') )
 
         self.setItem(self.DEV, self.VALUE, self.create_item() )
         self.setItem(self.DEV, self.MEAN,  self.create_item() )
         self.setItem(self.DEV, self.MIN,   self.create_item() )
         self.setItem(self.DEV, self.MAX,   self.create_item() )
         self.setItem(self.DEV, self.SDEV,  self.create_item() )
-        self.setItem(self.DEV, self.FCNT,  self.create_item() )
+        self.setItem(self.DEV, self.CNT,   self.create_item() )
         
         self.setItem(self.SDC, self.VALUE, self.create_item() )
         self.setItem(self.SDC, self.MEAN,  self.create_item() )
         self.setItem(self.SDC, self.MIN,   self.create_item() )
         self.setItem(self.SDC, self.MAX,   self.create_item() )
         self.setItem(self.SDC, self.SDEV,  self.create_item() )
-        self.setItem(self.SDC, self.FCNT,  self.create_item() )
+        self.setItem(self.SDC, self.CNT,   self.create_item() )
+
+        self.setItem(self.FPA_TEMP, self.VALUE, self.create_item() )
+        self.setItem(self.FPA_TEMP, self.MEAN,  self.create_item() )
+        self.setItem(self.FPA_TEMP, self.MIN,   self.create_item() )
+        self.setItem(self.FPA_TEMP, self.MAX,   self.create_item() )
+        self.setItem(self.FPA_TEMP, self.SDEV,  self.create_item() )
+        self.setItem(self.FPA_TEMP, self.CNT,   self.create_item() )
 
     #-----------------------------------------------------------------
     def create_item(self, val=''):
@@ -643,7 +652,7 @@ class TelemetryWidget(QTableWidget):
             self.item(self.DEV, self.MIN).setText   ('{:.3f}'.format(dev_fps.min))
             self.item(self.DEV, self.MAX).setText   ('{:.3f}'.format(dev_fps.max))
             self.item(self.DEV, self.SDEV).setText  ('{:.3f}'.format(dev_fps.sdev))
-            self.item(self.DEV, self.FCNT).setText  (   '{:}'.format(dev_fps.frame_count))
+            self.item(self.DEV, self.CNT).setText   (   '{:}'.format(dev_fps.frame_count))
 
         if msg[0] == 1:
             sdc_fps = msg[1]
@@ -653,7 +662,18 @@ class TelemetryWidget(QTableWidget):
             self.item(self.SDC, self.MIN).setText   ('{:.3f}'.format(sdc_fps.min))
             self.item(self.SDC, self.MAX).setText   ('{:.3f}'.format(sdc_fps.max))
             self.item(self.SDC, self.SDEV).setText  ('{:.3f}'.format(sdc_fps.sdev))
-            self.item(self.SDC, self.FCNT).setText  (   '{:}'.format(sdc_fps.frame_count))
+            self.item(self.SDC, self.CNT).setText   (   '{:}'.format(sdc_fps.frame_count))
+            
+        if msg[0] == 2:
+            fpa_temp = msg[1]
+
+            self.item(self.FPA_TEMP, self.VALUE).setText ('{:.3f}'.format(fpa_temp.value))
+            self.item(self.FPA_TEMP, self.MEAN).setText  ('{:.3f}'.format(fpa_temp.mean))
+            self.item(self.FPA_TEMP, self.MIN).setText   ('{:.3f}'.format(fpa_temp.min))
+            self.item(self.FPA_TEMP, self.MAX).setText   ('{:.3f}'.format(fpa_temp.max))
+            self.item(self.FPA_TEMP, self.SDEV).setText  ('{:.3f}'.format(fpa_temp.sdev))
+            self.item(self.FPA_TEMP, self.CNT).setText   (   '{:}'.format(fpa_temp.count))
+
 
 #-------------------------------------------------------------------------------
         

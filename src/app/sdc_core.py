@@ -150,6 +150,9 @@ class SdcCore(QObject):
         self._camvfg_on       = False
         self._nuc_on          = False
         
+        self._fpa_toc         = 0
+        self._fpa_tocr_qtime  = 0
+
         self.org_thres = 5
         self.top_thres = 5
         self.discard   = 0.005
@@ -179,7 +182,7 @@ class SdcCore(QObject):
         #
         #    UDP socket
         #
-        self._sock = Socket()
+        self._sock        = Socket()
         self._drc_msg_num = 0
 
     #-------------------------------------------------------
@@ -209,6 +212,21 @@ class SdcCore(QObject):
     #-------------------------------------------------------
     def nuc_ena_slot(self, checked):
         self._nuc_ena = checked
+
+    #-------------------------------------------------------
+    def fpa_tocr_query(self):
+        t = time.time();
+        if t - self._fpa_tocr_qtime >= 4:
+            resp = self._rmmr(drc.cam.dba_tocr)
+            if resp:
+                self._fpa_toc = resp
+                T = round( (resp - 8192)*0.01330525 + 36.039396, 3 )
+                #lg.info('toc: {}, T: {}°C'.format(self._fpa_toc, T))
+                self.fpa_temp_signal.emit(T)
+            else:
+                lg.error('device not respond while cam.dba.tocr query')
+
+            self._fpa_tocr_qtime = t
 
     #-------------------------------------------------------
     def generate(self):
@@ -255,6 +273,7 @@ class SdcCore(QObject):
             return
 
         iframe_event.clear()
+
         #vframe.get_inp_frame(self._f)
         if not self._vstream_on:     # prevent spurious pop from incoming queue
             return
@@ -281,7 +300,8 @@ class SdcCore(QObject):
 
         vframe.put_free_frame(self._f)
 
-           
+        self.fpa_tocr_query()
+
     #-----------------------------------------------------------------
     def vsthread_control(self):
         if not self._vstream_on:
@@ -322,7 +342,6 @@ class SdcCore(QObject):
                     self._camvfg_on = False
                     lg.info('video test generator successfully turned off')
                     
-
         if not self._nuc_on:
             if self._nuc_ena:
                 lg.info('try to turn on NUC')
@@ -356,7 +375,7 @@ class SdcCore(QObject):
     #-------------------------------------------------------
     def _rmmr(self, *args):
         rid     = args[0]()
-        self._drc_msg_num += 1
+        self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
         self._sock.empty()
@@ -371,14 +390,14 @@ class SdcCore(QObject):
         if res != None:
             return res, hex(res)
         else:
-            print('MMR read failed')
+            lg.error('MMR read failed')
         
     #-------------------------------------------------------
     def _wmmr(self, *args):
         rid     = args[0]()
         datal   = args[1]
         datah   = args[1] >> 16
-        self._drc_msg_num += 1
+        self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
         self._sock.empty()
@@ -387,9 +406,9 @@ class SdcCore(QObject):
         
     def wmmr(self, rid, data):
         if self._wmmr(rid, data):
-            print('successful MMR write')
+            lg.info('successful MMR write')
         else:
-            print('MMR write failed')
+            lg.error('MMR write failed')
         
     #-------------------------------------------------------
     def _dev_fun_exec(self, *args):
