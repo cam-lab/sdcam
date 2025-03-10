@@ -34,6 +34,8 @@ import threading
 
 import numpy as np
 
+import collections
+
 from   PyQt5.QtCore import QObject, pyqtSignal
 from   logger import logger as lg
 
@@ -123,7 +125,44 @@ class FrameParam:
         self.tstamp = tstamp
         return False
 
+#-------------------------------------------------------------------------------
+class FpaTemp:
+    #-------------------------------------------------------
+    def __init__(self, buf_len = 256):
+        self.buf = collections.deque(maxlen=buf_len)
 
+        self.value       = 0
+        self.mean        = 0
+        self.min         = 100
+        self.max         = -100
+        self.sdev        = 0
+        self.count       = 0
+        
+    #-------------------------------------------------------
+    def reset(self):
+        self.buf.clear()
+        self.value       = 0
+        self.mean        = 0
+        self.min         = 100
+        self.max         = -100
+        self.sdev        = 0
+        self.count       = 0
+        
+    def processing(self, temp):
+        self.buf.append(temp)
+        
+        a = np.array(self.buf)
+        self.value = temp
+        self.mean  = a.mean()
+        if a.min() < self.min:
+            self.min = a.min()
+            
+        if a.max() > self.max:
+            self.max = a.max()
+            
+        self.sdev = a.std()
+        self.count += 1
+        
 #-------------------------------------------------------------------------------
 class AppMonitor(QObject):
 
@@ -138,8 +177,9 @@ class AppMonitor(QObject):
         self.frame_count = 0
         self.prev_fcount = 0
 
-        self.dev_fps = FrameParam()
-        self.sdc_fps = FrameParam()
+        self.dev_fps  = FrameParam()
+        self.sdc_fps  = FrameParam()
+        self.fpa_temp = FpaTemp()
         
         self._reset_stat_event = threading.Event()
         
@@ -160,8 +200,10 @@ class AppMonitor(QObject):
             self._reset_stat_event.clear()
             self.dev_fps.reset()
             self.sdc_fps.reset()
+            self.fpa_temp.reset()
             self.update_data_signal.emit([0, self.dev_fps])
             self.update_data_signal.emit([1, self.sdc_fps])
+            self.update_data_signal.emit([2, self.fpa_temp])
             return
 
         if self.dev_fps.processing(tstamp):
@@ -169,6 +211,11 @@ class AppMonitor(QObject):
 
         if self.sdc_fps.processing(sdc_tpoint):
             self.update_data_signal.emit([1, self.sdc_fps])
+
+    #-------------------------------------------------------
+    def fpa_temp_slot(self, temp):
+        self.fpa_temp.processing(temp)
+        self.update_data_signal.emit([2, self.fpa_temp])
 
     #-------------------------------------------------------
     def reset_statistics(self):
