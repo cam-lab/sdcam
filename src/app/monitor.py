@@ -128,7 +128,7 @@ class FrameParam:
 #-------------------------------------------------------------------------------
 class FpaTemp:
     #-------------------------------------------------------
-    def __init__(self, buf_len = 256):
+    def __init__(self, buf_len = 16):
         self.buf = collections.deque(maxlen=buf_len)
 
         self.value       = 0
