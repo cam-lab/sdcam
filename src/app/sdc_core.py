@@ -32,6 +32,9 @@ import time
 import threading
 import numpy as np
 
+import matplotlib.pyplot as plt
+import collections
+
 from PyQt5.QtCore import QObject, pyqtSignal
 
 import sys
@@ -184,6 +187,12 @@ class SdcCore(QObject):
         #
         self._sock        = Socket()
         self._drc_msg_num = 0
+        
+
+        self.fig, self.ax = plt.subplots()
+        #plt.show()
+        
+        self.rbuf = collections.deque(maxlen=16)
 
     #-------------------------------------------------------
     def deinit(self):
@@ -267,6 +276,20 @@ class SdcCore(QObject):
             self._queue_limit_exceed = True
 
     #-------------------------------------------------------
+    def average_frame(self, n=16):
+        if n > 16:
+            lg.warning('invalid frame count {}, max count: 16'.format(n))
+            return None
+
+        pool = self.rbuf[0].copy().astype(np.uint32)
+
+        for i in range(n-1):
+            pool += self.rbuf[i+1]
+
+        p = (pool/n).astype(np.uint16)
+        
+        return p
+    #-------------------------------------------------------
     def processing(self):
         self.vsthread_control()
         if not iframe_event.wait(0.1):
@@ -296,6 +319,8 @@ class SdcCore(QObject):
         if self._nuc_on:
             self.nuc.processing()
             
+
+        self.rbuf.append(pbuf)
         self.hook.run(self)
 
         vframe.put_free_frame(self._f)
