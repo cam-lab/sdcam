@@ -784,22 +784,18 @@ class HistogramWidget(QCustomPlot):
         
     def draw(self, data, thld=1):
         self.data = data
-#       if data.max() < 500:
-#           lg.info('histo draw: anomaling histo')
-
-
-#       tval = np.where(data >= thld)[0]
-#       min  = tval[0]
-#       max  = tval[-1]
-        #lg.info('histo draw, min: {}, max: {}'.format(min, max))
-        x    = np.arange(len(data)) #min, max)
-        y    = data #[min:max]
+        x    = np.arange(len(data))
+        y    = data
         self.graph.setData(x, y)
         if self.rescale_axes:
            self.rescale_axes = False
            self.rescaleAxes()
 
         self.replot()
+
+    def mouseDoubleClickEvent(self, event):
+        self.rescaleAxes()
+
 
 #-------------------------------------------------------------------------------
         
