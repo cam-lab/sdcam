@@ -102,8 +102,9 @@ class Nuc:
 #-------------------------------------------------------------------------------
 class SdcCore(QObject):
 
-    frame_signal         = pyqtSignal( list  )
-    display_frame_signal = pyqtSignal( int )
+    frame_signal            = pyqtSignal( list  )
+    display_frame_signal    = pyqtSignal( int )
+    update_dashboard_signal = pyqtSignal( int )
     
     #-------------------------------------------------------
     def __init__(self, parent):
@@ -164,22 +165,16 @@ class SdcCore(QObject):
         self._kp = 0.5
         self._ka = 0.5
         
-        self._stim = 0
+        self.forg  = 900
+        self.ftop  = 9000
+        self.fgain = 1.0
         
-        self._swing = 4096.0
+        self.histo_cnt = 10
         
-        self.IEXP_MIN = 0
-        self.IEXP_MAX = 978
-        self.FEXP_MIN = 3
-        self.FEXP_MAX = 1599
-        
-        self._iexp = self.IEXP_MIN
-        self._fexp = self.FEXP_MIN
-        
-        self._top_ref = 3800.0;
-        
-        self.window_histo = np.zeros( (1024), dtype=np.uint32)
-        self.fframe_histo = np.zeros( (1024), dtype=np.uint32)
+        self.rhisto = np.zeros(2**14, dtype=np.uint32)
+        self.nhisto = np.zeros(2**14, dtype=np.uint32)
+        self.fhisto = np.zeros(2**10, dtype=np.uint32)
+
         
         #-----------------------------------------
         #
@@ -289,6 +284,24 @@ class SdcCore(QObject):
         p = (pool/n).astype(np.uint16)
         
         return p
+
+    #-------------------------------------------------------
+    def fbounds(self, f, org, top, thld):
+        b = np.where(f >= thld)[0][:-1]
+        
+        if not b.size:
+            return org, top
+
+        min = b.min()
+        max = b.max()
+        
+        k = 0.1
+
+        org += k*(min - org)
+        top += k*(max - top)
+        
+        return int(org), int(top)
+
     #-------------------------------------------------------
     def processing(self):
         self.vsthread_control()
@@ -303,17 +316,51 @@ class SdcCore(QObject):
 
         self._f = vframe.get_iframe()
 
-        pbuf = self._f.pixbuf
-
         self.frame_signal.emit([self._f.tstamp, time.time()*1e8])
 
-        self.fframe_histo.fill(0)
-        self.window_histo.fill(0)
-        window = np.copy(pbuf[240:720,320:960])
-        org, top, scale = vframe.histogram(window, self.window_histo, self.org_thres, self.top_thres, self.discard)
-        fframe_org, fframe_top, fframe_scale = vframe.histogram(pbuf, self.fframe_histo, 30, 30, 0)
+        if not self._camvfg_on:
 
-        self._pmap = vframe.make_display_frame(pbuf)
+            pbuf = self._f.pixbuf
+            
+            if self.nuc.valid:
+                self.df = pbuf + 2000 - self.nuc.cframe
+                self.ff = self.df.copy()
+
+                self.rhisto.fill(0)
+                self.nhisto.fill(0)
+                self.fhisto.fill(0)
+
+                vframe.histo(self._f.pixbuf, self.rhisto, 1)
+                vframe.histo(self.df,        self.nhisto, 1)
+
+                if self._agc_ena:
+                    self.forg, self.ftop = self.fbounds(self.nhisto, self.forg, self.ftop, 10)
+                    self.fgain = 1024/(self.ftop - self.forg)
+
+
+                vframe.scale(self.ff, self.forg, self.fgain)
+                vframe.histo(self.ff, self.fhisto, 1)
+
+                self._pmap = vframe.make_display_frame(self.ff)
+                
+                self.histo_cnt -= 1
+                if self.histo_cnt == 0:
+                    gui.dboard_q.put( [(self.forg,  self.fgain),  self.rhisto, self.nhisto[:2000], self.fhisto] )
+                    self.update_dashboard_signal.emit(0)
+                    #lg.info('histo > min: {}, max: {}, mean: {}, sdev: {}'.format( h.min(), h.max(), h.mean(), h.std()) )
+                    self.histo_cnt = 8
+                    
+                    #lg.info('org: {}, top: {}, gain: {:2f}'.format(self.forg, self.ftop, self.fgain))
+#                   if h.max() < 500:
+#                       lg.info('sdc: anomaling histo')
+
+            else:
+                self._pmap = vframe.make_display_frame(pbuf)
+
+        else:
+            pbuf = self._f.pixbuf
+            self._pmap = vframe.make_display_frame(pbuf)
+            
         self.display(self._pmap)
 
         if self._nuc_on:

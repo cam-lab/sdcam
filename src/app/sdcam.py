@@ -133,6 +133,7 @@ class Sdcam(QObject, InternalIPKernel):
         self.mwin.nucEnableAction.trig_signal.connect(self.vfthread.core.nuc_ena_slot, Qt.QueuedConnection)
 
         self.vfthread.core.display_frame_signal.connect(self.mwin.show_frame_slot, Qt.QueuedConnection)
+        self.vfthread.core.update_dashboard_signal.connect(self.mwin.dashboard_update_slot, Qt.QueuedConnection)
         self.vfthread.core.frame_signal.connect(self.amthread.monitor.frame_slot, Qt.QueuedConnection)
         self.vfthread.core.fpa_temp_signal.connect(self.amthread.monitor.fpa_temp_slot, Qt.QueuedConnection)
         

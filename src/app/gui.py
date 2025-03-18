@@ -32,19 +32,22 @@ import os
 import queue
 import re
 
+import numpy as np
 from math import sqrt
 
 from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
-                             QVBoxLayout, QHBoxLayout, QSplitter, QGraphicsView,
+                             QVBoxLayout, QHBoxLayout, QGridLayout, QSplitter, QGraphicsView,
                              QFrame, QGraphicsPixmapItem, QGraphicsItem, 
                              QDockWidget, QAction)
 
 from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
                              QHeaderView, QRubberBand)
-from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform
+from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform, QPen, QBrush
 from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QRectF, QPoint, QPointF, QSize
 from PyQt5.QtCore    import QT_VERSION_STR
+
+from QCustomPlot_PyQt5 import *
 
 import settings
 
@@ -59,7 +62,8 @@ ico_path = os.path.join( run_path, 'ico' )
 PROGRAM_NAME = 'Software-Defined Camera'
 VERSION      = '0.2.0'
 
-fqueue = queue.Queue()
+fqueue   = queue.Queue()
+dboard_q = queue.Queue()
 
 #-------------------------------------------------------------------------------
 def cursor_within_scene(pos):
@@ -298,6 +302,15 @@ class MainWindow(QMainWindow):
         self.pixmap_item.setPixmap(pmap)
     
     #---------------------------------------------------------------------------
+    def dashboard_update_slot(self):
+        while not dboard_q.empty():
+            params = dboard_q.get()
+            self.dbparams.update(params[0])
+            self.rhisto.draw(params[1])
+            self.nhisto.draw(params[2])
+            self.fhisto.draw(params[3])
+
+    #---------------------------------------------------------------------------
     class CheckedAction(QAction):
 
         trig_signal = pyqtSignal( bool )
@@ -463,6 +476,37 @@ class MainWindow(QMainWindow):
         self.telemetry.setWidget(self.telemetry_widget)
 
     #---------------------------------------------------------------------------
+    def create_dboard_window(self):
+        self.dboard_window = QDockWidget('Dashboard', self, Qt.WindowCloseButtonHint)
+        self.dboard_window.setObjectName('Dashboard Window')
+        self.dboard_window.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
+        self.dboard_window.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        
+        self.multi_widget = QWidget()
+
+        self.rhisto = HistogramWidget(self, QColor(255, 255, 128, 240))
+        self.nhisto = HistogramWidget(self, QColor(0x99, 0xCC, 0xFF, 240))
+        self.fhisto = HistogramWidget(self, QColor(0x99, 0xFF, 0xCC, 240))
+        
+        self.dbparams = DashBoardParamsWidget(self)
+        
+        self.dboard_layout   = QGridLayout()
+        
+        self.dboard_layout.addWidget(self.rhisto, 0, 0)
+        self.dboard_layout.addWidget(self.dbparams, 0, 1)
+        self.dboard_layout.addWidget(self.nhisto, 1, 0)
+        self.dboard_layout.addWidget(self.fhisto, 1, 1)
+        
+        self.dboard_layout.setColumnStretch(0, 1)
+        self.dboard_layout.setColumnStretch(1, 1)
+        self.dboard_layout.setRowStretch(0, 1)
+        self.dboard_layout.setRowStretch(1, 1)
+        
+        self.multi_widget.setLayout(self.dboard_layout)
+
+        self.dboard_window.setWidget(self.multi_widget)
+
+    #---------------------------------------------------------------------------
     def initUI(self):
 
         #----------------------------------------------------
@@ -472,9 +516,11 @@ class MainWindow(QMainWindow):
         self.setup_main_scene()
         self.create_log_window()
         self.create_telemetry_window()
+        self.create_dboard_window()
 
         self.addDockWidget(Qt.BottomDockWidgetArea, self.log)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.telemetry)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.dboard_window)
         self.setCentralWidget(self.main_view)
         
         self.restore_main_window()
@@ -674,6 +720,86 @@ class TelemetryWidget(QTableWidget):
             self.item(self.FPA_TEMP, self.SDEV).setText  ('{:.3f}'.format(fpa_temp.sdev))
             self.item(self.FPA_TEMP, self.CNT).setText   (   '{:}'.format(fpa_temp.count))
 
+
+#-------------------------------------------------------------------------------
+class DashBoardParamsWidget(QTableWidget):
+
+    #-----------------------------------------------------------------
+    def __init__(self, parent):
+        super().__init__(7, 1, parent)
+
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
+        self.horizontalHeader().resizeSection(0, 200)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.verticalHeader().setDefaultSectionSize(20)
+        self.setTabKeyNavigation(False)
+        self.setAlternatingRowColors(True)
+        self.setVerticalHeaderLabels( ['FOrg', 'FGain', 'VREF', 'VPB', 'VPS', 'VBB', 'VBS'] )
+        self.setHorizontalHeaderLabels( ['Value'] )
+
+        self.setRowCount(7)
+        
+        self.FORG  = 0
+        self.FGAIN = 1
+
+        self.setItem(self.FORG,  0, self.create_item('x') )
+        self.setItem(self.FGAIN, 0, self.create_item('x') )
+        
+    def create_item(self, val=''):
+
+        item = QTableWidgetItem(val)
+        item.setForeground(QColor('#F0F0F0'))
+        item.setTextAlignment(Qt.AlignTop)
+
+        return item
+
+    def update(self, params):
+        self.item(self.FORG,  0).setText('{}'.format(params[0]))
+        self.item(self.FGAIN, 0).setText('{:.2f}'.format(params[1]))
+
+
+#-------------------------------------------------------------------------------
+class HistogramWidget(QCustomPlot):
+    #-----------------------------------------------------------------
+    def __init__(self, parent, color):
+        super().__init__(parent)
+        
+        self.graph = self.addGraph()
+        #self.graph.setPen(QPen( QColor(255, 255, 128, 40) ))
+        self.graph.setPen(QPen( color.lighter(100) ) )
+        self.graph.setBrush(QBrush(color) )
+        
+        self.rescaleAxes()
+        self.setInteraction(QCP.iRangeDrag)
+        self.setInteraction(QCP.iRangeZoom)
+        self.setInteraction(QCP.iSelectPlottables)
+        
+        self.setBackground(QColor(0x26, 0x26, 0x24, 255))
+        self.xAxis.setTickLabelColor(QColor(255, 255, 255, 255))
+        self.yAxis.setTickLabelColor(QColor(255, 255, 255, 255))
+        
+        self.rescale_axes = True
+        
+    def draw(self, data, thld=1):
+        self.data = data
+#       if data.max() < 500:
+#           lg.info('histo draw: anomaling histo')
+
+
+#       tval = np.where(data >= thld)[0]
+#       min  = tval[0]
+#       max  = tval[-1]
+        #lg.info('histo draw, min: {}, max: {}'.format(min, max))
+        x    = np.arange(len(data)) #min, max)
+        y    = data #[min:max]
+        self.graph.setData(x, y)
+        if self.rescale_axes:
+           self.rescale_axes = False
+           self.rescaleAxes()
+
+        self.replot()
 
 #-------------------------------------------------------------------------------
         

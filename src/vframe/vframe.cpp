@@ -181,6 +181,32 @@ std::string vframe_repr(Vframe & r)
     return out.str();
 }
 //------------------------------------------------------------------------------
+void histo(np::ndarray &data, np::ndarray &h, size_t bw)
+{
+    const int COUNT   = data.shape(0)*data.shape(1);
+    uint16_t *pixbuf  = reinterpret_cast<uint16_t *>( data.get_data() );
+    uint32_t *histbuf = reinterpret_cast<uint32_t *>( h.get_data() );
+    const uint16_t MAXPIX = h.shape(0)-1;
+
+    const size_t   BINSPAN = std::ceil(std::log2(bw));
+    const uint16_t LSBMASK = ~((1 << BINSPAN) - 1);
+    
+    //lg->info("histo> BINSPAN {}, LABMASK: {:x}", BINSPAN, LSBMASK);
+
+    for(int i = 0; i < COUNT; ++i)
+    {
+        uint16_t pix = (pixbuf[i] >= MAXPIX ? MAXPIX : pixbuf[i]) & LSBMASK;
+        //uint16_t pix = pixbuf[i] >= MAXPIX ? MAXPIX : pixbuf[i];
+        
+        //++histbuf[pix+j];
+        
+        for(size_t j = 0; j < bw; ++j)
+        {
+            ++histbuf[pix+j];
+        }
+    }
+}
+//------------------------------------------------------------------------------
 bp::tuple histogram(np::ndarray  &data, np::ndarray &histo, uint16_t orgThreshold, uint16_t topThreshold, float discardLevel)
 {
     int scale = (1 << INP_PIX_W)/histo.shape(0);
@@ -247,8 +273,8 @@ void scale(np::ndarray &pixbuf, int sub, double k)
         {
             val -= sub;
             uint32_t res = val*k;
-            if(res > INP_PIX_MAXVAL)
-                buf[i] = INP_PIX_MAXVAL;
+            if(res > OUT_PIX_MAXVAL)
+                buf[i] = OUT_PIX_MAXVAL;
             else 
                 buf[i] = res;
         }
@@ -433,6 +459,7 @@ BOOST_PYTHON_MODULE(vframe)
     //
     def("init_numpy",            init_numpy);
     def("get_frame",             get_frame);
+    def("histo",                 histo);
     def("histogram",             histogram);
     def("scale",                 scale);
     def("make_display_frame",    make_display_frame);
