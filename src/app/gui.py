@@ -588,7 +588,7 @@ class LogWidget(QTableWidget):
         with open(s, 'rb') as f:
             text = f.read().decode()
             
-        l = re.split('(\d\d\d\d-\d\d-\d\d\s\d\d\:\d\d\:\d\d)\s+', text)[1:]
+        l = re.split(r'(\d\d\d\d-\d\d-\d\d\s\d\d\:\d\d\:\d\d)\s+', text)[1:]
         loglist = list(zip(l[::2], l[1::2]))
         ll_len  = len(loglist)
         count   = ll_len #if ll_len < 30 else 30
