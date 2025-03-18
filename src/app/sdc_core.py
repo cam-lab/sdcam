@@ -572,6 +572,7 @@ class VframeThread(threading.Thread):
     #-------------------------------------------------------
     def run(self):
         self.core._vstream_ena = self.core.parent.sdc_core_opt['Start/Stop Video']
+        self.core._agc_ena     = self.core.parent.sdc_core_opt['Automatic Gain Control']
         self.core._camera_ena  = self.core.parent.sdc_core_opt['Start/Stop Camera']
         self.core._camvfg_ena  = self.core.parent.sdc_core_opt['Start/Stop CamVFG']
         while True:
