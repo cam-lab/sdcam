@@ -58,6 +58,7 @@ class Nuc:
         self.fcnt      = 0
         self.fpool     = []
         self.cframe    = None
+        self.valid     = False
         
         self.apply     = False
         
@@ -67,7 +68,9 @@ class Nuc:
         self.fcnt       = 0;
         self.fpool      = []
         self.prep_rqst  = True
+        self.valid      = False
         return self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
+        #return True
 
     def processing(self):
         if self.prep_rqst:
@@ -75,22 +78,42 @@ class Nuc:
 
     def prep_cf(self):
         f = self.host._f.copy()
+        
+#       #########################
+#       self.shtr_on = 0
+#
+#       if self.fcnt <= 5:
+#           self.shtr_on = 1
+#           lg.info('force shutter ON flag, fcnt: {}'.format(self.fcnt))
+#       #########################
+
         self.fpool.append(f)
         #if self.fcnt == 4:
         if f.shtr_on():
+        #if self.shtr_on:
+                
             self.fcnt += 1
-            if self.fcnt == 1:
-                self.cframe = f.pixbuf.copy()
-            elif self.fcnt <= 4:
-                pass
-                self.cframe += f.pixbuf
-                if self.fcnt == 4:
+            #if self.fcnt == 1:
+            if self.fcnt == 3:
+                self.cframe = self.host._f.pixbuf.copy()
+                lg.info('{} blinded frame'.format(self.fcnt))
+            #elif self.fcnt <= 4:
+            elif self.fcnt > 3 and self.fcnt <= 6:
+                #pass
+                self.cframe += self.host._f.pixbuf
+                lg.info('{} blinded frame'.format(self.fcnt))
+                #if self.fcnt == 4:
+                if self.fcnt == 6:
                     self.cframe = self.cframe >> 2
+                    lg.info('cframe complete')
+                    self.valid  = True
 
         elif self.fcnt:
             if not f.shtr_on():
+            #if not self.shtr_on:
                 self.prep_rqst = False
                 s = ' '.join([str(int(f.shtr_on())) for f in self.fpool])
+               # s = ' '.join([str(int(self.shtr_on)) for f in self.fpool])
                 lg.info('NUC complete, frames {}, {}'.format(len(self.fpool), s))
                 
                 shtr_end_line = self.host._rmmr(drc.cam.shtr)
@@ -105,6 +128,7 @@ class SdcCore(QObject):
     frame_signal            = pyqtSignal( list  )
     display_frame_signal    = pyqtSignal( int )
     update_dashboard_signal = pyqtSignal( int )
+    fpa_temp_signal         = pyqtSignal( float )
     
     #-------------------------------------------------------
     def __init__(self, parent):
@@ -426,7 +450,8 @@ class SdcCore(QObject):
                 self._nuc_on = False
 
         if not self._init_done:
-            if self._wmmr(drc.cam.cr_s, 4 << 16):
+            #if self._wmmr(drc.cam.cr_s, 4 << 16):
+            if self._wmmr(drc.cam.cr_s, 7 << 16):
                 lg.info('successful set shuttered frame count to 4')
             else:
                 lg.warning('set shuttered frame count failed')
