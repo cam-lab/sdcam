@@ -123,6 +123,21 @@ class Nuc:
                 lg.info('bl: {}, el: {}, bl_new: {}'.format(shtr_begin_line, shtr_end_line, self.shtr_begin_line))
 
 #-------------------------------------------------------------------------------
+class Histogram:
+
+    def __init__(self, size):
+        self.data    = np.zeros(size, dtype=np.uint32)
+        self.max     = 0
+        self.org     = 0
+        self.top     = size-1
+        self.k       = 0.1
+
+    def update(self, f):
+        self.data.fill(0)
+        vframe.histo(f, self.data, 1)
+        self.max += self.k*(self.data[:-1].max() - self.max)
+
+#-------------------------------------------------------------------------------
 class SdcCore(QObject):
 
     frame_signal            = pyqtSignal( list  )
@@ -195,10 +210,11 @@ class SdcCore(QObject):
         
         self.histo_cnt = 10
         
-        self.rhisto = np.zeros(2**14, dtype=np.uint32)
-        self.nhisto = np.zeros(2**14, dtype=np.uint32)
-        self.fhisto = np.zeros(2**10, dtype=np.uint32)
+        self.rhisto = Histogram(2**14)
+        self.nhisto = Histogram(2**14)
+        self.fhisto = Histogram(2**10)
 
+        self.nhisto.top = 2000
         
         #-----------------------------------------
         #
@@ -350,34 +366,25 @@ class SdcCore(QObject):
                 self.df = pbuf + 2000 - self.nuc.cframe
                 self.ff = self.df.copy()
 
-                self.rhisto.fill(0)
-                self.nhisto.fill(0)
-                self.fhisto.fill(0)
-
-                vframe.histo(self._f.pixbuf, self.rhisto, 1)
-                vframe.histo(self.df,        self.nhisto, 1)
+                self.rhisto.update(self._f.pixbuf)
+                self.nhisto.update(self.df)
 
                 if self._agc_ena:
-                    self.forg, self.ftop = self.fbounds(self.nhisto, self.forg, self.ftop, 10)
+                    self.forg, self.ftop = self.fbounds(self.nhisto.data, self.forg, self.ftop, 10)
                     self.fgain = 1024/(self.ftop - self.forg)
 
 
                 vframe.scale(self.ff, self.forg, self.fgain)
-                vframe.histo(self.ff, self.fhisto, 1)
+                self.fhisto.update(self.ff)
 
                 self._pmap = vframe.make_display_frame(self.ff)
                 
                 self.histo_cnt -= 1
                 if self.histo_cnt == 0:
-                    gui.dboard_q.put( [(self.forg,  self.fgain),  self.rhisto, self.nhisto[:2000], self.fhisto] )
+                    gui.dboard_q.put( [(self.forg,  self.fgain),  self.rhisto, self.nhisto, self.fhisto] )
                     self.update_dashboard_signal.emit(0)
-                    #lg.info('histo > min: {}, max: {}, mean: {}, sdev: {}'.format( h.min(), h.max(), h.mean(), h.std()) )
                     self.histo_cnt = 8
                     
-                    #lg.info('org: {}, top: {}, gain: {:2f}'.format(self.forg, self.ftop, self.fgain))
-#                   if h.max() < 500:
-#                       lg.info('sdc: anomaling histo')
-
             else:
                 self._pmap = vframe.make_display_frame(pbuf)
 
@@ -389,7 +396,6 @@ class SdcCore(QObject):
 
         if self._nuc_on:
             self.nuc.processing()
-            
 
         self.rbuf.append(pbuf)
         self.hook.run(self)

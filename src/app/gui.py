@@ -767,7 +767,6 @@ class HistogramWidget(QCustomPlot):
         super().__init__(parent)
         
         self.graph = self.addGraph()
-        #self.graph.setPen(QPen( QColor(255, 255, 128, 40) ))
         self.graph.setPen(QPen( color.lighter(100) ) )
         self.graph.setBrush(QBrush(color) )
         
@@ -780,16 +779,16 @@ class HistogramWidget(QCustomPlot):
         self.xAxis.setTickLabelColor(QColor(255, 255, 255, 255))
         self.yAxis.setTickLabelColor(QColor(255, 255, 255, 255))
         
-        self.rescale_axes = True
+        self.max = 0
         
-    def draw(self, data, thld=1):
-        self.data = data
-        x    = np.arange(len(data))
-        y    = data
+    def draw(self, h, thld=1):
+        x    = np.arange(h.org, h.top)
+        y    = h.data[h.org:h.top]
         self.graph.setData(x, y)
-        if self.rescale_axes:
-           self.rescale_axes = False
-           self.rescaleAxes()
+        
+        if h.max > 0.95*self.max or h.max < 0.75*self.max:
+            self.max = h.max*1.1
+            self.rescaleAxes()
 
         self.replot()
 
