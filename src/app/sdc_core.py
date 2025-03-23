@@ -498,12 +498,13 @@ class SdcCore(QObject):
     #-------------------------------------------------------
     def _wmmr(self, *args):
         rid     = args[0]()
-        datal   = args[1]
+        datal   = args[1] & 0xffff
         datah   = args[1] >> 16
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
         self._sock.empty()
+
         resp    = self._sock.processing(data)
         return drc.check_resp(self._drc_msg_num, resp)
         
