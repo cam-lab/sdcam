@@ -43,7 +43,7 @@ from logger import logger as lg
 import vframe
 import gui
 
-from udp import command_queue, Socket
+from udp import command_queue, Socket, HOST_IP, DEVICE_IP, DRC_PORT
 
 import drc
  
@@ -220,7 +220,7 @@ class SdcCore(QObject):
         #
         #    UDP socket
         #
-        self._sock        = Socket()
+        self._drc_sock    = Socket(HOST_IP, DRC_PORT, DEVICE_IP)
         self._drc_msg_num = 0
         
 
@@ -231,7 +231,7 @@ class SdcCore(QObject):
 
     #-------------------------------------------------------
     def deinit(self):
-        self._sock.close()
+        self._drc_sock.close()
     
     #-------------------------------------------------------
     def init_frame(self):
@@ -473,7 +473,7 @@ class SdcCore(QObject):
         command_queue.put( [fun, args] )
     #-------------------------------------------------------
     def send_udp(self, data):
-        return self._sock.processing(data)
+        return self._drc_sock.processing(data)
         
     #-------------------------------------------------------
     def _rmmr(self, *args):
@@ -481,8 +481,8 @@ class SdcCore(QObject):
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
-        self._sock.empty()
-        resp    = self._sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
+        self._drc_sock.empty()
+        resp    = self._drc_sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
         if drc.check_resp(self._drc_msg_num, resp):
             return resp[1] + (resp[2] << 16)
         else:
@@ -503,9 +503,9 @@ class SdcCore(QObject):
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
-        self._sock.empty()
+        self._drc_sock.empty()
 
-        resp    = self._sock.processing(data)
+        resp    = self._drc_sock.processing(data)
         return drc.check_resp(self._drc_msg_num, resp)
         
     def wmmr(self, rid, data):
@@ -522,7 +522,7 @@ class SdcCore(QObject):
         hdr     = np.array( [id, oc], dtype=np.uint16 )
         params  = np.array( args[1:], dtype=np.uint16)
         data    = np.concatenate((hdr, params))
-        resp    = self._sock.processing(data)
+        resp    = self._drc_sock.processing(data)
         res     = drc.check_resp(self._drc_msg_num, resp)
         if res:
             return resp[1:]

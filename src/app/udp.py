@@ -37,9 +37,12 @@ from   PyQt5.QtCore import QObject, pyqtSignal
 from   logger import logger as lg
 
 
-host_ip   = '192.168.10.1'
-device_ip = '192.168.10.10'
-udp_port  = 50002
+HOST_IP   = '192.168.10.1'
+DEVICE_IP = '192.168.10.10'
+
+LB_PORT   = 50000
+CAM_PORT  = 50001
+DRC_PORT  = 50002
 
 command_queue = queue.Queue()
 
@@ -49,16 +52,19 @@ vhex = np.vectorize(hex)
 class Socket(QObject):
 
     #-------------------------------------------------------
-    def __init__(self):
+    def __init__(self, host_ip, port, device_ip):
         super().__init__()
+        
+        self.dev_ip = device_ip
+        self.port   = port
 
         self.sock = socket(AF_INET, SOCK_DGRAM)
         self.sock.settimeout(0.5)
-        self.sock.bind( (host_ip, udp_port) )
+        self.sock.bind( (host_ip, port) )
 
     #-------------------------------------------------------
     def processing(self, data):
-        self.sock.sendto(data, (device_ip, udp_port))
+        self.sock.sendto(data, (self.dev_ip, self.port))
         try:
             res = np.frombuffer( self.sock.recv(2048), dtype=np.uint16)
             #lg.debug(vhex(res))
