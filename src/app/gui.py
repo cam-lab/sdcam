@@ -726,7 +726,7 @@ class DashBoardParamsWidget(QTableWidget):
 
     #-----------------------------------------------------------------
     def __init__(self, parent):
-        super().__init__(7, 1, parent)
+        super().__init__(6, 1, parent)
 
         self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
@@ -736,10 +736,10 @@ class DashBoardParamsWidget(QTableWidget):
         self.verticalHeader().setDefaultSectionSize(20)
         self.setTabKeyNavigation(False)
         self.setAlternatingRowColors(True)
-        self.setVerticalHeaderLabels( ['FOrg', 'FGain', 'VREF', 'VPB', 'VPS', 'VBB', 'VBS'] )
+        self.setVerticalHeaderLabels( ['FOrg', 'FGain', 'VPB', 'VBB', 'VREF', 'ADC VREF'] )
         self.setHorizontalHeaderLabels( ['Value'] )
 
-        self.setRowCount(7)
+        self.setRowCount(6)
         
         self.FORG  = 0
         self.FGAIN = 1
