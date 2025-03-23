@@ -482,7 +482,7 @@ class SdcCore(QObject):
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
         self._sock.empty()
-        resp    = self._sock.processing(data)
+        resp    = self._sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
         if drc.check_resp(self._drc_msg_num, resp):
             return resp[1] + (resp[2] << 16)
         else:
