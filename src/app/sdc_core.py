@@ -261,11 +261,11 @@ class SdcCore(QObject):
     def fpa_tocr_query(self):
         t = time.time();
         if t - self._fpa_tocr_qtime >= 4:
-            resp = self._rmmr(drc.cam.dba_tocr)
+            resp = int(self._rmmr(drc.cam.dba_tocr))
             if resp:
                 self._fpa_toc = resp
                 T = round( (resp - 8192)*0.01330525 + 36.039396, 3 )
-                #lg.info('toc: {}, T: {}°C'.format(self._fpa_toc, T))
+                #lg.info('toc: {}, T: {}°C'.format(resp, T))
                 self.fpa_temp_signal.emit(T)
             else:
                 lg.error('device not respond while cam.dba.tocr query')
