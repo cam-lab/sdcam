@@ -522,6 +522,7 @@ class SdcCore(QObject):
         hdr     = np.array( [id, oc], dtype=np.uint16 )
         params  = np.array( args[1:], dtype=np.uint16)
         data    = np.concatenate((hdr, params))
+        self._drc_sock.empty()
         resp    = self._drc_sock.processing(data)
         res     = drc.check_resp(self._drc_msg_num, resp)
         if res:
