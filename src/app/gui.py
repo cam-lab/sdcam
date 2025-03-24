@@ -441,6 +441,11 @@ class MainWindow(QMainWindow):
         self.tbCamera.addAction(self.nucEnableAction)
 
     #---------------------------------------------------------------------------
+    def enable_cam_actions_slot(self, en):
+        for a in self.cameraMenu.actions():
+            a.setEnabled(en)
+
+    #---------------------------------------------------------------------------
     def edit_settings(self):
         self.settings_dialog.show()
         

@@ -52,6 +52,8 @@ vhex = np.vectorize(hex)
 #-------------------------------------------------------------------------------
 class Socket(QObject):
 
+    socket_status_signal = pyqtSignal( int )
+
     #-------------------------------------------------------
     def __init__(self, host_ip, port, device_ip):
         super().__init__()
@@ -102,6 +104,7 @@ class SocketThread(threading.Thread):
 
         self.link_up = False
         self.chksock = Socket(HOST_IP, LB_PORT, DEVICE_IP)
+
     #-------------------------------------------------------
     def finish(self):
         lg.info('Socket Thread pending to finish')
