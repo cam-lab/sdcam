@@ -64,13 +64,21 @@ class Nuc:
         
         self.shtr_begin_line = 10
         
+        self.afcount   = 2
+
     def launch(self):
         self.fcnt       = 0;
         self.fpool      = []
         self.prep_rqst  = True
         self.valid      = False
+
+        self.host._wmmr(drc.cam.cr_c, 7 << 16)
+        if self.host._wmmr(drc.cam.cr_s, (self.afcount + 1) << 16):
+            lg.info('successful set shuttered frame count to {}'.format(self.afcount))
+        else:
+            lg.warning('set shuttered frame count failed')
+
         return self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
-        #return True
 
     def processing(self):
         if self.prep_rqst:
@@ -78,47 +86,30 @@ class Nuc:
 
     def prep_cf(self):
         f = self.host._f.copy()
-        
-#       #########################
-#       self.shtr_on = 0
-#
-#       if self.fcnt <= 5:
-#           self.shtr_on = 1
-#           lg.info('force shutter ON flag, fcnt: {}'.format(self.fcnt))
-#       #########################
 
         self.fpool.append(f)
-        #if self.fcnt == 4:
         if f.shtr_on():
-        #if self.shtr_on:
                 
             self.fcnt += 1
-            #if self.fcnt == 1:
-            if self.fcnt == 3:
+            if self.fcnt == 2:
                 self.cframe = self.host._f.pixbuf.copy()
                 lg.info('{} blinded frame'.format(self.fcnt))
-            #elif self.fcnt <= 4:
-            elif self.fcnt > 3 and self.fcnt <= 6:
-                #pass
+            elif self.fcnt > 2 and self.fcnt <= self.afcount + 1:
                 self.cframe += self.host._f.pixbuf
                 lg.info('{} blinded frame'.format(self.fcnt))
-                #if self.fcnt == 4:
-                if self.fcnt == 6:
-                    self.cframe = self.cframe >> 2
+                if self.fcnt == self.afcount + 1:
+                    self.cframe = (self.cframe/self.afcount).astype(np.uint16)
                     lg.info('cframe complete')
                     self.valid  = True
 
         elif self.fcnt:
             if not f.shtr_on():
-            #if not self.shtr_on:
                 self.prep_rqst = False
                 s = ' '.join([str(int(f.shtr_on())) for f in self.fpool])
-               # s = ' '.join([str(int(self.shtr_on)) for f in self.fpool])
                 lg.info('NUC complete, frames {}, {}'.format(len(self.fpool), s))
                 
                 shtr_end_line = self.host._rmmr(drc.cam.shtr)
                 shtr_begin_line = self.shtr_begin_line
-                self.shtr_begin_line = vframe.FRAME_SIZE_Y - (shtr_end_line - self.shtr_begin_line + 10)
                 
                 lg.info('bl: {}, el: {}, bl_new: {}'.format(shtr_begin_line, shtr_end_line, self.shtr_begin_line))
 
