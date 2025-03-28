@@ -447,12 +447,6 @@ class SdcCore(QObject):
                 self._nuc_on = False
 
         if not self._init_done:
-            #if self._wmmr(drc.cam.cr_s, 4 << 16):
-            if self._wmmr(drc.cam.cr_s, 7 << 16):
-                lg.info('successful set shuttered frame count to 4')
-            else:
-                lg.warning('set shuttered frame count failed')
-                
             self._init_done = True
 
     #-----------------------------------------------------------------
