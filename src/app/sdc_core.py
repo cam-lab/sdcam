@@ -361,8 +361,8 @@ class SdcCore(QObject):
                 self.nhisto.update(self.df)
 
                 if self._agc_ena:
-                    self.fgain = 1024/(self.ftop - self.forg)
                     self.forg, self.ftop = self.fbounds(self.nhisto.data, self.forg, self.ftop, 30)
+                    self.fgain = 1024/(self.ftop - self.forg + 1)
 
 
                 vframe.scale(self.ff, self.forg, self.fgain)
