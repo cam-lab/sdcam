@@ -125,7 +125,7 @@ class Histogram:
     def update(self, f):
         self.data.fill(0)
         vframe.histo(f, self.data, 1)
-        self.max += self.k*(self.data[:-1].max() - self.max)
+        self.max += self.k*(self.data[1:-1].max() - self.max)
 
 #-------------------------------------------------------------------------------
 class SdcCore(QObject):
@@ -339,7 +339,7 @@ class SdcCore(QObject):
 
     #-------------------------------------------------------
     def fbounds(self, f, org, top, thld):
-        b = np.where(f >= thld)[0][:-1]
+        b = np.where(f >= thld)[0][1:-1]
         
         if not b.size:
             return org, top
