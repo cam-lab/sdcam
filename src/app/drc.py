@@ -64,6 +64,8 @@ DEV_NOTIFY          = 4
 CAMERA_ENA_MASK     = 0x0001
 VFG_ENA_MASK        = 0x0002
 
+DAC_FUN             = 0
+
 #-------------------------------------------------------------------------------
 #
 #    Responce stuff

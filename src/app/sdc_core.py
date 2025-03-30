@@ -206,6 +206,28 @@ class SdcCore(QObject):
         self.fhisto = Histogram(2**10)
 
         self.nhisto.top = 2000
+        #-----------------------------------------
+        #
+        #    Adapter Board DAC
+        #
+
+        self.dac = {
+            'VREF'         : [0x19, 2300],
+            'VPB'          : [0x1b, 2900],
+            'VBB'          : [0x1c, 2000],
+            'ADC_DRV_VREF' : [0x1a, 1500]
+        }
+
+#       self.VREF         = 0x19
+#       self.VPB          = 0x1b
+#       self.VBB          = 0x1c
+#       self.ADC_DRV_VREF = 0x1a
+#
+#       self.vref         = 2300
+#       self.vpb          = 2900
+#       self.vbb          = 2000
+#       self.adc_drv_vref = 1500
+
         
         #-----------------------------------------
         #
@@ -448,6 +470,15 @@ class SdcCore(QObject):
 
         if not self._init_done:
             self._init_done = True
+
+    #-----------------------------------------------------------------
+    def set_dac(self, addr, data):
+        self.dac[addr][1] = data
+        res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
+        if res:
+            print(res)
+        else:
+            print('E: DRC -> device fun exec unsuccessful')
 
     #-----------------------------------------------------------------
     #
