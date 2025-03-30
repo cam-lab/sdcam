@@ -32,6 +32,9 @@ import time
 import threading
 import numpy as np
 
+import matplotlib.pyplot as plt
+import collections
+
 from PyQt5.QtCore import QObject, pyqtSignal
 
 import sys
@@ -40,7 +43,7 @@ from logger import logger as lg
 import vframe
 import gui
 
-from udp import command_queue, Socket
+from udp import command_queue, Socket, HOST_IP, DEVICE_IP, DRC_PORT
 
 import drc
  
@@ -55,15 +58,26 @@ class Nuc:
         self.fcnt      = 0
         self.fpool     = []
         self.cframe    = None
+        self.valid     = False
         
         self.apply     = False
         
         self.shtr_begin_line = 10
         
+        self.afcount   = 2
+
     def launch(self):
         self.fcnt       = 0;
         self.fpool      = []
         self.prep_rqst  = True
+        self.valid      = False
+
+        self.host._wmmr(drc.cam.cr_c, 7 << 16)
+        if self.host._wmmr(drc.cam.cr_s, (self.afcount + 1) << 16):
+            lg.info('successful set shuttered frame count to {}'.format(self.afcount))
+        else:
+            lg.warning('set shuttered frame count failed')
+
         return self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
 
     def processing(self):
@@ -72,17 +86,21 @@ class Nuc:
 
     def prep_cf(self):
         f = self.host._f.copy()
+
         self.fpool.append(f)
-        #if self.fcnt == 4:
         if f.shtr_on():
+                
             self.fcnt += 1
-            if self.fcnt == 1:
-                self.cframe = f.pixbuf.copy()
-            elif self.fcnt <= 4:
-                pass
-                self.cframe += f.pixbuf
-                if self.fcnt == 4:
-                    self.cframe = self.cframe >> 2
+            if self.fcnt == 2:
+                self.cframe = self.host._f.pixbuf.copy()
+                lg.info('{} blinded frame'.format(self.fcnt))
+            elif self.fcnt > 2 and self.fcnt <= self.afcount + 1:
+                self.cframe += self.host._f.pixbuf
+                lg.info('{} blinded frame'.format(self.fcnt))
+                if self.fcnt == self.afcount + 1:
+                    self.cframe = (self.cframe/self.afcount).astype(np.uint16)
+                    lg.info('cframe complete')
+                    self.valid  = True
 
         elif self.fcnt:
             if not f.shtr_on():
@@ -92,15 +110,31 @@ class Nuc:
                 
                 shtr_end_line = self.host._rmmr(drc.cam.shtr)
                 shtr_begin_line = self.shtr_begin_line
-                self.shtr_begin_line = vframe.FRAME_SIZE_Y - (shtr_end_line - self.shtr_begin_line + 10)
                 
                 lg.info('bl: {}, el: {}, bl_new: {}'.format(shtr_begin_line, shtr_end_line, self.shtr_begin_line))
 
 #-------------------------------------------------------------------------------
+class Histogram:
+
+    def __init__(self, size):
+        self.data    = np.zeros(size, dtype=np.uint32)
+        self.max     = 0
+        self.org     = 0
+        self.top     = size-1
+        self.k       = 0.1
+
+    def update(self, f):
+        self.data.fill(0)
+        vframe.histo(f, self.data, 1)
+        self.max += self.k*(self.data[:-1].max() - self.max)
+
+#-------------------------------------------------------------------------------
 class SdcCore(QObject):
 
-    frame_signal         = pyqtSignal( list  )
-    display_frame_signal = pyqtSignal( int )
+    frame_signal            = pyqtSignal( list  )
+    display_frame_signal    = pyqtSignal( int )
+    update_dashboard_signal = pyqtSignal( int )
+    fpa_temp_signal         = pyqtSignal( float )
     
     #-------------------------------------------------------
     def __init__(self, parent):
@@ -161,33 +195,56 @@ class SdcCore(QObject):
         self._kp = 0.5
         self._ka = 0.5
         
-        self._stim = 0
+        self.forg  = 900
+        self.ftop  = 9000
+        self.fgain = 1.0
         
-        self._swing = 4096.0
+        self.histo_cnt = 10
         
-        self.IEXP_MIN = 0
-        self.IEXP_MAX = 978
-        self.FEXP_MIN = 3
-        self.FEXP_MAX = 1599
-        
-        self._iexp = self.IEXP_MIN
-        self._fexp = self.FEXP_MIN
-        
-        self._top_ref = 3800.0;
-        
-        self.window_histo = np.zeros( (1024), dtype=np.uint32)
-        self.fframe_histo = np.zeros( (1024), dtype=np.uint32)
+        self.rhisto = Histogram(2**14)
+        self.nhisto = Histogram(2**14)
+        self.fhisto = Histogram(2**10)
+
+        self.nhisto.top = 2000
+        #-----------------------------------------
+        #
+        #    Adapter Board DAC
+        #
+
+        self.dac = {
+            'VREF'         : [0x19, 2300],
+            'VPB'          : [0x1b, 2900],
+            'VBB'          : [0x1c, 2000],
+            'ADC_DRV_VREF' : [0x1a, 1500]
+        }
+
+#       self.VREF         = 0x19
+#       self.VPB          = 0x1b
+#       self.VBB          = 0x1c
+#       self.ADC_DRV_VREF = 0x1a
+#
+#       self.vref         = 2300
+#       self.vpb          = 2900
+#       self.vbb          = 2000
+#       self.adc_drv_vref = 1500
+
         
         #-----------------------------------------
         #
         #    UDP socket
         #
-        self._sock        = Socket()
+        self._drc_sock    = Socket(HOST_IP, DRC_PORT, DEVICE_IP)
         self._drc_msg_num = 0
+        
+
+        self.fig, self.ax = plt.subplots()
+        #plt.show()
+        
+        self.rbuf = collections.deque(maxlen=16)
 
     #-------------------------------------------------------
     def deinit(self):
-        self._sock.close()
+        self._drc_sock.close()
     
     #-------------------------------------------------------
     def init_frame(self):
@@ -217,11 +274,11 @@ class SdcCore(QObject):
     def fpa_tocr_query(self):
         t = time.time();
         if t - self._fpa_tocr_qtime >= 4:
-            resp = self._rmmr(drc.cam.dba_tocr)
+            resp = int(self._rmmr(drc.cam.dba_tocr))
             if resp:
                 self._fpa_toc = resp
                 T = round( (resp - 8192)*0.01330525 + 36.039396, 3 )
-                #lg.info('toc: {}, T: {}°C'.format(self._fpa_toc, T))
+                #lg.info('toc: {}, T: {}°C'.format(resp, T))
                 self.fpa_temp_signal.emit(T)
             else:
                 lg.error('device not respond while cam.dba.tocr query')
@@ -267,6 +324,38 @@ class SdcCore(QObject):
             self._queue_limit_exceed = True
 
     #-------------------------------------------------------
+    def average_frame(self, n=16):
+        if n > 16:
+            lg.warning('invalid frame count {}, max count: 16'.format(n))
+            return None
+
+        pool = self.rbuf[0].copy().astype(np.uint32)
+
+        for i in range(n-1):
+            pool += self.rbuf[i+1]
+
+        p = (pool/n).astype(np.uint16)
+        
+        return p
+
+    #-------------------------------------------------------
+    def fbounds(self, f, org, top, thld):
+        b = np.where(f >= thld)[0][:-1]
+        
+        if not b.size:
+            return org, top
+
+        min = b.min()
+        max = b.max()
+        
+        k = 0.1
+
+        org += k*(min - org)
+        top += k*(max - top)
+        
+        return int(org), int(top)
+
+    #-------------------------------------------------------
     def processing(self):
         self.vsthread_control()
         if not iframe_event.wait(0.1):
@@ -280,22 +369,48 @@ class SdcCore(QObject):
 
         self._f = vframe.get_iframe()
 
-        pbuf = self._f.pixbuf
-
         self.frame_signal.emit([self._f.tstamp, time.time()*1e8])
 
-        self.fframe_histo.fill(0)
-        self.window_histo.fill(0)
-        window = np.copy(pbuf[240:720,320:960])
-        org, top, scale = vframe.histogram(window, self.window_histo, self.org_thres, self.top_thres, self.discard)
-        fframe_org, fframe_top, fframe_scale = vframe.histogram(pbuf, self.fframe_histo, 30, 30, 0)
+        if not self._camvfg_on:
 
-        self._pmap = vframe.make_display_frame(pbuf)
+            pbuf = self._f.pixbuf
+            
+            if self.nuc.valid:
+                self.df = pbuf + 2000 - self.nuc.cframe
+                self.ff = self.df.copy()
+
+                self.rhisto.update(self._f.pixbuf)
+                self.nhisto.update(self.df)
+
+                if self._agc_ena:
+                    self.forg, self.ftop = self.fbounds(self.nhisto.data, self.forg, self.ftop, 30)
+                    self.fgain = 1024/(self.ftop - self.forg + 1)
+
+
+                vframe.scale(self.ff, self.forg, self.fgain)
+                self.fhisto.update(self.ff)
+
+                self._pmap = vframe.make_display_frame(self.ff)
+                
+                self.histo_cnt -= 1
+                if self.histo_cnt == 0:
+                    gui.dboard_q.put( [(self.forg,  self.fgain),  self.rhisto, self.nhisto, self.fhisto] )
+                    self.update_dashboard_signal.emit(0)
+                    self.histo_cnt = 8
+                    
+            else:
+                self._pmap = vframe.make_display_frame(pbuf)
+
+        else:
+            pbuf = self._f.pixbuf
+            self._pmap = vframe.make_display_frame(pbuf)
+            
         self.display(self._pmap)
 
         if self._nuc_on:
             self.nuc.processing()
-            
+
+        self.rbuf.append(pbuf)
         self.hook.run(self)
 
         vframe.put_free_frame(self._f)
@@ -354,12 +469,16 @@ class SdcCore(QObject):
                 self._nuc_on = False
 
         if not self._init_done:
-            if self._wmmr(drc.cam.cr_s, 4 << 16):
-                lg.info('successful set shuttered frame count to 4')
-            else:
-                lg.warning('set shuttered frame count failed')
-                
             self._init_done = True
+
+    #-----------------------------------------------------------------
+    def set_dac(self, addr, data):
+        self.dac[addr][1] = data
+        res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
+        if res:
+            print(res)
+        else:
+            print('E: DRC -> device fun exec unsuccessful')
 
     #-----------------------------------------------------------------
     #
@@ -370,7 +489,7 @@ class SdcCore(QObject):
         command_queue.put( [fun, args] )
     #-------------------------------------------------------
     def send_udp(self, data):
-        return self._sock.processing(data)
+        return self._drc_sock.processing(data)
         
     #-------------------------------------------------------
     def _rmmr(self, *args):
@@ -378,8 +497,8 @@ class SdcCore(QObject):
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
-        self._sock.empty()
-        resp    = self._sock.processing(data)
+        self._drc_sock.empty()
+        resp    = self._drc_sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
         if drc.check_resp(self._drc_msg_num, resp):
             return resp[1] + (resp[2] << 16)
         else:
@@ -395,13 +514,14 @@ class SdcCore(QObject):
     #-------------------------------------------------------
     def _wmmr(self, *args):
         rid     = args[0]()
-        datal   = args[1]
+        datal   = args[1] & 0xffff
         datah   = args[1] >> 16
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
-        self._sock.empty()
-        resp    = self._sock.processing(data)
+        self._drc_sock.empty()
+
+        resp    = self._drc_sock.processing(data)
         return drc.check_resp(self._drc_msg_num, resp)
         
     def wmmr(self, rid, data):
@@ -412,13 +532,14 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _dev_fun_exec(self, *args):
-        self._drc_msg_num += 1
+        self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.FUN_EXEC << drc.ID_TYPE_OFFSET)
         oc      = (args[0] & drc.OPCODE_MASK) + ((len(args) - 1) << drc.PCOUNT_OFFSET)
         hdr     = np.array( [id, oc], dtype=np.uint16 )
         params  = np.array( args[1:], dtype=np.uint16)
         data    = np.concatenate((hdr, params))
-        resp    = self._sock.processing(data)
+        self._drc_sock.empty()
+        resp    = self._drc_sock.processing(data)
         res     = drc.check_resp(self._drc_msg_num, resp)
         if res:
             return resp[1:]
@@ -475,6 +596,7 @@ class VframeThread(threading.Thread):
     #-------------------------------------------------------
     def run(self):
         self.core._vstream_ena = self.core.parent.sdc_core_opt['Start/Stop Video']
+        self.core._agc_ena     = self.core.parent.sdc_core_opt['Automatic Gain Control']
         self.core._camera_ena  = self.core.parent.sdc_core_opt['Start/Stop Camera']
         self.core._camvfg_ena  = self.core.parent.sdc_core_opt['Start/Stop CamVFG']
         while True:

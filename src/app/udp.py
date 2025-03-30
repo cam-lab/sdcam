@@ -30,6 +30,7 @@
 import threading
 from   socket import *
 import queue
+import time
 
 import numpy as np
 from   PyQt5.QtCore import QObject, pyqtSignal
@@ -37,9 +38,12 @@ from   PyQt5.QtCore import QObject, pyqtSignal
 from   logger import logger as lg
 
 
-host_ip   = '192.168.10.1'
-device_ip = '192.168.10.10'
-udp_port  = 50002
+HOST_IP   = '192.168.10.1'
+DEVICE_IP = '192.168.10.10'
+
+LB_PORT   = 50000
+CAM_PORT  = 50001
+DRC_PORT  = 50002
 
 command_queue = queue.Queue()
 
@@ -48,24 +52,33 @@ vhex = np.vectorize(hex)
 #-------------------------------------------------------------------------------
 class Socket(QObject):
 
+    socket_status_signal = pyqtSignal( int )
+
     #-------------------------------------------------------
-    def __init__(self):
+    def __init__(self, host_ip, port, device_ip):
         super().__init__()
+        
+        self.dev_ip = device_ip
+        self.port   = port
 
         self.sock = socket(AF_INET, SOCK_DGRAM)
         self.sock.settimeout(0.5)
-        self.sock.bind( (host_ip, udp_port) )
+        self.sock.bind( (host_ip, port) )
 
     #-------------------------------------------------------
     def processing(self, data):
-        self.sock.sendto(data, (device_ip, udp_port))
         try:
-            res = np.frombuffer( self.sock.recv(2048), dtype=np.uint16)
-            #lg.debug(vhex(res))
-            return res
-        except timeout:
-            lg.warning('socket timeout')
-            return None
+            self.sock.sendto(data, (self.dev_ip, self.port))
+            try:
+                res = np.frombuffer( self.sock.recv(2048), dtype=np.uint16)
+                #lg.debug(vhex(res))
+                return res
+            except timeout:
+                lg.warning('socket timeout')
+                return None
+            
+        except OSError as e:
+            lg.warning(e)
 
     #-------------------------------------------------------
     def empty(self):
@@ -89,6 +102,9 @@ class SocketThread(threading.Thread):
     def __init__(self, name='Socket Thread' ):
         super().__init__()
 
+        self.link_up = False
+        self.chksock = Socket(HOST_IP, LB_PORT, DEVICE_IP)
+
     #-------------------------------------------------------
     def finish(self):
         lg.info('Socket Thread pending to finish')
@@ -97,13 +113,30 @@ class SocketThread(threading.Thread):
     #-------------------------------------------------------
     def run(self):
         while True:
-            item = command_queue.get()
-            if item:
-                fun  = item[0]
-                args = item[1]
-                fun(*args)
+            data = np.arange(10, dtype=np.uint16)
+            res = self.chksock.processing(data)
+
+            if not isinstance(res, np.ndarray):
+                if self.link_up:
+                    lg.info('link down')
+                    self.link_up = False
+                    self.chksock.socket_status_signal.emit(0)
             else:
-                break
+                if not self.link_up:
+                    lg.info('link up')
+                    self.link_up = True
+                    self.chksock.socket_status_signal.emit(1)
+
+            time.sleep(1)
+
+            if not command_queue.empty():
+                item = command_queue.get()
+                if item:
+                    fun  = item[0]
+                    args = item[1]
+                    fun(*args)
+                else:
+                    break
             
         lg.info('udp socket thread::run exit')
             
