@@ -472,13 +472,13 @@ class MainWindow(QMainWindow):
         self.log.setWidget(self.log_widget)
         
     #---------------------------------------------------------------------------
-    def create_telemetry_window(self):
-        self.telemetry = QDockWidget('Telemetry', self, Qt.WindowCloseButtonHint)
-        self.telemetry.setObjectName('Telemetry Window')
-        self.telemetry.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
-        self.telemetry.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
-        self.telemetry_widget = TelemetryWidget(self)
-        self.telemetry.setWidget(self.telemetry_widget)
+    def create_statistics_window(self):
+        self.statistics = QDockWidget('Statistics', self, Qt.WindowCloseButtonHint)
+        self.statistics.setObjectName('Statistics Window')
+        self.statistics.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
+        self.statistics.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        self.statistics_widget = StatisticsWidget(self)
+        self.statistics.setWidget(self.statistics_widget)
 
     #---------------------------------------------------------------------------
     def create_dboard_window(self):
@@ -520,11 +520,11 @@ class MainWindow(QMainWindow):
         #
         self.setup_main_scene()
         self.create_log_window()
-        self.create_telemetry_window()
+        self.create_statistics_window()
         self.create_dboard_window()
 
         self.addDockWidget(Qt.BottomDockWidgetArea, self.log)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.telemetry)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.statistics)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.dboard_window)
         self.setCentralWidget(self.main_view)
         
@@ -627,7 +627,7 @@ class LogWidget(QTableWidget):
         self.scrollToBottom()
             
 #-------------------------------------------------------------------------------
-class TelemetryWidget(QTableWidget):
+class StatisticsWidget(QTableWidget):
 
     #-----------------------------------------------------------------
     def __init__(self, parent):

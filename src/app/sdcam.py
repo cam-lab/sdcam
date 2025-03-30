@@ -137,7 +137,7 @@ class Sdcam(QObject, InternalIPKernel):
         self.vfthread.core.frame_signal.connect(self.amthread.monitor.frame_slot, Qt.QueuedConnection)
         self.vfthread.core.fpa_temp_signal.connect(self.amthread.monitor.fpa_temp_slot, Qt.QueuedConnection)
         
-        self.amthread.monitor.update_data_signal.connect(self.mwin.telemetry_widget.update_slot, Qt.QueuedConnection)
+        self.amthread.monitor.update_data_signal.connect(self.mwin.statistics_widget.update_slot, Qt.QueuedConnection)
         self.mwin.rstatAction.triggered.connect(self.amthread.monitor.reset_statistics, Qt.QueuedConnection)
         
         self.usthread.chksock.socket_status_signal.connect(self.mwin.enable_cam_actions_slot, Qt.QueuedConnection)
