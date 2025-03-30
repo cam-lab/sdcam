@@ -70,7 +70,6 @@ class Nuc:
         self.fcnt       = 0;
         self.fpool      = []
         self.prep_rqst  = True
-        self.valid      = False
 
         self.host._wmmr(drc.cam.cr_c, 7 << 16)
         if self.host._wmmr(drc.cam.cr_s, (self.afcount + 1) << 16):
