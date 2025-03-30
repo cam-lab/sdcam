@@ -495,17 +495,17 @@ class MainWindow(QMainWindow):
         
         self.dbparams = DashBoardParamsWidget(self)
         
-        self.dboard_layout   = QGridLayout()
+        self.dboard_layout   = QHBoxLayout()
+        self.db_histo_layout = QVBoxLayout()
         
-        self.dboard_layout.addWidget(self.rhisto, 0, 0)
-        self.dboard_layout.addWidget(self.dbparams, 0, 1)
-        self.dboard_layout.addWidget(self.nhisto, 1, 0)
-        self.dboard_layout.addWidget(self.fhisto, 1, 1)
+        self.db_histo_layout.addWidget(self.rhisto)
+        self.db_histo_layout.addWidget(self.nhisto)
+        self.db_histo_layout.addWidget(self.fhisto)
         
-        self.dboard_layout.setColumnStretch(0, 1)
-        self.dboard_layout.setColumnStretch(1, 1)
-        self.dboard_layout.setRowStretch(0, 1)
-        self.dboard_layout.setRowStretch(1, 1)
+        self.dboard_layout.addLayout(self.db_histo_layout)
+        self.dboard_layout.addWidget(self.dbparams)
+        
+        self.dboard_layout.setStretchFactor(self.db_histo_layout, 4)
         
         self.multi_widget.setLayout(self.dboard_layout)
 
