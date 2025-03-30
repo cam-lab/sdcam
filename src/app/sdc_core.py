@@ -195,6 +195,9 @@ class SdcCore(QObject):
         self._kp = 0.5
         self._ka = 0.5
         
+        self.rhlow  = 900
+        self.rhhigh = 12000
+
         self.forg  = 900
         self.ftop  = 9000
         self.fgain = 1.0
@@ -376,11 +379,13 @@ class SdcCore(QObject):
             pbuf = self._f.pixbuf
             
             if self.nuc.valid:
-                self.df = pbuf + 2000 - self.nuc.cframe
+                self.df = pbuf + 4000 - self.nuc.cframe
                 self.ff = self.df.copy()
 
                 self.rhisto.update(self._f.pixbuf)
                 self.nhisto.update(self.df)
+                
+                self.rhlow, self.rhhigh = self.fbounds(self.rhisto.data, self.rhlow, self.rhhigh, 4)
 
                 if self._agc_ena:
                     self.forg, self.ftop = self.fbounds(self.nhisto.data, self.forg, self.ftop, 30)
@@ -396,7 +401,7 @@ class SdcCore(QObject):
                 if self.histo_cnt == 0:
                     gui.dboard_q.put( [(self.forg,  self.fgain),  self.rhisto, self.nhisto, self.fhisto] )
                     self.update_dashboard_signal.emit(0)
-                    self.forg_signal.emit([self.forg, self.fgain, pbuf.mean()])
+                    self.forg_signal.emit([self.forg, self.fgain, pbuf.mean(), self.rhlow, self.rhhigh])
 
                     self.histo_cnt = 8
                     

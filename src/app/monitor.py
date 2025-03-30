@@ -131,20 +131,23 @@ class StatParam:
     def __init__(self, min, max, buf_len = 16):
         self.buf = collections.deque(maxlen=buf_len)
 
-        self.value       = 0
-        self.mean        = 0
-        self.min         = min
-        self.max         = max
-        self.sdev        = 0
-        self.count       = 0
+        self.rst_min = min
+        self.rst_max = max
+
+        self.value   = 0
+        self.mean    = 0
+        self.min     = min
+        self.max     = max
+        self.sdev    = 0
+        self.count   = 0
         
     #-------------------------------------------------------
     def reset(self):
         self.buf.clear()
         self.value       = 0
         self.mean        = 0
-        self.min         = 100
-        self.max         = -100
+        self.min         = self.rst_min
+        self.max         = self.rst_max
         self.sdev        = 0
         self.count       = 0
         
@@ -183,6 +186,8 @@ class AppMonitor(QObject):
         self.forg      = StatParam(2**14, 0)
         self.fgain     = StatParam(30, 0)
         self.rfmean    = StatParam(2**14, 0)
+        self.rhlow     = StatParam(2**14, 0)
+        self.rhhigh    = StatParam(2**14, 0)
         
         self._reset_stat_event = threading.Event()
         
@@ -207,6 +212,8 @@ class AppMonitor(QObject):
             self.forg.reset()
             self.fgain.reset()
             self.rfmean.reset()
+            self.rhlow.reset()
+            self.rhhigh.reset()
             self.update_data_signal.emit([0, self.dev_fps])
             self.update_data_signal.emit([1, self.sdc_fps])
             return
@@ -227,10 +234,14 @@ class AppMonitor(QObject):
         forg   = data[0]
         fgain  = data[1]
         rfmean = data[2]
+        rhlow  = data[3]
+        rhhigh = data[4]
         self.forg.processing(forg)
         self.fgain.processing(fgain)
         self.rfmean.processing(rfmean)
-        self.update_data_signal.emit([3, [self.forg, self.fgain, self.rfmean]])
+        self.rhlow.processing(rhlow)
+        self.rhhigh.processing(rhhigh)
+        self.update_data_signal.emit([3, [self.forg, self.fgain, self.rfmean, self.rhlow, self.rhhigh]])
 
     #-------------------------------------------------------
     def reset_statistics(self):

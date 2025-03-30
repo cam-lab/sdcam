@@ -643,7 +643,7 @@ class StatisticsWidget(QTableWidget):
         self.setAlternatingRowColors(True)
         self.setHorizontalHeaderLabels( ['Name', 'Value', 'Mean', 'Min', 'Max', 'SDev', 'Count'] )
 
-        self.setRowCount(6)
+        self.setRowCount(8)
         
 
         self.DEV      = 0
@@ -651,7 +651,9 @@ class StatisticsWidget(QTableWidget):
         self.FPA_TEMP = 2
         self.FORG     = 3
         self.FGAIN    = 4
-        self.RFMEAN   = 5
+        self.RFMEAN   = 5       # raw frame mean value
+        self.RHLOW    = 6       # raw historgam low
+        self.RHHIGH   = 7       # raw historgam high
         
         self.NAME  = 0
         self.VALUE = 1
@@ -666,7 +668,9 @@ class StatisticsWidget(QTableWidget):
         self.setItem(self.FPA_TEMP, self.NAME, self.create_item('FPA Temp °C') )
         self.setItem(self.FORG,     self.NAME, self.create_item('Frame Origin') )
         self.setItem(self.FGAIN,    self.NAME, self.create_item('Frame Gain') )
-        self.setItem(self.RFMEAN,    self.NAME, self.create_item('Raw Frame Mean') )
+        self.setItem(self.RFMEAN,   self.NAME, self.create_item('Raw Frame Mean') )
+        self.setItem(self.RHLOW,    self.NAME, self.create_item('Raw Historgam Low') )
+        self.setItem(self.RHHIGH,   self.NAME, self.create_item('Raw Historgam High') )
 
         self.create_items(self.DEV)
         self.create_items(self.SDC)
@@ -674,6 +678,8 @@ class StatisticsWidget(QTableWidget):
         self.create_items(self.FORG)
         self.create_items(self.FGAIN)
         self.create_items(self.RFMEAN)
+        self.create_items(self.RHLOW)
+        self.create_items(self.RHHIGH)
 
     #-----------------------------------------------------------------
     def create_items(self, idx):
@@ -730,6 +736,8 @@ class StatisticsWidget(QTableWidget):
             forg   = msg[1][0]
             fgain  = msg[1][1]
             rfmean = msg[1][2]
+            rhlow  = msg[1][3]
+            rhhigh = msg[1][4]
 
             self.item(self.FORG, self.VALUE).setText ('{:.0f}'.format(forg.value))
             self.item(self.FORG, self.MEAN).setText  ('{:.0f}'.format(forg.mean))
@@ -751,6 +759,20 @@ class StatisticsWidget(QTableWidget):
             self.item(self.RFMEAN, self.MAX).setText   ('{:.0f}'.format(rfmean.max))
             self.item(self.RFMEAN, self.SDEV).setText  ('{:.0f}'.format(rfmean.sdev))
             self.item(self.RFMEAN, self.CNT).setText   (   '{:}'.format(rfmean.count))
+
+            self.item(self.RHLOW, self.VALUE).setText ('{:.0f}'.format(rhlow.value))
+            self.item(self.RHLOW, self.MEAN).setText  ('{:.0f}'.format(rhlow.mean))
+            self.item(self.RHLOW, self.MIN).setText   ('{:.0f}'.format(rhlow.min))
+            self.item(self.RHLOW, self.MAX).setText   ('{:.0f}'.format(rhlow.max))
+            self.item(self.RHLOW, self.SDEV).setText  ('{:.0f}'.format(rhlow.sdev))
+            self.item(self.RHLOW, self.CNT).setText   (   '{:}'.format(rhlow.count))
+            
+            self.item(self.RHHIGH, self.VALUE).setText ('{:.0f}'.format(rhhigh.value))
+            self.item(self.RHHIGH, self.MEAN).setText  ('{:.0f}'.format(rhhigh.mean))
+            self.item(self.RHHIGH, self.MIN).setText   ('{:.0f}'.format(rhhigh.min))
+            self.item(self.RHHIGH, self.MAX).setText   ('{:.0f}'.format(rhhigh.max))
+            self.item(self.RHHIGH, self.SDEV).setText  ('{:.0f}'.format(rhhigh.sdev))
+            self.item(self.RHHIGH, self.CNT).setText   (   '{:}'.format(rhhigh.count))
 
 #-------------------------------------------------------------------------------
 class DashBoardParamsWidget(QTableWidget):
