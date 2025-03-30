@@ -724,7 +724,8 @@ class StatisticsWidget(QTableWidget):
             self.item(self.FPA_TEMP, self.CNT).setText   (   '{:}'.format(fpa_temp.count))
 
         if msg[0] == 3:
-            forg = msg[1]
+            forg  = msg[1][0]
+            fgain = msg[1][1]
 
             self.item(self.FORG, self.VALUE).setText ('{:.0f}'.format(forg.value))
             self.item(self.FORG, self.MEAN).setText  ('{:.0f}'.format(forg.mean))
@@ -732,9 +733,6 @@ class StatisticsWidget(QTableWidget):
             self.item(self.FORG, self.MAX).setText   ('{:.0f}'.format(forg.max))
             self.item(self.FORG, self.SDEV).setText  ('{:.0f}'.format(forg.sdev))
             self.item(self.FORG, self.CNT).setText   (   '{:}'.format(forg.count))
-
-        if msg[0] == 4:
-            fgain = msg[1]
 
             self.item(self.FGAIN, self.VALUE).setText ('{:.2f}'.format(fgain.value))
             self.item(self.FGAIN, self.MEAN).setText  ('{:.2f}'.format(fgain.mean))
@@ -764,9 +762,6 @@ class DashBoardParamsWidget(QTableWidget):
 
         self.setRowCount(4)
         
-        self.setItem(self.FORG,  0, self.create_item('x') )
-        self.setItem(self.FGAIN, 0, self.create_item('x') )
-        
     def create_item(self, val=''):
 
         item = QTableWidgetItem(val)
@@ -776,8 +771,7 @@ class DashBoardParamsWidget(QTableWidget):
         return item
 
     def update(self, params):
-        self.item(self.FORG,  0).setText('{}'.format(params[0]))
-        self.item(self.FGAIN, 0).setText('{:.2f}'.format(params[1]))
+        pass
 
 
 #-------------------------------------------------------------------------------

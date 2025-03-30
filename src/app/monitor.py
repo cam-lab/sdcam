@@ -222,12 +222,11 @@ class AppMonitor(QObject):
 
     #-------------------------------------------------------
     def forg_slot(self, data):
-        forg  = data[0]
-        fgain = data[1]
+        forg   = data[0]
+        fgain  = data[1]
         self.forg.processing(forg)
         self.fgain.processing(fgain)
-        self.update_data_signal.emit([3, self.forg])
-        self.update_data_signal.emit([4, self.fgain])
+        self.update_data_signal.emit([3, [self.forg, self.fgain]])
 
     #-------------------------------------------------------
     def reset_statistics(self):
