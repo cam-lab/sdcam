@@ -643,7 +643,7 @@ class StatisticsWidget(QTableWidget):
         self.setAlternatingRowColors(True)
         self.setHorizontalHeaderLabels( ['Name', 'Value', 'Mean', 'Min', 'Max', 'SDev', 'Count'] )
 
-        self.setRowCount(5)
+        self.setRowCount(6)
         
 
         self.DEV      = 0
@@ -651,6 +651,7 @@ class StatisticsWidget(QTableWidget):
         self.FPA_TEMP = 2
         self.FORG     = 3
         self.FGAIN    = 4
+        self.RFMEAN   = 5
         
         self.NAME  = 0
         self.VALUE = 1
@@ -665,12 +666,14 @@ class StatisticsWidget(QTableWidget):
         self.setItem(self.FPA_TEMP, self.NAME, self.create_item('FPA Temp °C') )
         self.setItem(self.FORG,     self.NAME, self.create_item('Frame Origin') )
         self.setItem(self.FGAIN,    self.NAME, self.create_item('Frame Gain') )
+        self.setItem(self.RFMEAN,    self.NAME, self.create_item('Raw Frame Mean') )
 
         self.create_items(self.DEV)
         self.create_items(self.SDC)
         self.create_items(self.FPA_TEMP)
         self.create_items(self.FORG)
         self.create_items(self.FGAIN)
+        self.create_items(self.RFMEAN)
 
     #-----------------------------------------------------------------
     def create_items(self, idx):
@@ -724,8 +727,9 @@ class StatisticsWidget(QTableWidget):
             self.item(self.FPA_TEMP, self.CNT).setText   (   '{:}'.format(fpa_temp.count))
 
         if msg[0] == 3:
-            forg  = msg[1][0]
-            fgain = msg[1][1]
+            forg   = msg[1][0]
+            fgain  = msg[1][1]
+            rfmean = msg[1][2]
 
             self.item(self.FORG, self.VALUE).setText ('{:.0f}'.format(forg.value))
             self.item(self.FORG, self.MEAN).setText  ('{:.0f}'.format(forg.mean))
@@ -741,6 +745,12 @@ class StatisticsWidget(QTableWidget):
             self.item(self.FGAIN, self.SDEV).setText  ('{:.2f}'.format(fgain.sdev))
             self.item(self.FGAIN, self.CNT).setText   (   '{:}'.format(fgain.count))
 
+            self.item(self.RFMEAN, self.VALUE).setText ('{:.0f}'.format(rfmean.value))
+            self.item(self.RFMEAN, self.MEAN).setText  ('{:.0f}'.format(rfmean.mean))
+            self.item(self.RFMEAN, self.MIN).setText   ('{:.0f}'.format(rfmean.min))
+            self.item(self.RFMEAN, self.MAX).setText   ('{:.0f}'.format(rfmean.max))
+            self.item(self.RFMEAN, self.SDEV).setText  ('{:.0f}'.format(rfmean.sdev))
+            self.item(self.RFMEAN, self.CNT).setText   (   '{:}'.format(rfmean.count))
 
 #-------------------------------------------------------------------------------
 class DashBoardParamsWidget(QTableWidget):

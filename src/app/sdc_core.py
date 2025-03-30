@@ -396,7 +396,7 @@ class SdcCore(QObject):
                 if self.histo_cnt == 0:
                     gui.dboard_q.put( [(self.forg,  self.fgain),  self.rhisto, self.nhisto, self.fhisto] )
                     self.update_dashboard_signal.emit(0)
-                    self.forg_signal.emit([self.forg, self.fgain])
+                    self.forg_signal.emit([self.forg, self.fgain, pbuf.mean()])
 
                     self.histo_cnt = 8
                     

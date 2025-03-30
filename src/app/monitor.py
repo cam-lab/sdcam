@@ -182,6 +182,7 @@ class AppMonitor(QObject):
         self.fpa_temp  = StatParam(100, -100)
         self.forg      = StatParam(2**14, 0)
         self.fgain     = StatParam(30, 0)
+        self.rfmean    = StatParam(2**14, 0)
         
         self._reset_stat_event = threading.Event()
         
@@ -205,6 +206,7 @@ class AppMonitor(QObject):
             self.fpa_temp.reset()
             self.forg.reset()
             self.fgain.reset()
+            self.rfmean.reset()
             self.update_data_signal.emit([0, self.dev_fps])
             self.update_data_signal.emit([1, self.sdc_fps])
             return
@@ -224,9 +226,11 @@ class AppMonitor(QObject):
     def forg_slot(self, data):
         forg   = data[0]
         fgain  = data[1]
+        rfmean = data[2]
         self.forg.processing(forg)
         self.fgain.processing(fgain)
-        self.update_data_signal.emit([3, [self.forg, self.fgain]])
+        self.rfmean.processing(rfmean)
+        self.update_data_signal.emit([3, [self.forg, self.fgain, self.rfmean]])
 
     #-------------------------------------------------------
     def reset_statistics(self):
