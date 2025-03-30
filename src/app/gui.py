@@ -643,12 +643,14 @@ class StatisticsWidget(QTableWidget):
         self.setAlternatingRowColors(True)
         self.setHorizontalHeaderLabels( ['Name', 'Value', 'Mean', 'Min', 'Max', 'SDev', 'Count'] )
 
-        self.setRowCount(4)
+        self.setRowCount(5)
         
 
         self.DEV      = 0
         self.SDC      = 1
         self.FPA_TEMP = 2
+        self.FORG     = 3
+        self.FGAIN    = 4
         
         self.NAME  = 0
         self.VALUE = 1
@@ -661,27 +663,23 @@ class StatisticsWidget(QTableWidget):
         self.setItem(self.DEV,      self.NAME, self.create_item('Device Camera FPS') )
         self.setItem(self.SDC,      self.NAME, self.create_item('SD Camera FPS') )
         self.setItem(self.FPA_TEMP, self.NAME, self.create_item('FPA Temp °C') )
+        self.setItem(self.FORG,     self.NAME, self.create_item('Frame Origin') )
+        self.setItem(self.FGAIN,    self.NAME, self.create_item('Frame Gain') )
 
-        self.setItem(self.DEV, self.VALUE, self.create_item() )
-        self.setItem(self.DEV, self.MEAN,  self.create_item() )
-        self.setItem(self.DEV, self.MIN,   self.create_item() )
-        self.setItem(self.DEV, self.MAX,   self.create_item() )
-        self.setItem(self.DEV, self.SDEV,  self.create_item() )
-        self.setItem(self.DEV, self.CNT,   self.create_item() )
-        
-        self.setItem(self.SDC, self.VALUE, self.create_item() )
-        self.setItem(self.SDC, self.MEAN,  self.create_item() )
-        self.setItem(self.SDC, self.MIN,   self.create_item() )
-        self.setItem(self.SDC, self.MAX,   self.create_item() )
-        self.setItem(self.SDC, self.SDEV,  self.create_item() )
-        self.setItem(self.SDC, self.CNT,   self.create_item() )
+        self.create_items(self.DEV)
+        self.create_items(self.SDC)
+        self.create_items(self.FPA_TEMP)
+        self.create_items(self.FORG)
+        self.create_items(self.FGAIN)
 
-        self.setItem(self.FPA_TEMP, self.VALUE, self.create_item() )
-        self.setItem(self.FPA_TEMP, self.MEAN,  self.create_item() )
-        self.setItem(self.FPA_TEMP, self.MIN,   self.create_item() )
-        self.setItem(self.FPA_TEMP, self.MAX,   self.create_item() )
-        self.setItem(self.FPA_TEMP, self.SDEV,  self.create_item() )
-        self.setItem(self.FPA_TEMP, self.CNT,   self.create_item() )
+    #-----------------------------------------------------------------
+    def create_items(self, idx):
+        self.setItem(idx, self.VALUE, self.create_item() )
+        self.setItem(idx, self.MEAN,  self.create_item() )
+        self.setItem(idx, self.MIN,   self.create_item() )
+        self.setItem(idx, self.MAX,   self.create_item() )
+        self.setItem(idx, self.SDEV,  self.create_item() )
+        self.setItem(idx, self.CNT,   self.create_item() )
 
     #-----------------------------------------------------------------
     def create_item(self, val=''):
@@ -725,6 +723,26 @@ class StatisticsWidget(QTableWidget):
             self.item(self.FPA_TEMP, self.SDEV).setText  ('{:.3f}'.format(fpa_temp.sdev))
             self.item(self.FPA_TEMP, self.CNT).setText   (   '{:}'.format(fpa_temp.count))
 
+        if msg[0] == 3:
+            forg = msg[1]
+
+            self.item(self.FORG, self.VALUE).setText ('{:.0f}'.format(forg.value))
+            self.item(self.FORG, self.MEAN).setText  ('{:.0f}'.format(forg.mean))
+            self.item(self.FORG, self.MIN).setText   ('{:.0f}'.format(forg.min))
+            self.item(self.FORG, self.MAX).setText   ('{:.0f}'.format(forg.max))
+            self.item(self.FORG, self.SDEV).setText  ('{:.0f}'.format(forg.sdev))
+            self.item(self.FORG, self.CNT).setText   (   '{:}'.format(forg.count))
+
+        if msg[0] == 4:
+            fgain = msg[1]
+
+            self.item(self.FGAIN, self.VALUE).setText ('{:.2f}'.format(fgain.value))
+            self.item(self.FGAIN, self.MEAN).setText  ('{:.2f}'.format(fgain.mean))
+            self.item(self.FGAIN, self.MIN).setText   ('{:.2f}'.format(fgain.min))
+            self.item(self.FGAIN, self.MAX).setText   ('{:.2f}'.format(fgain.max))
+            self.item(self.FGAIN, self.SDEV).setText  ('{:.2f}'.format(fgain.sdev))
+            self.item(self.FGAIN, self.CNT).setText   (   '{:}'.format(fgain.count))
+
 
 #-------------------------------------------------------------------------------
 class DashBoardParamsWidget(QTableWidget):
@@ -741,14 +759,11 @@ class DashBoardParamsWidget(QTableWidget):
         self.verticalHeader().setDefaultSectionSize(20)
         self.setTabKeyNavigation(False)
         self.setAlternatingRowColors(True)
-        self.setVerticalHeaderLabels( ['FOrg', 'FGain', 'VPB', 'VBB', 'VREF', 'ADC VREF'] )
+        self.setVerticalHeaderLabels( ['VPB', 'VBB', 'VREF', 'ADC VREF'] )
         self.setHorizontalHeaderLabels( ['Value'] )
 
-        self.setRowCount(6)
+        self.setRowCount(4)
         
-        self.FORG  = 0
-        self.FGAIN = 1
-
         self.setItem(self.FORG,  0, self.create_item('x') )
         self.setItem(self.FGAIN, 0, self.create_item('x') )
         

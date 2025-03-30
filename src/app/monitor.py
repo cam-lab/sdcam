@@ -126,15 +126,15 @@ class FrameParam:
         return False
 
 #-------------------------------------------------------------------------------
-class FpaTemp:
+class StatParam:
     #-------------------------------------------------------
-    def __init__(self, buf_len = 16):
+    def __init__(self, min, max, buf_len = 16):
         self.buf = collections.deque(maxlen=buf_len)
 
         self.value       = 0
         self.mean        = 0
-        self.min         = 100
-        self.max         = -100
+        self.min         = min
+        self.max         = max
         self.sdev        = 0
         self.count       = 0
         
@@ -162,7 +162,7 @@ class FpaTemp:
             
         self.sdev = a.std()
         self.count += 1
-        
+
 #-------------------------------------------------------------------------------
 class AppMonitor(QObject):
 
@@ -177,9 +177,11 @@ class AppMonitor(QObject):
         self.frame_count = 0
         self.prev_fcount = 0
 
-        self.dev_fps  = FrameParam()
-        self.sdc_fps  = FrameParam()
-        self.fpa_temp = FpaTemp()
+        self.dev_fps   = FrameParam()
+        self.sdc_fps   = FrameParam()
+        self.fpa_temp  = StatParam(100, -100)
+        self.forg      = StatParam(2**14, 0)
+        self.fgain     = StatParam(30, 0)
         
         self._reset_stat_event = threading.Event()
         
@@ -201,9 +203,10 @@ class AppMonitor(QObject):
             self.dev_fps.reset()
             self.sdc_fps.reset()
             self.fpa_temp.reset()
+            self.forg.reset()
+            self.fgain.reset()
             self.update_data_signal.emit([0, self.dev_fps])
             self.update_data_signal.emit([1, self.sdc_fps])
-            self.update_data_signal.emit([2, self.fpa_temp])
             return
 
         if self.dev_fps.processing(tstamp):
@@ -216,6 +219,15 @@ class AppMonitor(QObject):
     def fpa_temp_slot(self, temp):
         self.fpa_temp.processing(temp)
         self.update_data_signal.emit([2, self.fpa_temp])
+
+    #-------------------------------------------------------
+    def forg_slot(self, data):
+        forg  = data[0]
+        fgain = data[1]
+        self.forg.processing(forg)
+        self.fgain.processing(fgain)
+        self.update_data_signal.emit([3, self.forg])
+        self.update_data_signal.emit([4, self.fgain])
 
     #-------------------------------------------------------
     def reset_statistics(self):

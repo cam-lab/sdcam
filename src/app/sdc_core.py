@@ -134,6 +134,7 @@ class SdcCore(QObject):
     display_frame_signal    = pyqtSignal( int )
     update_dashboard_signal = pyqtSignal( int )
     fpa_temp_signal         = pyqtSignal( float )
+    forg_signal             = pyqtSignal( list )
     
     #-------------------------------------------------------
     def __init__(self, parent):
@@ -395,6 +396,8 @@ class SdcCore(QObject):
                 if self.histo_cnt == 0:
                     gui.dboard_q.put( [(self.forg,  self.fgain),  self.rhisto, self.nhisto, self.fhisto] )
                     self.update_dashboard_signal.emit(0)
+                    self.forg_signal.emit([self.forg, self.fgain])
+
                     self.histo_cnt = 8
                     
             else:
