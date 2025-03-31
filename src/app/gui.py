@@ -680,6 +680,12 @@ class StatisticsWidget(QTableWidget):
         self.create_items(self.RFMEAN)
         self.create_items(self.RHLOW)
         self.create_items(self.RHHIGH)
+        
+        self.item(self.FORG, self.VALUE).setBackground(QColor('#FFFF99'))
+        self.item(self.FORG, self.VALUE).setForeground(QColor('#0000CC'))
+
+        self.item(self.RFMEAN, self.VALUE).setBackground(QColor('#99ff99'))
+        self.item(self.RFMEAN, self.VALUE).setForeground(QColor('#0000CC'))
 
     #-----------------------------------------------------------------
     def create_items(self, idx):
