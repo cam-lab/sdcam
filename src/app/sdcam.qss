@@ -57,7 +57,7 @@ QMenu::item {
 QTableWidget {
     font-size: 14pt;
     font-family: Terminus Re33;
-    alternate-background-color: #262624;
+    alternate-background-color: #404040;
     background-color: #17140C;
 } 
 QTableWidget::item {
@@ -65,3 +65,6 @@ QTableWidget::item {
     padding: 0px;
 } 
 
+LogWidget {
+    alternate-background-color: #202020;
+}
