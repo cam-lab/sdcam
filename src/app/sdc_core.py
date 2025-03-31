@@ -209,28 +209,36 @@ class SdcCore(QObject):
         self.fhisto = Histogram(2**10)
 
         self.nhisto.top = 2000
+        
         #-----------------------------------------
         #
         #    Adapter Board DAC
         #
-
         self.dac = {
-            'VREF'         : [0x19, 2300],
-            'VPB'          : [0x1b, 2900],
-            'VBB'          : [0x1c, 2000],
-            'ADC_DRV_VREF' : [0x1a, 1500]
+            'VREF'    : [0x19, 2300],
+            'VPB'     : [0x1b, 2900],
+            'VBB'     : [0x1c, 2000],
+            'ADVREF'  : [0x1a, 1500]
         }
 
-#       self.VREF         = 0x19
-#       self.VPB          = 0x1b
-#       self.VBB          = 0x1c
-#       self.ADC_DRV_VREF = 0x1a
-#
-#       self.vref         = 2300
-#       self.vpb          = 2900
-#       self.vbb          = 2000
-#       self.adc_drv_vref = 1500
-
+        #-----------------------------------------
+        #
+        #    VM1765 Parameters
+        #
+        self.det = {
+            'GAIN' : {
+                        '1.00'  : 0x7,
+                        '1.125' : 0x3,
+                        '1.129' : 0x5,
+                        '1.50'  : 0x1,
+                        '1.80'  : 0x6,
+                        '2.25'  : 0x2,
+                        '3.00'  : 0x4,
+                        '4.50'  : 0x0
+                     },
+            'HFLIP' : { 'Yes' : 0, 'No' : 1 },
+            'VFLIP' : { 'Yes' : 0, 'No' : 1 }
+        }
         
         #-----------------------------------------
         #
