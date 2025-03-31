@@ -39,11 +39,11 @@ from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
                              QVBoxLayout, QHBoxLayout, QGridLayout, QSplitter, QGraphicsView,
                              QFrame, QGraphicsPixmapItem, QGraphicsItem, 
-                             QDockWidget, QAction)
+                             QDockWidget, QAction, QShortcut)
 
-from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
-                             QHeaderView, QRubberBand)
-from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform, QPen, QBrush
+from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, QTreeWidget, QTreeWidgetItem,
+                             QHeaderView, QRubberBand, QComboBox, QStyledItemDelegate)
+from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform, QPen, QBrush, QKeySequence
 from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QRectF, QPoint, QPointF, QSize
 from PyQt5.QtCore    import QT_VERSION_STR
 
@@ -218,15 +218,16 @@ class MainWindow(QMainWindow):
     close_signal = pyqtSignal()
     
     #---------------------------------------------------------------------------
-    def __init__(self, app, parent):
+    def __init__(self, app, sdc, parent):
 
         super().__init__()
 
-        self.app   = app
+        self.app    = app
+        self.sdc    = sdc
         self.parent = parent
 
         self.initUI()
-
+        
         self.zoom         = 1.0
         self.view_cpos_x  = 0
         self.view_cpos_y  = 0
@@ -238,6 +239,17 @@ class MainWindow(QMainWindow):
         
         self.bad_pix = BadPix()
         
+        #-------------------------------------------------------------
+        #
+        #    Dashboard Parameters focus management
+        #
+        self.dbparams.setFocus()
+        self.dbparams_focus_shortcut = QShortcut(QKeySequence(Qt.Key_F4), self)
+        self.dbparams_focus_shortcut.activated.connect(self.set_focus_to_dbparams_slot)
+        
+    #---------------------------------------------------------------------------
+    def set_focus_to_dbparams_slot(self):
+        self.dbparams.setFocus()
         
     #---------------------------------------------------------------------------
     def set_title(self, text = ''):
@@ -781,35 +793,178 @@ class StatisticsWidget(QTableWidget):
             self.item(self.RHHIGH, self.CNT).setText   (   '{:}'.format(rhhigh.count))
 
 #-------------------------------------------------------------------------------
-class DashBoardParamsWidget(QTableWidget):
+class ComboBox(QComboBox):
 
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setFocusPolicy(Qt.StrongFocus)
+
+    def keyPressEvent(self, e):
+        key = e.key()
+        mod = e.modifiers()
+        if key == Qt.Key_Down or key == Qt.Key_Up:
+            if not mod:
+                QApplication.sendEvent( self.parent(), e )
+                return
+            elif mod == Qt.AltModifier:
+                self.showPopup()
+
+        QComboBox.keyPressEvent(self, e)
+
+
+    def set_index(self, text):
+        items = [self.itemText(i) for i in range(self.count()) ]
+        self.setCurrentIndex( items.index(text) )
+        
+#-------------------------------------------------------------------------------
+class DashboardItemDelegate(QStyledItemDelegate):
+
+    TEXT_DELEGATE = 0
+    CBOX_DELEGATE = 1
+
+    #----------------------------------------------------------------
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.editors = {}
+    #----------------------------------------------------------------
+    def clear_editor_data(self):
+        self.editors = {}
+    #----------------------------------------------------------------
+    def add_editor_data(self, name, editor_type, editor_data = []):
+        self.editors[name] = [editor_type, editor_data]
+        
+    #----------------------------------------------------------------
+    def createEditor(self, parent, option, idx):
+        if idx.column() == 1:
+            name = idx.sibling(idx.row(), 0).data()
+            etype = self.editors[name][0]
+            if etype == self.TEXT_DELEGATE:
+                editor = QStyledItemDelegate.createEditor(self, parent, option, idx)
+                return editor
+            else:
+                editor = ComboBox(parent)
+                editor.setEnabled(True)
+                editor.setEditable(False)
+                editor.addItems( self.editors[name][1] )
+                return editor
+    #----------------------------------------------------------------
+    def setEditorData(self, editor, idx):
+        #print(editor.metaObject().className() )
+        name = idx.sibling(idx.row(), 0).data()
+        if self.editors[name][0] == self.TEXT_DELEGATE:
+            QStyledItemDelegate.setEditorData(self, editor, idx)
+        else:
+            value = idx.model().data(idx, Qt.EditRole)
+            editor.set_index(value)
+            
+    #----------------------------------------------------------------
+    def setModelData(self, editor, model, idx):
+        name = idx.sibling(idx.row(), 0).data()
+        if self.editors[name][0] == self.TEXT_DELEGATE:
+            QStyledItemDelegate.setModelData(self, editor, model, idx)
+        else:
+            value = editor.currentText()
+            values = self.editors[name][1]
+            if value not in values:
+                values.append(value)
+
+            QStyledItemDelegate.setModelData(self, editor, model, idx)
+            
+    #----------------------------------------------------------------
+    def paint(self, painter, option, idx):
+        painter.save()
+
+        # set background color
+        painter.setPen(QPen(Qt.NoPen))
+
+        if idx.column() == 0:
+            painter.setBrush(QBrush(QColor('#393939')))
+        else:
+            painter.setBrush(QBrush(Qt.transparent))
+
+        if not idx.parent().isValid():
+            painter.setBrush(QBrush(QColor(0xFF, 0xDC, 0xA4) ) )
+
+        painter.drawRect(option.rect)
+
+        # draw the rest
+        QStyledItemDelegate.paint(self, painter, option, idx)
+
+        painter.restore()
+
+#-------------------------------------------------------------------------------
+class DashBoardParamsWidget(QTreeWidget):
+
+    colNAME = 0
+    colDATA = 1
+    
     #-----------------------------------------------------------------
     def __init__(self, parent):
-        super().__init__(6, 1, parent)
-
-        self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
-        self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
-        self.horizontalHeader().resizeSection(0, 200)
-        self.horizontalHeader().setStretchLastSection(True)
-        self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.verticalHeader().setDefaultSectionSize(20)
-        self.setTabKeyNavigation(False)
-        self.setAlternatingRowColors(True)
-        self.setVerticalHeaderLabels( ['VPB', 'VBB', 'VREF', 'ADC VREF'] )
-        self.setHorizontalHeaderLabels( ['Value'] )
-
-        self.setRowCount(4)
+        super().__init__(parent)
         
-    def create_item(self, val=''):
+        sdc = parent.sdc
 
-        item = QTableWidgetItem(val)
-        item.setForeground(QColor('#F0F0F0'))
-        item.setTextAlignment(Qt.AlignTop)
+        self.setIndentation(16)
+        self.setColumnCount(2)
+        self.header().resizeSection(2, 10)
+        self.header().setSectionResizeMode(self.colNAME, QHeaderView.Interactive)
+        self.setHeaderLabels( ('Name', 'Value') );
+        self.dac_items = self.addParent(self, 0, 'DAC', '')
+        self.det_items = self.addParent(self, 0, 'DET', '')
+        
+        self.ItemsDelegate = DashboardItemDelegate(self)
+        self.setItemDelegate(self.ItemsDelegate)
 
+        for idx, i in enumerate(sdc.dac):
+            item = self.addChild(self.dac_items, i, sdc.dac[i][1])
+            if idx == 0:
+                self.setCurrentItem(item)
+                
+            self.ItemsDelegate.add_editor_data(i, self.ItemsDelegate.TEXT_DELEGATE)
+        
+        for idx, i in enumerate(sdc.det):
+            item = self.addChild(self.det_items, i, list(sdc.det[i].keys())[0])
+            self.ItemsDelegate.add_editor_data(i, self.ItemsDelegate.CBOX_DELEGATE, sdc.det[i].keys())
+
+        self.itemActivated.connect(self.item_activated)
+        
+    #---------------------------------------------------------------------------
+    def addParent(self, parent, column, title, data):
+        item = QTreeWidgetItem(parent, [title])
+        item.setData(column, Qt.UserRole, data)
+        item.setExpanded (True)
+        item.setFlags(Qt.ItemIsEnabled)
         return item
 
+    #---------------------------------------------------------------------------
+    def addChild(self, parent, title, data, flags=Qt.NoItemFlags):
+        item = QTreeWidgetItem(parent, [title])
+        item.setData(self.colDATA, Qt.DisplayRole, data)
+        item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable | flags)
+        return item
+
+    #---------------------------------------------------------------------------
+    def item_activated(self, item, col):
+        self.editItem(item, self.colDATA)
+        
+    #---------------------------------------------------------------------------
+    def curr_item_changed(self, item, prev):
+        idx    = self.indexFromItem(prev, self.colDATA)
+        editor = self.indexWidget(idx)
+
+        if editor:
+            #print(editor)
+            self.commitData(editor)
+            self.closeEditor(editor, QAbstractItemDelegate.NoHint)
+
+        self.editItem(item, self.colDATA)
+        self.item_clicked(item, self.colNAME)
+    
+    #---------------------------------------------------------------------------
     def update(self, params):
         pass
+
+    #---------------------------------------------------------------------------
 
 
 #-------------------------------------------------------------------------------

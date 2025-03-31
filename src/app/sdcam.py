@@ -101,7 +101,7 @@ class Sdcam(QObject, InternalIPKernel):
         #
         #    Main window
         #
-        self.mwin = gui.MainWindow(app, self)
+        self.mwin = gui.MainWindow(app, sdc, self)
         lg.info('start main window')
 
         #-------------------------------------------------------------
