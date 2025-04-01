@@ -42,7 +42,7 @@ from PyQt5.QtCore    import QT_VERSION_STR
 
 from QCustomPlot_PyQt5 import *
 
-from logger   import logger as lg
+from logger import logger as lg
 
 #-------------------------------------------------------------------------------
 class ComboBox(QComboBox):
