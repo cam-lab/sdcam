@@ -44,6 +44,8 @@ from QCustomPlot_PyQt5 import *
 
 from logger import logger as lg
 
+import drc
+
 #-------------------------------------------------------------------------------
 class ComboBox(QComboBox):
 
@@ -175,7 +177,7 @@ class DashBoardParamsWidget(QTreeWidget):
             self.ItemsDelegate.add_editor_data(i, self.ItemsDelegate.TEXT_DELEGATE)
         
         for idx, i in enumerate(self.sdc.det):
-            item = self.addChild(self.det_items, i, list(self.sdc.det[i].keys())[0])
+            item = self.addChild(self.det_items, i, list(self.sdc.det[i])[0])
             self.ItemsDelegate.add_editor_data(i, self.ItemsDelegate.CBOX_DELEGATE, self.sdc.det[i].keys())
 
         self.itemActivated.connect(self.item_activated)
@@ -207,6 +209,17 @@ class DashBoardParamsWidget(QTreeWidget):
             param_value = int(item.text(self.colDATA))
             
             self.sdc.set_dac(param_name, param_value)
+            
+        elif item.parent().text(self.colNAME) == 'DET':
+            param_name  = item.text(self.colNAME)
+            param_value = item.text(self.colDATA)
+            code        = self.sdc.det[param_name][param_value]
+            lg.info('name: {}, value: {}, code: {}'.format(param_name, param_value, code))
+
+            if param_name == list(self.sdc.det)[0]:
+                self.sdc._wmmr(drc.cam.dba_dgr, code)
+                self.sdc._wmmr(drc.cam.dba_csr, 0xa)
+                
 
     #---------------------------------------------------------------------------
     def curr_item_changed(self, item, prev):
