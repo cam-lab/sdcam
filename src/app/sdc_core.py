@@ -489,6 +489,7 @@ class SdcCore(QObject):
     #-----------------------------------------------------------------
     def set_dac(self, addr, data):
         self.dac[addr][1] = data
+        lg.info('set dac value, {} : {}'.format(addr, data))
         res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
         if res:
             print(res)

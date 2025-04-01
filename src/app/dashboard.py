@@ -179,6 +179,7 @@ class DashBoardParamsWidget(QTreeWidget):
             self.ItemsDelegate.add_editor_data(i, self.ItemsDelegate.CBOX_DELEGATE, self.sdc.det[i].keys())
 
         self.itemActivated.connect(self.item_activated)
+        self.itemChanged.connect(self.item_changed)
         
     #---------------------------------------------------------------------------
     def addParent(self, parent, column, title, data):
@@ -199,6 +200,14 @@ class DashBoardParamsWidget(QTreeWidget):
     def item_activated(self, item, col):
         self.editItem(item, self.colDATA)
         
+    #---------------------------------------------------------------------------
+    def item_changed(self, item, col):
+        if item.parent().text(self.colNAME) == 'DAC':
+            param_name  = item.text(self.colNAME)
+            param_value = int(item.text(self.colDATA))
+            
+            self.sdc.set_dac(param_name, param_value)
+
     #---------------------------------------------------------------------------
     def curr_item_changed(self, item, prev):
         idx    = self.indexFromItem(prev, self.colDATA)
