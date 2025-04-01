@@ -33,7 +33,7 @@ import os
 import numpy as np
 
 from PyQt5.Qt        import Qt
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter)
+from PyQt5.QtWidgets import (QWidget, QApplication, QVBoxLayout, QHBoxLayout, QSplitter)
 
 from PyQt5.QtWidgets import (QHeaderView, QAbstractItemView, QTreeWidget, QTreeWidgetItem, QComboBox, QStyledItemDelegate)
 from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform, QPen, QBrush, QKeySequence
