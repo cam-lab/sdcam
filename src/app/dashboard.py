@@ -154,7 +154,7 @@ class DashBoardParamsWidget(QTreeWidget):
     def __init__(self, parent):
         super().__init__(parent)
         
-        sdc = parent.sdc
+        self.sdc = parent.sdc
 
         self.setIndentation(16)
         self.setColumnCount(2)
@@ -167,16 +167,16 @@ class DashBoardParamsWidget(QTreeWidget):
         self.ItemsDelegate = DashboardItemDelegate(self)
         self.setItemDelegate(self.ItemsDelegate)
 
-        for idx, i in enumerate(sdc.dac):
-            item = self.addChild(self.dac_items, i, sdc.dac[i][1])
+        for idx, i in enumerate(self.sdc.dac):
+            item = self.addChild(self.dac_items, i, self.sdc.dac[i][1])
             if idx == 0:
                 self.setCurrentItem(item)
                 
             self.ItemsDelegate.add_editor_data(i, self.ItemsDelegate.TEXT_DELEGATE)
         
-        for idx, i in enumerate(sdc.det):
-            item = self.addChild(self.det_items, i, list(sdc.det[i].keys())[0])
-            self.ItemsDelegate.add_editor_data(i, self.ItemsDelegate.CBOX_DELEGATE, sdc.det[i].keys())
+        for idx, i in enumerate(self.sdc.det):
+            item = self.addChild(self.det_items, i, list(self.sdc.det[i].keys())[0])
+            self.ItemsDelegate.add_editor_data(i, self.ItemsDelegate.CBOX_DELEGATE, self.sdc.det[i].keys())
 
         self.itemActivated.connect(self.item_activated)
         
