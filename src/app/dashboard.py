@@ -242,19 +242,6 @@ class DashBoardParamsWidget(QTreeWidget):
                 self.sdc._wmmr(drc.cam.dba_csr_s, 0x2)
                 
     #---------------------------------------------------------------------------
-    def curr_item_changed(self, item, prev):
-        idx    = self.indexFromItem(prev, self.colDATA)
-        editor = self.indexWidget(idx)
-
-        if editor:
-            #print(editor)
-            self.commitData(editor)
-            self.closeEditor(editor, QAbstractItemDelegate.NoHint)
-
-        self.editItem(item, self.colDATA)
-        self.item_clicked(item, self.colNAME)
-    
-    #---------------------------------------------------------------------------
     def update(self, params):
         pass
 
