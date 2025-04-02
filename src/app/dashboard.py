@@ -157,6 +157,9 @@ class DashBoardParamsWidget(QTreeWidget):
         super().__init__(parent)
         
         self.sdc = parent.sdc
+        
+        self.hflip = 0  # 0 means flipped
+        self.vflip = 0  # 0 means flipped
 
         self.setIndentation(16)
         self.setColumnCount(2)
@@ -220,7 +223,24 @@ class DashBoardParamsWidget(QTreeWidget):
                 self.sdc._wmmr(drc.cam.dba_dgr, code)
                 self.sdc._wmmr(drc.cam.dba_csr_s, 0x2)
                 
+            elif param_name == list(self.sdc.det)[1]:
+                self.hflip = code
+                if code:
+                    self.sdc._wmmr(drc.cam.dba_csr_s,  self.hflip << 4 )
+                else:
+                    self.sdc._wmmr(drc.cam.dba_csr_c,  self.hflip << 4 )
+                    
+                self.sdc._wmmr(drc.cam.dba_csr_s, 0x2)
 
+            elif param_name == list(self.sdc.det)[2]:
+                self.vlip =  code
+                if code:
+                    self.sdc._wmmr(drc.cam.dba_csr_s, self.vflip << 5)
+                else:
+                    self.sdc._wmmr(drc.cam.dba_csr_c, self.vflip << 5)
+
+                self.sdc._wmmr(drc.cam.dba_csr_s, 0x2)
+                
     #---------------------------------------------------------------------------
     def curr_item_changed(self, item, prev):
         idx    = self.indexFromItem(prev, self.colDATA)
