@@ -185,6 +185,7 @@ class SdcCore(QObject):
         self._nuc_on          = False
         
         self._fpa_toc         = 0
+        self._fpa_toc_qen     = True
         self._fpa_tocr_qtime  = 0
 
         self.org_thres = 5
@@ -284,6 +285,9 @@ class SdcCore(QObject):
     #-------------------------------------------------------
     def fpa_tocr_query(self):
         t = time.time();
+        if not self._fpa_toc_qen:
+            return
+
         if t - self._fpa_tocr_qtime >= 4:
             resp = int(self._rmmr(drc.cam.dba_tocr))
             if resp:
