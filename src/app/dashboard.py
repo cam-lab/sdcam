@@ -218,7 +218,7 @@ class DashBoardParamsWidget(QTreeWidget):
 
             if param_name == list(self.sdc.det)[0]:
                 self.sdc._wmmr(drc.cam.dba_dgr, code)
-                self.sdc._wmmr(drc.cam.dba_csr, 0xa)
+                self.sdc._wmmr(drc.cam.dba_csr_s, 0x2)
                 
 
     #---------------------------------------------------------------------------
