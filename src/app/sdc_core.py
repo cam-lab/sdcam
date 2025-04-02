@@ -416,7 +416,8 @@ class SdcCore(QObject):
                     self.forg_signal.emit([self.forg, self.fgain, pbuf.mean(), self.rhlow, self.rhhigh])
 
                     self.histo_cnt = 8
-                    
+
+                self.rbuf.append(self.ff)
             else:
                 self._pmap = vframe.make_display_frame(pbuf)
 
