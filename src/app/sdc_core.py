@@ -142,6 +142,7 @@ class SdcCore(QObject):
         
         self.parent = parent
 
+        self.lock = threading.Lock()
         #-----------------------------------------
         #
         #    MMR 
@@ -518,8 +519,10 @@ class SdcCore(QObject):
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
+        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
+        self.lock.release()
         if drc.check_resp(self._drc_msg_num, resp):
             return resp[1] + (resp[2] << 16)
         else:
@@ -540,9 +543,10 @@ class SdcCore(QObject):
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
+        self.lock.acquire()
         self._drc_sock.empty()
-
         resp    = self._drc_sock.processing(data)
+        self.lock.release()
         return drc.check_resp(self._drc_msg_num, resp)
         
     def wmmr(self, rid, data):
@@ -559,9 +563,11 @@ class SdcCore(QObject):
         hdr     = np.array( [id, oc], dtype=np.uint16 )
         params  = np.array( args[1:], dtype=np.uint16)
         data    = np.concatenate((hdr, params))
+        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data)
         res     = drc.check_resp(self._drc_msg_num, resp)
+        self.lock.release()
         if res:
             return resp[1:]
         else:
