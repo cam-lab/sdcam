@@ -185,6 +185,7 @@ class DashBoardParamsWidget(QTreeWidget):
 
         self.itemActivated.connect(self.item_activated)
         self.itemChanged.connect(self.item_changed)
+        self.sdc.dac_changed_signal.connect(self.dac_changed_slot)
         
     #---------------------------------------------------------------------------
     def addParent(self, parent, column, title, data):
@@ -202,6 +203,13 @@ class DashBoardParamsWidget(QTreeWidget):
         return item
 
     #---------------------------------------------------------------------------
+    def dac_changed_slot(self):
+        for i in range(self.dac_items.childCount()):
+            name = self.dac_items.child(i).data(self.colNAME, Qt.DisplayRole)
+            #print(name)
+            self.dac_items.child(i).setData(self.colDATA, Qt.DisplayRole, self.sdc.dac[name][1])
+
+    #---------------------------------------------------------------------------
     def item_activated(self, item, col):
         self.editItem(item, self.colDATA)
         
@@ -210,8 +218,7 @@ class DashBoardParamsWidget(QTreeWidget):
         if item.parent().text(self.colNAME) == 'DAC':
             param_name  = item.text(self.colNAME)
             param_value = int(item.text(self.colDATA))
-            
-            self.sdc.set_dac(param_name, param_value)
+            self.sdc._set_dac(param_name, param_value)
             
         elif item.parent().text(self.colNAME) == 'DET':
             param_name  = item.text(self.colNAME)
