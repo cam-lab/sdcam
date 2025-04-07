@@ -331,7 +331,8 @@ class SdcCore(QObject):
 
     #-------------------------------------------------------
     def display(self, pmap):
-        if gui.fqueue.qsize() < 20:
+        self._fqueue_size = gui.fqueue.qsize()
+        if gui.fqueue.qsize() < 40:
             gui.fqueue.put(pmap)
             self.display_frame_signal.emit(0)
             self._queue_limit_exceed = False
