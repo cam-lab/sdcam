@@ -95,7 +95,7 @@ class FrameParam:
             dt = (tstamp - self.tstamp)/1e8
             f  = 1/dt
             self.val_buf[self.buf_count] = f
-            self.buf_count += 1
+            self.buf_count += 1 if self.buf_count < 99 else 0
             
             if f > self.max:
                 self.max = f
