@@ -135,6 +135,7 @@ class SdcCore(QObject):
     update_dashboard_signal = pyqtSignal( int )
     fpa_temp_signal         = pyqtSignal( float )
     forg_signal             = pyqtSignal( list )
+    dac_changed_signal      = pyqtSignal( int )
     
     #-------------------------------------------------------
     def __init__(self, parent):
@@ -493,15 +494,18 @@ class SdcCore(QObject):
             self._init_done = True
 
     #-----------------------------------------------------------------
-    def set_dac(self, addr, data):
+    def _set_dac(self, addr, data):
         self.dac[addr][1] = data
-        lg.info('set dac value, {} : {}'.format(addr, data))
+        lg.info('set dac value, {} = {}'.format(addr, self.dac[addr][1]))
         res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
-        if res:
-            print(res)
-        else:
+        if not res:
             print('E: DRC -> device fun exec unsuccessful')
 
+    #-----------------------------------------------------------------
+    def set_dac(self, addr, data):
+        self.dac[addr][1] = data
+        #self._set_dac(addr, data)
+        self.dac_changed_signal.emit(0)
     #-----------------------------------------------------------------
     #
     #    MMR command API
