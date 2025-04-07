@@ -400,7 +400,7 @@ class SdcCore(QObject):
                 self.rhisto.update(self._f.pixbuf)
                 self.nhisto.update(self.df)
                 
-                self.rhlow, self.rhhigh = self.fbounds(self.rhisto.data, self.rhlow, self.rhhigh, 4)
+                self.rhlow, self.rhhigh = self.fbounds(self.rhisto.data, self.rhlow, self.rhhigh, 10)
 
                 if self._agc_ena:
                     self.forg, self.ftop = self.fbounds(self.nhisto.data, self.forg, self.ftop, 30)
