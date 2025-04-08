@@ -93,21 +93,21 @@ class VbbRespThread(threading.Thread):
         vbb_low    = self.VBB_MIN
         vbb_high   = self.VBB_MAX
         
-        lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
+        #lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
 
         while fmean < vbb_min or fmean > vbb_max:
             if fmean < vbb_min:
                 vbb_low = vbb
                 vbb     = (vbb + vbb_high) >> 1
-                lg.info('>>>> undershoot, vbb: {}, vbb_low: {}'.format(vbb, vbb_low))
+                #lg.info('>>>> undershoot, vbb: {}, vbb_low: {}'.format(vbb, vbb_low))
             else:
                 vbb_high = vbb
                 vbb      = (vbb + vbb_low) >> 1
-                lg.info('>>>> overshoot, vbb: {}, vbb_high: {}'.format(vbb, vbb_high))
+                #lg.info('>>>> overshoot, vbb: {}, vbb_high: {}'.format(vbb, vbb_high))
 
             self.host._set_dac('VBB', vbb)
             fmean, dac = self.get_sdc_msg()
-            lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
+            #lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
                 
         lg.info('searching VBB done: VBB: {}, fmean: {}'.format(vbb, fmean))
         lg.info('-'*40 + os.linesep)

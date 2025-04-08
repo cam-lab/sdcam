@@ -502,7 +502,7 @@ class SdcCore(QObject):
     #-----------------------------------------------------------------
     def _set_dac(self, addr, data):
         self.dac[addr][1] = data
-        lg.info('set dac value, {} = {}'.format(addr, self.dac[addr][1]))
+        #lg.info('set dac value, {} = {}'.format(addr, self.dac[addr][1]))
         res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
         if not res:
             print('E: DRC -> device fun exec unsuccessful')
@@ -512,6 +512,7 @@ class SdcCore(QObject):
         self.dac[addr][1] = data
         #self._set_dac(addr, data)
         self.dac_changed_signal.emit(0)
+
     #-----------------------------------------------------------------
     #
     #    MMR command API
