@@ -96,8 +96,8 @@ class VbbRespThread(threading.Thread):
 
         lg.info('-'*40)
         lg.info('set VPB: {}, vbb_min: {}, vbb_max: {}'.format(val, vbb_min, vbb_max))
-        self.host._set_dac('VBB', self.host.dac['VBB'][1])
-        self.host._set_dac('VPB', val)
+        self.host.set_dac('VBB', self.host.dac['VBB'][1])
+        self.host.set_dac('VPB', val)
         
         fmean, dac = self.get_sdc_msg()
         vbb        = dac['VBB'][1]
@@ -116,13 +116,12 @@ class VbbRespThread(threading.Thread):
                 vbb      = (vbb + vbb_low) >> 1
                 #lg.info('>>>> overshoot, vbb: {}, vbb_high: {}'.format(vbb, vbb_high))
 
-            self.host._set_dac('VBB', vbb)
+            self.host.set_dac('VBB', vbb)
             fmean, dac = self.get_sdc_msg()
             #lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
                 
         lg.info('>>>> searching VBB done: VBB: {}, fmean: {} <<<<'.format(vbb, fmean))
         lg.info('-'*40 + os.linesep)
-        self.host.dac_changed_signal.emit(0)
         
         return fmean
         
