@@ -8,8 +8,10 @@ import numpy as np
 import threading
 from logger import logger as lg
 
+BUFLEN = 16
+
 thread_active = threading.Event()
-sdc_msg_q     = collections.deque(maxlen=16)
+sdc_msg_q     = collections.deque(maxlen=BUFLEN)
 
 #-------------------------------------------------------------------------------
 class VbbResp:
@@ -54,7 +56,7 @@ class VbbRespThread(threading.Thread):
         self.fmean_l   = 3000    # ADC LSBs
         self.fmean_h   = 4000    # ADC LSBs
         
-        self.fmean_buf = collections.deque(maxlen=16)
+        self.fmean_buf = collections.deque(maxlen=BUFLEN)
         
     #-----------------------------------------------------------------
     def get_sdc_msg(self):
@@ -75,7 +77,7 @@ class VbbRespThread(threading.Thread):
 
             self.fmean_buf.append(fmean)
             n += 1
-            if n >=16:
+            if n >=BUFLEN:
                 buf = np.array(self.fmean_buf, dtype=np.uint32)
                 if buf.std() < 10:
                     #lg.info('get_sdc_msg: buf.mean: {}, buf.std: {}'.format(int(buf.mean()), int(buf.std())))
