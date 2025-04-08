@@ -261,6 +261,11 @@ class SdcCore(QObject):
         self._drc_sock.close()
     
     #-------------------------------------------------------
+    def reg_hook(self, hook):
+        self.hook = hook
+        hook.host = self
+        
+    #-------------------------------------------------------
     def init_frame(self):
         return np.tile(np.arange(4095, step=32, dtype=np.uint16), [960, 10])
     
