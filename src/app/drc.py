@@ -99,8 +99,10 @@ class CamMod:
         self._sr          = 3
         self._shtr        = 4
         self._dba_csr     = 16
-        self._dba_dgr     = 17
-        self._dba_tocr    = 18
+        self._dba_csr_s   = 17
+        self._dba_csr_c   = 18
+        self._dba_dgr     = 19
+        self._dba_tocr    = 20
     
     def cr(self):          return (self._mod << MOD_IDX_OFFSET) + self._cr
     def cr_s(self):        return (self._mod << MOD_IDX_OFFSET) + self._cr_s
@@ -108,6 +110,8 @@ class CamMod:
     def sr(self):          return (self._mod << MOD_IDX_OFFSET) + self._sr
     def shtr(self):        return (self._mod << MOD_IDX_OFFSET) + self._shtr
     def dba_csr(self):     return (self._mod << MOD_IDX_OFFSET) + self._dba_csr
+    def dba_csr_s(self):   return (self._mod << MOD_IDX_OFFSET) + self._dba_csr_s
+    def dba_csr_c(self):   return (self._mod << MOD_IDX_OFFSET) + self._dba_csr_c
     def dba_dgr(self):     return (self._mod << MOD_IDX_OFFSET) + self._dba_dgr
     def dba_tocr(self):    return (self._mod << MOD_IDX_OFFSET) + self._dba_tocr
 

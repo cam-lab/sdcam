@@ -88,8 +88,9 @@ class Socket(QObject):
             try:
                 self.sock.recv(2048)
             except:
-                self.sock.settimeout(0.5)
-                return
+                break
+
+        self.sock.settimeout(0.5)
 
     #-------------------------------------------------------
     def close(self):

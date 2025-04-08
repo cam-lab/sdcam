@@ -70,7 +70,6 @@ class Nuc:
         self.fcnt       = 0;
         self.fpool      = []
         self.prep_rqst  = True
-        self.valid      = False
 
         self.host._wmmr(drc.cam.cr_c, 7 << 16)
         if self.host._wmmr(drc.cam.cr_s, (self.afcount + 1) << 16):
@@ -126,7 +125,7 @@ class Histogram:
     def update(self, f):
         self.data.fill(0)
         vframe.histo(f, self.data, 1)
-        self.max += self.k*(self.data[:-1].max() - self.max)
+        self.max += self.k*(self.data[1:-1].max() - self.max)
 
 #-------------------------------------------------------------------------------
 class SdcCore(QObject):
@@ -135,6 +134,8 @@ class SdcCore(QObject):
     display_frame_signal    = pyqtSignal( int )
     update_dashboard_signal = pyqtSignal( int )
     fpa_temp_signal         = pyqtSignal( float )
+    forg_signal             = pyqtSignal( list )
+    dac_changed_signal      = pyqtSignal( int )
     
     #-------------------------------------------------------
     def __init__(self, parent):
@@ -142,6 +143,7 @@ class SdcCore(QObject):
         
         self.parent = parent
 
+        self.lock = threading.Lock()
         #-----------------------------------------
         #
         #    MMR 
@@ -185,6 +187,7 @@ class SdcCore(QObject):
         self._nuc_on          = False
         
         self._fpa_toc         = 0
+        self._fpa_toc_qen     = True
         self._fpa_tocr_qtime  = 0
 
         self.org_thres = 5
@@ -195,6 +198,9 @@ class SdcCore(QObject):
         self._kp = 0.5
         self._ka = 0.5
         
+        self.rhlow  = 900
+        self.rhhigh = 12000
+
         self.forg  = 900
         self.ftop  = 9000
         self.fgain = 1.0
@@ -206,28 +212,36 @@ class SdcCore(QObject):
         self.fhisto = Histogram(2**10)
 
         self.nhisto.top = 2000
+        
         #-----------------------------------------
         #
         #    Adapter Board DAC
         #
-
         self.dac = {
-            'VREF'         : [0x19, 2300],
-            'VPB'          : [0x1b, 2900],
-            'VBB'          : [0x1c, 2000],
-            'ADC_DRV_VREF' : [0x1a, 1500]
+            'VREF'    : [0x19, 2300],
+            'VPB'     : [0x1b, 2900],
+            'VBB'     : [0x1c, 2000],
+            'ADVREF'  : [0x1a, 1500]
         }
 
-#       self.VREF         = 0x19
-#       self.VPB          = 0x1b
-#       self.VBB          = 0x1c
-#       self.ADC_DRV_VREF = 0x1a
-#
-#       self.vref         = 2300
-#       self.vpb          = 2900
-#       self.vbb          = 2000
-#       self.adc_drv_vref = 1500
-
+        #-----------------------------------------
+        #
+        #    VM1765 Parameters
+        #
+        self.det = {
+            'GAIN' : {
+                        '1.00'  : 0x7,
+                        '1.125' : 0x3,
+                        '1.129' : 0x5,
+                        '1.50'  : 0x1,
+                        '1.80'  : 0x6,
+                        '2.25'  : 0x2,
+                        '3.00'  : 0x4,
+                        '4.50'  : 0x0
+                     },
+            'HFLIP' : { 'Yes' : 0, 'No' : 1 },
+            'VFLIP' : { 'Yes' : 0, 'No' : 1 }
+        }
         
         #-----------------------------------------
         #
@@ -246,6 +260,11 @@ class SdcCore(QObject):
     def deinit(self):
         self._drc_sock.close()
     
+    #-------------------------------------------------------
+    def reg_hook(self, hook):
+        self.hook = hook
+        hook.host = self
+        
     #-------------------------------------------------------
     def init_frame(self):
         return np.tile(np.arange(4095, step=32, dtype=np.uint16), [960, 10])
@@ -273,6 +292,9 @@ class SdcCore(QObject):
     #-------------------------------------------------------
     def fpa_tocr_query(self):
         t = time.time();
+        if not self._fpa_toc_qen:
+            return
+
         if t - self._fpa_tocr_qtime >= 4:
             resp = int(self._rmmr(drc.cam.dba_tocr))
             if resp:
@@ -314,7 +336,8 @@ class SdcCore(QObject):
 
     #-------------------------------------------------------
     def display(self, pmap):
-        if gui.fqueue.qsize() < 20:
+        self._fqueue_size = gui.fqueue.qsize()
+        if gui.fqueue.qsize() < 40:
             gui.fqueue.put(pmap)
             self.display_frame_signal.emit(0)
             self._queue_limit_exceed = False
@@ -340,7 +363,7 @@ class SdcCore(QObject):
 
     #-------------------------------------------------------
     def fbounds(self, f, org, top, thld):
-        b = np.where(f >= thld)[0][:-1]
+        b = np.where(f >= thld)[0][1:-1]
         
         if not b.size:
             return org, top
@@ -376,11 +399,13 @@ class SdcCore(QObject):
             pbuf = self._f.pixbuf
             
             if self.nuc.valid:
-                self.df = pbuf + 2000 - self.nuc.cframe
+                self.df = pbuf + 4000 - self.nuc.cframe
                 self.ff = self.df.copy()
 
                 self.rhisto.update(self._f.pixbuf)
                 self.nhisto.update(self.df)
+                
+                self.rhlow, self.rhhigh = self.fbounds(self.rhisto.data, self.rhlow, self.rhhigh, 10)
 
                 if self._agc_ena:
                     self.forg, self.ftop = self.fbounds(self.nhisto.data, self.forg, self.ftop, 30)
@@ -396,8 +421,11 @@ class SdcCore(QObject):
                 if self.histo_cnt == 0:
                     gui.dboard_q.put( [(self.forg,  self.fgain),  self.rhisto, self.nhisto, self.fhisto] )
                     self.update_dashboard_signal.emit(0)
+                    self.forg_signal.emit([self.forg, self.fgain, pbuf.mean(), self.rhlow, self.rhhigh])
+
                     self.histo_cnt = 8
-                    
+
+                self.rbuf.append(self.ff)
             else:
                 self._pmap = vframe.make_display_frame(pbuf)
 
@@ -472,13 +500,18 @@ class SdcCore(QObject):
             self._init_done = True
 
     #-----------------------------------------------------------------
+    def _set_dac(self, addr, data):
+        self.dac[addr][1] = data
+        #lg.info('set dac value, {} = {}'.format(addr, self.dac[addr][1]))
+        res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
+        if not res:
+            print('E: DRC -> device fun exec unsuccessful')
+
+    #-----------------------------------------------------------------
     def set_dac(self, addr, data):
         self.dac[addr][1] = data
-        res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
-        if res:
-            print(res)
-        else:
-            print('E: DRC -> device fun exec unsuccessful')
+        #self._set_dac(addr, data)
+        self.dac_changed_signal.emit(0)
 
     #-----------------------------------------------------------------
     #
@@ -497,8 +530,10 @@ class SdcCore(QObject):
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
+        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
+        self.lock.release()
         if drc.check_resp(self._drc_msg_num, resp):
             return resp[1] + (resp[2] << 16)
         else:
@@ -519,9 +554,10 @@ class SdcCore(QObject):
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
+        self.lock.acquire()
         self._drc_sock.empty()
-
         resp    = self._drc_sock.processing(data)
+        self.lock.release()
         return drc.check_resp(self._drc_msg_num, resp)
         
     def wmmr(self, rid, data):
@@ -538,9 +574,11 @@ class SdcCore(QObject):
         hdr     = np.array( [id, oc], dtype=np.uint16 )
         params  = np.array( args[1:], dtype=np.uint16)
         data    = np.concatenate((hdr, params))
+        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data)
         res     = drc.check_resp(self._drc_msg_num, resp)
+        self.lock.release()
         if res:
             return resp[1:]
         else:

@@ -39,11 +39,11 @@ from PyQt5.Qt        import Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QGraphicsScene,
                              QVBoxLayout, QHBoxLayout, QGridLayout, QSplitter, QGraphicsView,
                              QFrame, QGraphicsPixmapItem, QGraphicsItem, 
-                             QDockWidget, QAction)
+                             QDockWidget, QAction, QShortcut)
 
-from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
-                             QHeaderView, QRubberBand)
-from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform, QPen, QBrush
+from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, QTreeWidget, QTreeWidgetItem,
+                             QHeaderView, QRubberBand, QComboBox, QStyledItemDelegate)
+from PyQt5.QtGui     import QCursor, QIcon, QImage, QPixmap, QColor, QTransform, QPen, QBrush, QKeySequence
 from PyQt5.QtCore    import QSettings, pyqtSignal, QObject, QEvent, QRect, QRectF, QPoint, QPointF, QSize
 from PyQt5.QtCore    import QT_VERSION_STR
 
@@ -53,6 +53,8 @@ import settings
 
 from logger   import logger as lg
 from badpix   import BadPix
+
+from dashboard import *
 
 from vframe   import FRAME_SIZE_X, FRAME_SIZE_Y, OUT_PIX_W
 
@@ -218,15 +220,16 @@ class MainWindow(QMainWindow):
     close_signal = pyqtSignal()
     
     #---------------------------------------------------------------------------
-    def __init__(self, app, parent):
+    def __init__(self, app, sdc, parent):
 
         super().__init__()
 
-        self.app   = app
+        self.app    = app
+        self.sdc    = sdc
         self.parent = parent
 
         self.initUI()
-
+        
         self.zoom         = 1.0
         self.view_cpos_x  = 0
         self.view_cpos_y  = 0
@@ -238,6 +241,17 @@ class MainWindow(QMainWindow):
         
         self.bad_pix = BadPix()
         
+        #-------------------------------------------------------------
+        #
+        #    Dashboard Parameters focus management
+        #
+        self.dbparams.setFocus()
+        self.dbparams_focus_shortcut = QShortcut(QKeySequence(Qt.Key_F4), self)
+        self.dbparams_focus_shortcut.activated.connect(self.set_focus_to_dbparams_slot)
+        
+    #---------------------------------------------------------------------------
+    def set_focus_to_dbparams_slot(self):
+        self.dbparams.setFocus()
         
     #---------------------------------------------------------------------------
     def set_title(self, text = ''):
@@ -472,13 +486,13 @@ class MainWindow(QMainWindow):
         self.log.setWidget(self.log_widget)
         
     #---------------------------------------------------------------------------
-    def create_telemetry_window(self):
-        self.telemetry = QDockWidget('Telemetry', self, Qt.WindowCloseButtonHint)
-        self.telemetry.setObjectName('Telemetry Window')
-        self.telemetry.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
-        self.telemetry.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
-        self.telemetry_widget = TelemetryWidget(self)
-        self.telemetry.setWidget(self.telemetry_widget)
+    def create_statistics_window(self):
+        self.statistics = QDockWidget('Statistics', self, Qt.WindowCloseButtonHint)
+        self.statistics.setObjectName('Statistics Window')
+        self.statistics.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
+        self.statistics.setFeatures(QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable)
+        self.statistics_widget = StatisticsWidget(self)
+        self.statistics.setWidget(self.statistics_widget)
 
     #---------------------------------------------------------------------------
     def create_dboard_window(self):
@@ -495,17 +509,17 @@ class MainWindow(QMainWindow):
         
         self.dbparams = DashBoardParamsWidget(self)
         
-        self.dboard_layout   = QGridLayout()
+        self.dboard_layout   = QHBoxLayout()
+        self.db_histo_layout = QVBoxLayout()
         
-        self.dboard_layout.addWidget(self.rhisto, 0, 0)
-        self.dboard_layout.addWidget(self.dbparams, 0, 1)
-        self.dboard_layout.addWidget(self.nhisto, 1, 0)
-        self.dboard_layout.addWidget(self.fhisto, 1, 1)
+        self.db_histo_layout.addWidget(self.rhisto)
+        self.db_histo_layout.addWidget(self.nhisto)
+        self.db_histo_layout.addWidget(self.fhisto)
         
-        self.dboard_layout.setColumnStretch(0, 1)
-        self.dboard_layout.setColumnStretch(1, 1)
-        self.dboard_layout.setRowStretch(0, 1)
-        self.dboard_layout.setRowStretch(1, 1)
+        self.dboard_layout.addLayout(self.db_histo_layout)
+        self.dboard_layout.addWidget(self.dbparams)
+        
+        self.dboard_layout.setStretchFactor(self.db_histo_layout, 4)
         
         self.multi_widget.setLayout(self.dboard_layout)
 
@@ -520,11 +534,11 @@ class MainWindow(QMainWindow):
         #
         self.setup_main_scene()
         self.create_log_window()
-        self.create_telemetry_window()
+        self.create_statistics_window()
         self.create_dboard_window()
 
         self.addDockWidget(Qt.BottomDockWidgetArea, self.log)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.telemetry)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.statistics)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.dboard_window)
         self.setCentralWidget(self.main_view)
         
@@ -627,7 +641,7 @@ class LogWidget(QTableWidget):
         self.scrollToBottom()
             
 #-------------------------------------------------------------------------------
-class TelemetryWidget(QTableWidget):
+class StatisticsWidget(QTableWidget):
 
     #-----------------------------------------------------------------
     def __init__(self, parent):
@@ -643,12 +657,17 @@ class TelemetryWidget(QTableWidget):
         self.setAlternatingRowColors(True)
         self.setHorizontalHeaderLabels( ['Name', 'Value', 'Mean', 'Min', 'Max', 'SDev', 'Count'] )
 
-        self.setRowCount(4)
+        self.setRowCount(8)
         
 
         self.DEV      = 0
         self.SDC      = 1
         self.FPA_TEMP = 2
+        self.FORG     = 3
+        self.FGAIN    = 4
+        self.RFMEAN   = 5       # raw frame mean value
+        self.RHLOW    = 6       # raw historgam low
+        self.RHHIGH   = 7       # raw historgam high
         
         self.NAME  = 0
         self.VALUE = 1
@@ -661,27 +680,35 @@ class TelemetryWidget(QTableWidget):
         self.setItem(self.DEV,      self.NAME, self.create_item('Device Camera FPS') )
         self.setItem(self.SDC,      self.NAME, self.create_item('SD Camera FPS') )
         self.setItem(self.FPA_TEMP, self.NAME, self.create_item('FPA Temp °C') )
+        self.setItem(self.FORG,     self.NAME, self.create_item('Frame Origin') )
+        self.setItem(self.FGAIN,    self.NAME, self.create_item('Frame Gain') )
+        self.setItem(self.RFMEAN,   self.NAME, self.create_item('Raw Frame Mean') )
+        self.setItem(self.RHLOW,    self.NAME, self.create_item('Raw Historgam Low') )
+        self.setItem(self.RHHIGH,   self.NAME, self.create_item('Raw Historgam High') )
 
-        self.setItem(self.DEV, self.VALUE, self.create_item() )
-        self.setItem(self.DEV, self.MEAN,  self.create_item() )
-        self.setItem(self.DEV, self.MIN,   self.create_item() )
-        self.setItem(self.DEV, self.MAX,   self.create_item() )
-        self.setItem(self.DEV, self.SDEV,  self.create_item() )
-        self.setItem(self.DEV, self.CNT,   self.create_item() )
+        self.create_items(self.DEV)
+        self.create_items(self.SDC)
+        self.create_items(self.FPA_TEMP)
+        self.create_items(self.FORG)
+        self.create_items(self.FGAIN)
+        self.create_items(self.RFMEAN)
+        self.create_items(self.RHLOW)
+        self.create_items(self.RHHIGH)
         
-        self.setItem(self.SDC, self.VALUE, self.create_item() )
-        self.setItem(self.SDC, self.MEAN,  self.create_item() )
-        self.setItem(self.SDC, self.MIN,   self.create_item() )
-        self.setItem(self.SDC, self.MAX,   self.create_item() )
-        self.setItem(self.SDC, self.SDEV,  self.create_item() )
-        self.setItem(self.SDC, self.CNT,   self.create_item() )
+        self.item(self.FORG, self.VALUE).setBackground(QColor('#FFFF99'))
+        self.item(self.FORG, self.VALUE).setForeground(QColor('#0000CC'))
 
-        self.setItem(self.FPA_TEMP, self.VALUE, self.create_item() )
-        self.setItem(self.FPA_TEMP, self.MEAN,  self.create_item() )
-        self.setItem(self.FPA_TEMP, self.MIN,   self.create_item() )
-        self.setItem(self.FPA_TEMP, self.MAX,   self.create_item() )
-        self.setItem(self.FPA_TEMP, self.SDEV,  self.create_item() )
-        self.setItem(self.FPA_TEMP, self.CNT,   self.create_item() )
+        self.item(self.RFMEAN, self.VALUE).setBackground(QColor('#99ff99'))
+        self.item(self.RFMEAN, self.VALUE).setForeground(QColor('#0000CC'))
+
+    #-----------------------------------------------------------------
+    def create_items(self, idx):
+        self.setItem(idx, self.VALUE, self.create_item() )
+        self.setItem(idx, self.MEAN,  self.create_item() )
+        self.setItem(idx, self.MIN,   self.create_item() )
+        self.setItem(idx, self.MAX,   self.create_item() )
+        self.setItem(idx, self.SDEV,  self.create_item() )
+        self.setItem(idx, self.CNT,   self.create_item() )
 
     #-----------------------------------------------------------------
     def create_item(self, val=''):
@@ -725,81 +752,47 @@ class TelemetryWidget(QTableWidget):
             self.item(self.FPA_TEMP, self.SDEV).setText  ('{:.3f}'.format(fpa_temp.sdev))
             self.item(self.FPA_TEMP, self.CNT).setText   (   '{:}'.format(fpa_temp.count))
 
+        if msg[0] == 3:
+            forg   = msg[1][0]
+            fgain  = msg[1][1]
+            rfmean = msg[1][2]
+            rhlow  = msg[1][3]
+            rhhigh = msg[1][4]
 
-#-------------------------------------------------------------------------------
-class DashBoardParamsWidget(QTableWidget):
+            self.item(self.FORG, self.VALUE).setText ('{:.0f}'.format(forg.value))
+            self.item(self.FORG, self.MEAN).setText  ('{:.0f}'.format(forg.mean))
+            self.item(self.FORG, self.MIN).setText   ('{:.0f}'.format(forg.min))
+            self.item(self.FORG, self.MAX).setText   ('{:.0f}'.format(forg.max))
+            self.item(self.FORG, self.SDEV).setText  ('{:.0f}'.format(forg.sdev))
+            self.item(self.FORG, self.CNT).setText   (   '{:}'.format(forg.count))
 
-    #-----------------------------------------------------------------
-    def __init__(self, parent):
-        super().__init__(6, 1, parent)
+            self.item(self.FGAIN, self.VALUE).setText ('{:.2f}'.format(fgain.value))
+            self.item(self.FGAIN, self.MEAN).setText  ('{:.2f}'.format(fgain.mean))
+            self.item(self.FGAIN, self.MIN).setText   ('{:.2f}'.format(fgain.min))
+            self.item(self.FGAIN, self.MAX).setText   ('{:.2f}'.format(fgain.max))
+            self.item(self.FGAIN, self.SDEV).setText  ('{:.2f}'.format(fgain.sdev))
+            self.item(self.FGAIN, self.CNT).setText   (   '{:}'.format(fgain.count))
 
-        self.setSelectionBehavior(QAbstractItemView.SelectRows)  # select whole row
-        self.setEditTriggers(QAbstractItemView.NoEditTriggers)   # disable edit cells
-        self.horizontalHeader().resizeSection(0, 200)
-        self.horizontalHeader().setStretchLastSection(True)
-        self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.verticalHeader().setDefaultSectionSize(20)
-        self.setTabKeyNavigation(False)
-        self.setAlternatingRowColors(True)
-        self.setVerticalHeaderLabels( ['FOrg', 'FGain', 'VPB', 'VBB', 'VREF', 'ADC VREF'] )
-        self.setHorizontalHeaderLabels( ['Value'] )
+            self.item(self.RFMEAN, self.VALUE).setText ('{:.0f}'.format(rfmean.value))
+            self.item(self.RFMEAN, self.MEAN).setText  ('{:.0f}'.format(rfmean.mean))
+            self.item(self.RFMEAN, self.MIN).setText   ('{:.0f}'.format(rfmean.min))
+            self.item(self.RFMEAN, self.MAX).setText   ('{:.0f}'.format(rfmean.max))
+            self.item(self.RFMEAN, self.SDEV).setText  ('{:.0f}'.format(rfmean.sdev))
+            self.item(self.RFMEAN, self.CNT).setText   (   '{:}'.format(rfmean.count))
 
-        self.setRowCount(6)
-        
-        self.FORG  = 0
-        self.FGAIN = 1
-
-        self.setItem(self.FORG,  0, self.create_item('x') )
-        self.setItem(self.FGAIN, 0, self.create_item('x') )
-        
-    def create_item(self, val=''):
-
-        item = QTableWidgetItem(val)
-        item.setForeground(QColor('#F0F0F0'))
-        item.setTextAlignment(Qt.AlignTop)
-
-        return item
-
-    def update(self, params):
-        self.item(self.FORG,  0).setText('{}'.format(params[0]))
-        self.item(self.FGAIN, 0).setText('{:.2f}'.format(params[1]))
-
-
-#-------------------------------------------------------------------------------
-class HistogramWidget(QCustomPlot):
-    #-----------------------------------------------------------------
-    def __init__(self, parent, color):
-        super().__init__(parent)
-        
-        self.graph = self.addGraph()
-        self.graph.setPen(QPen( color.lighter(100) ) )
-        self.graph.setBrush(QBrush(color) )
-        
-        self.rescaleAxes()
-        self.setInteraction(QCP.iRangeDrag)
-        self.setInteraction(QCP.iRangeZoom)
-        self.setInteraction(QCP.iSelectPlottables)
-        
-        self.setBackground(QColor(0x26, 0x26, 0x24, 255))
-        self.xAxis.setTickLabelColor(QColor(255, 255, 255, 255))
-        self.yAxis.setTickLabelColor(QColor(255, 255, 255, 255))
-        
-        self.max = 0
-        
-    def draw(self, h, thld=1):
-        x    = np.arange(h.org, h.top)
-        y    = h.data[h.org:h.top]
-        self.graph.setData(x, y)
-        
-        if h.max > 0.95*self.max or h.max < 0.75*self.max:
-            self.max = h.max*1.1
-            self.rescaleAxes()
-
-        self.replot()
-
-    def mouseDoubleClickEvent(self, event):
-        self.rescaleAxes()
-
+            self.item(self.RHLOW, self.VALUE).setText ('{:.0f}'.format(rhlow.value))
+            self.item(self.RHLOW, self.MEAN).setText  ('{:.0f}'.format(rhlow.mean))
+            self.item(self.RHLOW, self.MIN).setText   ('{:.0f}'.format(rhlow.min))
+            self.item(self.RHLOW, self.MAX).setText   ('{:.0f}'.format(rhlow.max))
+            self.item(self.RHLOW, self.SDEV).setText  ('{:.0f}'.format(rhlow.sdev))
+            self.item(self.RHLOW, self.CNT).setText   (   '{:}'.format(rhlow.count))
+            
+            self.item(self.RHHIGH, self.VALUE).setText ('{:.0f}'.format(rhhigh.value))
+            self.item(self.RHHIGH, self.MEAN).setText  ('{:.0f}'.format(rhhigh.mean))
+            self.item(self.RHHIGH, self.MIN).setText   ('{:.0f}'.format(rhhigh.min))
+            self.item(self.RHHIGH, self.MAX).setText   ('{:.0f}'.format(rhhigh.max))
+            self.item(self.RHHIGH, self.SDEV).setText  ('{:.0f}'.format(rhhigh.sdev))
+            self.item(self.RHHIGH, self.CNT).setText   (   '{:}'.format(rhhigh.count))
 
 #-------------------------------------------------------------------------------
         

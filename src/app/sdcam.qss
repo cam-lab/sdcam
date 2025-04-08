@@ -57,11 +57,70 @@ QMenu::item {
 QTableWidget {
     font-size: 14pt;
     font-family: Terminus Re33;
-    alternate-background-color: #262624;
+    alternate-background-color: #404040;
     background-color: #17140C;
 } 
 QTableWidget::item {
    /* border : 1px solid gray;*/
     padding: 0px;
 } 
+
+LogWidget {
+    alternate-background-color: #202020;
+}
+
+QTreeWidget {
+    font-size                : 14pt;
+    font-family              : Terminus Re33;
+    background-color         : #17140C;
+    show-decoration-selected : 1;
+}
+
+QTreeWidget::item {
+    color               : #F0F0F0;
+    border              : 1px solid #808080;
+    border-top-color    : #505050;
+    border-left-color   : transparent;
+    border-right-color  : transparent;
+    border-bottom-color : transparent;
+}
+
+QTreeWidget::item:has-children {
+   left                : 18px;
+   background-color    : #3F3F3F;
+   color               : #CCE5FF;
+   border              : 1px solid #d9d9d9;
+   border-top-color    : #d9d9d9;
+   border-left-color   : transparent;
+   border-right-color  : transparent;
+   border-bottom-color : transparent;
+}
+
+QTreeWidget::branch {
+    color: white;
+    background: #262624;
+}
+
+QTreeWidget::item:selected {
+    /*border: 1px solid #567dbc;*/
+    color     : #FFFF00;
+    background: #009999;
+}
+/*
+QTreeWidget::item:selected:active{
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6ea1f1, stop: 1 #567dbc);
+    background: navy;
+}
+QTreeWidget::item:selected:!active {
+    color: black;
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #BECFD5, stop: 1 #D8ECF3);
+} */
+
+ComboBox {
+    font-size: 14pt;
+    font-family: Terminus Re33;
+    font-weight: 400;
+    border-radius: 2px;
+    border: 2px solid #e0e4e7;
+}
 
