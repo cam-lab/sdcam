@@ -18,23 +18,31 @@ class VbbResp:
 
     #-----------------------------------------------------------------
     def __init__(self):
-        self.host         = None
+        self.host        = None
         
-        self.VPB_MIN      = 1500    # mV
-        self.VPB_MAX      = 3500    # mV
+        self.VPB_MIN     = 1500    # mV
+        self.VPB_MAX     = 3500    # mV
 
-        self.FMEAN_MIN_L  = 3000    # ADC LSBs
-        self.FMEAN_MIN_H  = 4000    # ADC LSBs
-        self.FMEAN_MAX_L  = 12000   # ADC LSBs
-        self.FMEAN_MAX_H  = 13000   # ADC LSBs
+        self.FMEAN_MIN_L = 3000    # ADC LSBs
+        self.FMEAN_MIN_H = 4000    # ADC LSBs
+        self.FMEAN_MAX_L = 12000   # ADC LSBs
+        self.FMEAN_MAX_H = 13000   # ADC LSBs
+        
+        self.res = []
 
     #-----------------------------------------------------------------
-    def start(self, vpb):
-        self.vbbr_thread         = VbbRespThread()
-        self.vbbr_thread.host    = self.host
-        self.vbbr_thread.vpb     = vpb
-        self.vbbr_thread.fmean_l = self.FMEAN_MIN_L
-        self.vbbr_thread.fmean_h = self.FMEAN_MIN_H
+    def start(self, vpb=1500, vpb_max=3500, vpb_step=30):
+
+        self.vpb_step             = vpb_step
+
+        self.vbbr_thread          = VbbRespThread()
+        self.vbbr_thread.parent   = self
+        self.vbbr_thread.host     = self.host
+        self.vbbr_thread.vpb      = vpb
+        self.vbbr_thread.vpb_max  = vpb_max
+        self.vbbr_thread.vpb_step = vpb_step
+        self.vbbr_thread.fmean_l  = self.FMEAN_MIN_L
+        self.vbbr_thread.fmean_h  = self.FMEAN_MIN_H
         self.vbbr_thread.start()
         thread_active.set()
         
@@ -86,6 +94,7 @@ class VbbRespThread(threading.Thread):
     #-----------------------------------------------------------------
     def set_vpb(self, val, vbb_min, vbb_max):
 
+        lg.info('-'*40)
         lg.info('set VPB: {}, vbb_min: {}, vbb_max: {}'.format(val, vbb_min, vbb_max))
         self.host._set_dac('VBB', self.host.dac['VBB'][1])
         self.host._set_dac('VPB', val)
@@ -111,13 +120,27 @@ class VbbRespThread(threading.Thread):
             fmean, dac = self.get_sdc_msg()
             #lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
                 
-        lg.info('searching VBB done: VBB: {}, fmean: {}'.format(vbb, fmean))
+        lg.info('>>>> searching VBB done: VBB: {}, fmean: {} <<<<'.format(vbb, fmean))
         lg.info('-'*40 + os.linesep)
         self.host.dac_changed_signal.emit(0)
         
+        return fmean
+        
     #-----------------------------------------------------------------
     def run(self):
-        self.set_vpb(self.vpb, self.fmean_l, self.fmean_h)
+        self.parent.res.clear()
+        if self.vpb_max:
+            for vpb in range(self.vpb, self.vpb_max, self.vpb_step):
+                    m0 = self.set_vpb(vpb, self.fmean_l, self.fmean_h)
+                    vbb = self.host.dac['VBB'][1] + 30
+                    self.host._set_dac('VBB', vbb)
+                    m1, dac = self.get_sdc_msg()
+                    self.parent.res.append( (self.host.dac['VPB'][1], self.host.dac['VBB'][1], m0, m1) )
+        else:
+            self.set_vpb(self.vpb, self.fmean_l, self.fmean_h)
+            
+        lg.info('>>>>>>>>>> DONE <<<<<<<<<<<' + os.linesep)
+
         thread_active.clear()
 
 #-------------------------------------------------------------------------------
