@@ -51,6 +51,31 @@ class VbbResp:
         if thread_active.is_set():
             sdc_msg_q.append( (self.host._f.pixbuf.mean(), self.host.dac) )
 
+    #-----------------------------------------------------------------
+    def summary(self, data):
+        res = np.array(data, dtype=np.uint32)
+        x   = res[:, 0]
+        y   = (res[:, 3] - res[:, 2])*0.12207/30
+        
+        return res, x, y
+            
+    #-----------------------------------------------------------------
+    def save(self, path):
+        res, x, y = self.summary(self.res)
+        res.tofile(path)
+
+    #-----------------------------------------------------------------
+    def read(self, path):
+        data = np.fromfile(path, dtype=np.uint32)
+        
+        # data is numpy array of uint32 items and  has the following format:
+        #
+        #    [VPB,   VBB,   Raw Histo Mean at VBB-30mV,   Raw Histo Mead at VBB]
+        #
+        # data is 1D array after read from file and needs to be reshaped
+
+        return data.reshape(int(data.size/4), 4)
+
 #-------------------------------------------------------------------------------
 class VbbRespThread(threading.Thread):
     #-----------------------------------------------------------------

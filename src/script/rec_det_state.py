@@ -134,5 +134,28 @@ class RecDetState:
         self.data.tofile(fname +'.npdat')
 
 #-------------------------------------------------------------------------------
+def read(fname):
+    data = np.fromfile(fname, dtype=np.uint32)
+    return data.reshape(int(data.size/7), 7)
+
+#-------------------------------------------------------------------------------
+def vbb_responsivity(ext):
+    flist = glob.glob('vps=*.{}'.format(ext))
+    flist.sort()
+    print(flist)
+
+    vps      = []
+    vbb_resp = []
+    for fn in flist:
+        data = read(fn)
+        vps.append(data[0, 1])
+        x    = data[:, 2]
+        y    = data[:, 4]
+        r    = np.polyfit(x, y, 1)
+        vbb_resp.append(float(r[0]))
+
+    return vps, vbb_resp
+
+#-------------------------------------------------------------------------------
 
 rds = RecDetState()
