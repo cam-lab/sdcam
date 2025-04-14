@@ -143,7 +143,9 @@ class SdcCore(QObject):
         
         self.parent = parent
 
-        self.lock = threading.Lock()
+        self.lock          = threading.Lock()
+        self._set_dac_lock = threading.Lock()
+        self.set_dac_lock  = threading.Lock()
         #-----------------------------------------
         #
         #    MMR 
@@ -501,17 +503,22 @@ class SdcCore(QObject):
 
     #-----------------------------------------------------------------
     def _set_dac(self, addr, data):
+        self._set_dac_lock.acquire()
         self.dac[addr][1] = data
         #lg.info('set dac value, {} = {}'.format(addr, self.dac[addr][1]))
         res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
         if not res:
             print('E: DRC -> device fun exec unsuccessful')
+            
+        self._set_dac_lock.release()
 
     #-----------------------------------------------------------------
     def set_dac(self, addr, data):
+        self.set_dac_lock.acquire()
         self.dac[addr][1] = data
-        #self._set_dac(addr, data)
+        self._set_dac(addr, data)
         self.dac_changed_signal.emit(0)
+        self.set_dac_lock.release()
 
     #-----------------------------------------------------------------
     #
@@ -526,11 +533,11 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _rmmr(self, *args):
+        self.lock.acquire()
         rid     = args[0]()
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
-        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
         self.lock.release()
@@ -548,13 +555,13 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _wmmr(self, *args):
+        self.lock.acquire()
         rid     = args[0]()
         datal   = args[1] & 0xffff
         datah   = args[1] >> 16
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
-        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data)
         self.lock.release()
@@ -568,13 +575,13 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _dev_fun_exec(self, *args):
+        self.lock.acquire()
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.FUN_EXEC << drc.ID_TYPE_OFFSET)
         oc      = (args[0] & drc.OPCODE_MASK) + ((len(args) - 1) << drc.PCOUNT_OFFSET)
         hdr     = np.array( [id, oc], dtype=np.uint16 )
         params  = np.array( args[1:], dtype=np.uint16)
         data    = np.concatenate((hdr, params))
-        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data)
         res     = drc.check_resp(self._drc_msg_num, resp)
