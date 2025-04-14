@@ -216,9 +216,11 @@ class DashBoardParamsWidget(QTreeWidget):
     #---------------------------------------------------------------------------
     def item_changed(self, item, col):
         if item.parent().text(self.colNAME) == 'DAC':
-            param_name  = item.text(self.colNAME)
-            param_value = int(item.text(self.colDATA))
-            self.sdc._set_dac(param_name, param_value)
+            name  = item.text(self.colNAME)
+            value = int(item.text(self.colDATA))
+            if value != self.sdc.dac[name]:
+                self.sdc._set_dac(name, value)
+            #lg.info('name: {}, value: {}'.format(name, value))
             
         elif item.parent().text(self.colNAME) == 'DET':
             param_name  = item.text(self.colNAME)
