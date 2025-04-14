@@ -63,11 +63,12 @@ class VbbResp:
     #-----------------------------------------------------------------
     def summary(self, data):
         res = np.array(data, dtype=np.uint32)
-        x   = res[:, 0]
+        vpb = res[:, 0]
+        vbb = res[:, 1]
         d   = res[:, 3] - res[:, 2]
-        y   = d*0.12207/self.dvbb
+        k   = d*0.12207/self.dvbb
         
-        return res, x, y, d
+        return res, vpb, vbb, d, k
             
     #-----------------------------------------------------------------
     def save(self, path):
