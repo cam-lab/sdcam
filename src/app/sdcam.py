@@ -84,11 +84,12 @@ class Sdcam(QObject, InternalIPKernel):
         
         super().__init__()
         
-        self.default_sdc_core_opt = { 'Start/Stop Video'       : False,
-                                      'Automatic Gain Control' : False,
-                                      'Start/Stop Camera'      : False,
-                                      'Start/Stop CamVFG'      : False,
-                                      'NUC On/Off'             : False }
+        self.default_sdc_core_opt = { 'Start/Stop Video'        : False,
+                                      'Automatic Gain Control'  : False,
+                                      'Bias Manager On/Off'     : False,
+                                      'Start/Stop Camera'       : False,
+                                      'Start/Stop CamVFG'       : False,
+                                      'NUC On/Off'              : False }
 
         self.restore_settings()
         
@@ -127,6 +128,7 @@ class Sdcam(QObject, InternalIPKernel):
         app.aboutToQuit.connect(self.finish)
 
         self.mwin.agcAction.trig_signal.connect(self.vfthread.core.agc_slot, Qt.QueuedConnection)
+        self.mwin.bmAction.trig_signal.connect(self.vfthread.core.bm_slot, Qt.QueuedConnection)
         self.mwin.vstreamAction.trig_signal.connect(self.vfthread.core.vstream_slot, Qt.QueuedConnection)
         self.mwin.cameraEnableAction.trig_signal.connect(self.vfthread.core.camera_ena_slot, Qt.QueuedConnection)
         self.mwin.camvfgEnableAction.trig_signal.connect(self.vfthread.core.camvfg_ena_slot, Qt.QueuedConnection)

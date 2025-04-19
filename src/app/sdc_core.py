@@ -120,6 +120,91 @@ class Nuc:
                 lg.info('bl: {}, el: {}, bl_new: {}'.format(shtr_begin_line, shtr_end_line, self.shtr_begin_line))
 
 #-------------------------------------------------------------------------------
+class BiasManager(threading.Thread):
+    def __init__(self, host):
+        super().__init__()
+        
+        self._finish_event = threading.Event()
+
+        self.host           = host
+        self.MIDDLE         = 2**14 >> 1
+        self.TRACKING_SPAN  = 2000
+        self.SETUP_SPAN     = 200
+        self.BUFLEN         = 16
+
+        self.span           = self.SETUP_SPAN
+        self.fmean_incoming = threading.Condition()
+        self.fmean_buf      = collections.deque(maxlen=self.BUFLEN)
+        
+        self.vbp_vbb_poly   = np.array([-6.36482083e-05, -4.87290592e-01,  4.00794667e+03 + 15])
+        self.vbb_gain       = 40/0.12207
+        
+        self.vpb            = 3000
+        self.vbb            = int(np.polyval(self.vbp_vbb_poly, self.vpb))
+        
+        self.state          = 'TRACKING'
+        
+
+    def finish(self):
+        self._finish_event.set()
+
+    def run(self):
+        self.host.set_dac('VPB', self.vpb)
+        self.host.set_dac('VBB', self.vbb)
+        self.fmean_buf.clear()
+        lg.info('Bias Mgr: setup VPB')
+        
+        while True:
+            if self._finish_event.is_set():
+                return
+
+            with self.fmean_incoming:
+                res = self.fmean_incoming.wait(1)
+                if not res:
+                    lg.info('Bias Manager thread timeout')
+                    continue
+
+                buf = np.array(self.fmean_buf, dtype=np.uint32)
+                
+                if buf.size < self.BUFLEN or buf.std() > 100:
+                    continue
+
+                mean = buf.mean()
+                
+                if mean < 5 or mean > 2**14 - 5:
+                    if self.state == 'TRACKING':
+                        self.vbb = int(np.polyval(self.vbp_vbb_poly, self.vpb))
+                        self.host.set_dac('VBB', self.vbb); self.fmean_buf.clear()
+                        self.state = 'SETUP'
+                        lg.info('Bias Mgr: set initial VBB point at {}'.format(self.vbb))
+
+                    else:
+                        if mean < 5:
+                            self.vbb += 10
+                            lg.info('Bias Mgr: VBB miss, move VBB point up with 10 mV step')
+                        else:
+                            self.vbb -= 10
+                            lg.info('Bias Mgr: VBB miss, move VBB point down with 10 mV step')
+                            
+                        self.host.set_dac('VBB', self.vbb); self.fmean_buf.clear()
+
+                elif self.state == 'SETUP':
+                    if abs(self.MIDDLE - mean) > self.SETUP_SPAN:
+                        dvbb = int( round( (self.MIDDLE - mean)/self.vbb_gain, 0 ) )
+                        self.vbb += dvbb
+                        self.host.set_dac('VBB', self.vbb); self.fmean_buf.clear()
+                        lg.info('Bias Mgr: correct VBB point with {} mV'.format(dvbb))
+                    else:
+                        self.state = 'TRACKING'
+                        self.host.nuc.launch()
+                        lg.info('Bias Mgr: output signal in range!')
+                    
+                else:
+                    if abs(self.MIDDLE - mean) > self.TRACKING_SPAN:
+                        lg.info('Bias Mgr: output signal out of range!')
+                        self.state = 'SETUP'
+
+#-------------------------------------------------------------------------------
 class Histogram:
 
     def __init__(self, size):
@@ -172,6 +257,7 @@ class SdcCore(QObject):
 
         self._f  = vframe.Vframe()
         self.nuc = Nuc(self)
+        self.bm  = BiasManager(self)
 
         vframe.reg_pyobject(iframe_event,          0)
         vframe.reg_pyobject(vsthread_finish_event, 1)
@@ -185,6 +271,7 @@ class SdcCore(QObject):
         self._init_done     = False
 
         self._agc_ena         = False
+        self._bm_ena          = False
         self._vstream_ena     = False
         self._camera_ena      = False
         self._camvfg_ena      = False
@@ -282,6 +369,10 @@ class SdcCore(QObject):
     def agc_slot(self, checked):
         self._agc_ena = checked
         
+    #-------------------------------------------------------
+    def bm_slot(self, checked):
+        self._bm_ena = checked
+
     #-------------------------------------------------------
     def vstream_slot(self, checked):
         self._vstream_ena = checked
@@ -446,6 +537,12 @@ class SdcCore(QObject):
 
         if self._nuc_on:
             self.nuc.processing()
+            
+        if self._bm_ena:
+            self.bm.fmean_buf.append(self._f.pixbuf.mean())
+            with self.bm.fmean_incoming:
+                self.bm.fmean_incoming.notify()
+
 
         self.rbuf.append(pbuf)
         self.hook.run(self)
@@ -522,6 +619,7 @@ class SdcCore(QObject):
     #-----------------------------------------------------------------
     def set_dac(self, addr, data):
         self.set_dac_lock.acquire()
+        data = int(data)
         self.dac[addr][1] = data
         self._set_dac(addr, data)
         self.dac_changed_signal.emit(0)
@@ -634,6 +732,7 @@ class VframeThread(threading.Thread):
         super().__init__()
         self.core          = sdc
         self._finish_event = threading.Event()
+        self.core.bm.start()
 
     #-------------------------------------------------------
     def finish(self):
@@ -651,9 +750,16 @@ class VframeThread(threading.Thread):
         self.core._agc_ena     = self.core.parent.sdc_core_opt['Automatic Gain Control']
         self.core._camera_ena  = self.core.parent.sdc_core_opt['Start/Stop Camera']
         self.core._camvfg_ena  = self.core.parent.sdc_core_opt['Start/Stop CamVFG']
+        self.core._nuc_ena     = self.core.parent.sdc_core_opt['NUC On/Off']
+        self.core._bm_ena      = self.core.parent.sdc_core_opt['Bias Manager On/Off']
+        
         while True:
             self.core.processing()
             if self._finish_event.is_set():
+                lg.info('BM Thread pending to finish')
+                self.core.bm.finish()
+                self.core.bm.join()
+                lg.info('BM Thread finished')
                 self.core.deinit()
                 return
 
