@@ -53,6 +53,7 @@ vsthread_finish_event = threading.Event()
 #-------------------------------------------------------------------------------
 class Nuc:
     def __init__(self, host):
+        self.lock      = threading.Lock()
         self.host      = host
         self.prep_rqst = False
         self.fcnt      = 0
@@ -67,6 +68,8 @@ class Nuc:
         self.afcount   = 2
 
     def launch(self):
+        self.lock.acquire()
+        
         self.fcnt       = 0;
         self.fpool      = []
         self.prep_rqst  = True
@@ -77,7 +80,11 @@ class Nuc:
         else:
             lg.warning('set shuttered frame count failed')
 
-        return self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
+        res = self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
+        
+        self.lock.release()
+
+        return res
 
     def processing(self):
         if self.prep_rqst:
