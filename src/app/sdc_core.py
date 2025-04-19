@@ -424,17 +424,6 @@ class SdcCore(QObject):
     #    Video frame
     #
     #-------------------------------------------------------
-    def init_cam(self):
-        self._wmmr( 0x41, 0x2)  # move video pipeline to bypass mode
-        self._wcam( self.IEXP, self._iexp )
-        self._wcam( self.FEXP, self._fexp )
-        self._wcam( self.PGA, 2 )
-        
-    #-------------------------------------------------------
-#   def read(self):
-#       return vframe.qpipe_get_frame(self._f, self._p)
-
-    #-------------------------------------------------------
     def display(self, pmap):
         self._fqueue_size = gui.fqueue.qsize()
         if gui.fqueue.qsize() < 40:
@@ -696,34 +685,6 @@ class SdcCore(QObject):
         else:
             return False
 
-#   def _wcam(self, *args):
-#       addr = args[0]
-#       data = args[1]
-#       cmd  = self.WR | addr
-#
-#       self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
-#       self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
-#       self._wmmr(self.SPI_DR,  data); # send value to write
-#       self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
-#
-#   def wcam(self, addr, data):
-#       self._sock_transaction(self._wcam, [addr, data])
-        
-    #-------------------------------------------------------
-#   def _rcam(self, *args):
-#       addr = args[0]
-#       cmd  = self.RD | addr;
-#
-#       self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
-#       self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
-#       self._wmmr(self.SPI_DR,     0); # transaction to take data from camera
-#       self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
-#       return self._rmmr(self.SPI_DR);
-         
-    #-------------------------------------------------------
-#   def rcam(self, addr):
-#       self._sock_transaction(self._rcam, [addr])
-                 
 #-------------------------------------------------------------------------------
 class VframeThread(threading.Thread):
 
