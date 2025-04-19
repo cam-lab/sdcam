@@ -1,0 +1,4 @@
+%run src/script/vbb_resp
+sdc.reg_hook(vbbr)
+vbbr.start(vpb_start=1500, vpb_stop=3500, vpb_step=30, dvbb=10)
+

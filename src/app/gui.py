@@ -415,6 +415,11 @@ class MainWindow(QMainWindow):
         self.nucEnableAction.setStatusTip('NUC On/Off. Hotkey: "F2"')
         self.nucEnableAction.trigAction()
         
+        #-------------------------------------------------------------
+        self.bmAction = self.CheckedAction('bm-off-24.png', 'bm-on-24.png', 'Bias Manager On/Off', self)
+        self.bmAction.setShortcut('F3')
+        self.bmAction.trigAction()
+
     #---------------------------------------------------------------------------
     def setup_menu(self):
         self.menubar = self.menuBar()
@@ -431,6 +436,7 @@ class MainWindow(QMainWindow):
         self.cameraMenu.addAction(self.cameraEnableAction)
         self.cameraMenu.addAction(self.camvfgEnableAction)
         self.cameraMenu.addAction(self.nucEnableAction)
+        self.cameraMenu.addAction(self.bmAction)
 
         self.viewMenu = self.menubar.addMenu('&Zoom')
         self.viewMenu.addAction(self.zffAction)
@@ -453,6 +459,7 @@ class MainWindow(QMainWindow):
         self.tbCamera.addAction(self.cameraEnableAction)
         self.tbCamera.addAction(self.camvfgEnableAction)
         self.tbCamera.addAction(self.nucEnableAction)
+        self.tbCamera.addAction(self.bmAction)
 
     #---------------------------------------------------------------------------
     def enable_cam_actions_slot(self, en):

@@ -43,89 +43,13 @@ from logger import logger as lg
 import vframe
 import gui
 
-from udp import command_queue, Socket, HOST_IP, DEVICE_IP, DRC_PORT
+from udp     import command_queue, Socket, HOST_IP, DEVICE_IP, DRC_PORT
+from sdc_lib import Nuc, BiasManager, Histogram, histo_bounds
 
 import drc
  
 iframe_event          = threading.Event()
 vsthread_finish_event = threading.Event()
-
-#-------------------------------------------------------------------------------
-class Nuc:
-    def __init__(self, host):
-        self.host      = host
-        self.prep_rqst = False
-        self.fcnt      = 0
-        self.fpool     = []
-        self.cframe    = None
-        self.valid     = False
-        
-        self.apply     = False
-        
-        self.shtr_begin_line = 10
-        
-        self.afcount   = 2
-
-    def launch(self):
-        self.fcnt       = 0;
-        self.fpool      = []
-        self.prep_rqst  = True
-
-        self.host._wmmr(drc.cam.cr_c, 7 << 16)
-        if self.host._wmmr(drc.cam.cr_s, (self.afcount + 1) << 16):
-            lg.info('successful set shuttered frame count to {}'.format(self.afcount))
-        else:
-            lg.warning('set shuttered frame count failed')
-
-        return self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
-
-    def processing(self):
-        if self.prep_rqst:
-            self.prep_cf()
-
-    def prep_cf(self):
-        f = self.host._f.copy()
-
-        self.fpool.append(f)
-        if f.shtr_on():
-                
-            self.fcnt += 1
-            if self.fcnt == 2:
-                self.cframe = self.host._f.pixbuf.copy()
-                lg.info('{} blinded frame'.format(self.fcnt))
-            elif self.fcnt > 2 and self.fcnt <= self.afcount + 1:
-                self.cframe += self.host._f.pixbuf
-                lg.info('{} blinded frame'.format(self.fcnt))
-                if self.fcnt == self.afcount + 1:
-                    self.cframe = (self.cframe/self.afcount).astype(np.uint16)
-                    lg.info('cframe complete')
-                    self.valid  = True
-
-        elif self.fcnt:
-            if not f.shtr_on():
-                self.prep_rqst = False
-                s = ' '.join([str(int(f.shtr_on())) for f in self.fpool])
-                lg.info('NUC complete, frames {}, {}'.format(len(self.fpool), s))
-                
-                shtr_end_line = self.host._rmmr(drc.cam.shtr)
-                shtr_begin_line = self.shtr_begin_line
-                
-                lg.info('bl: {}, el: {}, bl_new: {}'.format(shtr_begin_line, shtr_end_line, self.shtr_begin_line))
-
-#-------------------------------------------------------------------------------
-class Histogram:
-
-    def __init__(self, size):
-        self.data    = np.zeros(size, dtype=np.uint32)
-        self.max     = 0
-        self.org     = 0
-        self.top     = size-1
-        self.k       = 0.1
-
-    def update(self, f):
-        self.data.fill(0)
-        vframe.histo(f, self.data, 1)
-        self.max += self.k*(self.data[1:-1].max() - self.max)
 
 #-------------------------------------------------------------------------------
 class SdcCore(QObject):
@@ -143,7 +67,9 @@ class SdcCore(QObject):
         
         self.parent = parent
 
-        self.lock = threading.Lock()
+        self.lock          = threading.Lock()
+        self._set_dac_lock = threading.Lock()
+        self.set_dac_lock  = threading.Lock()
         #-----------------------------------------
         #
         #    MMR 
@@ -163,6 +89,7 @@ class SdcCore(QObject):
 
         self._f  = vframe.Vframe()
         self.nuc = Nuc(self)
+        self.bm  = BiasManager(self)
 
         vframe.reg_pyobject(iframe_event,          0)
         vframe.reg_pyobject(vsthread_finish_event, 1)
@@ -176,6 +103,7 @@ class SdcCore(QObject):
         self._init_done     = False
 
         self._agc_ena         = False
+        self._bm_ena          = False
         self._vstream_ena     = False
         self._camera_ena      = False
         self._camvfg_ena      = False
@@ -211,7 +139,7 @@ class SdcCore(QObject):
         self.nhisto = Histogram(2**14)
         self.fhisto = Histogram(2**10)
 
-        self.nhisto.top = 2000
+        self.nhisto.top = 5000
         
         #-----------------------------------------
         #
@@ -274,6 +202,10 @@ class SdcCore(QObject):
         self._agc_ena = checked
         
     #-------------------------------------------------------
+    def bm_slot(self, checked):
+        self._bm_ena = checked
+
+    #-------------------------------------------------------
     def vstream_slot(self, checked):
         self._vstream_ena = checked
 
@@ -324,17 +256,6 @@ class SdcCore(QObject):
     #    Video frame
     #
     #-------------------------------------------------------
-    def init_cam(self):
-        self._wmmr( 0x41, 0x2)  # move video pipeline to bypass mode
-        self._wcam( self.IEXP, self._iexp )
-        self._wcam( self.FEXP, self._fexp )
-        self._wcam( self.PGA, 2 )
-        
-    #-------------------------------------------------------
-#   def read(self):
-#       return vframe.qpipe_get_frame(self._f, self._p)
-
-    #-------------------------------------------------------
     def display(self, pmap):
         self._fqueue_size = gui.fqueue.qsize()
         if gui.fqueue.qsize() < 40:
@@ -345,38 +266,6 @@ class SdcCore(QObject):
             if not self._queue_limit_exceed:
                 lg.warning('video frame queue exceeds limit, seems GUI does not read from the queue')
             self._queue_limit_exceed = True
-
-    #-------------------------------------------------------
-    def average_frame(self, n=16):
-        if n > 16:
-            lg.warning('invalid frame count {}, max count: 16'.format(n))
-            return None
-
-        pool = self.rbuf[0].copy().astype(np.uint32)
-
-        for i in range(n-1):
-            pool += self.rbuf[i+1]
-
-        p = (pool/n).astype(np.uint16)
-        
-        return p
-
-    #-------------------------------------------------------
-    def fbounds(self, f, org, top, thld):
-        b = np.where(f >= thld)[0][1:-1]
-        
-        if not b.size:
-            return org, top
-
-        min = b.min()
-        max = b.max()
-        
-        k = 0.1
-
-        org += k*(min - org)
-        top += k*(max - top)
-        
-        return int(org), int(top)
 
     #-------------------------------------------------------
     def processing(self):
@@ -405,10 +294,10 @@ class SdcCore(QObject):
                 self.rhisto.update(self._f.pixbuf)
                 self.nhisto.update(self.df)
                 
-                self.rhlow, self.rhhigh = self.fbounds(self.rhisto.data, self.rhlow, self.rhhigh, 10)
+                self.rhlow, self.rhhigh = histo_bounds(self.rhisto.data, self.rhlow, self.rhhigh, 10)
 
                 if self._agc_ena:
-                    self.forg, self.ftop = self.fbounds(self.nhisto.data, self.forg, self.ftop, 30)
+                    self.forg, self.ftop = histo_bounds(self.nhisto.data, self.forg, self.ftop, 30)
                     self.fgain = 1024/(self.ftop - self.forg + 1)
 
 
@@ -435,14 +324,34 @@ class SdcCore(QObject):
             
         self.display(self._pmap)
 
+        #-------------------------------------------------------------
+        #
+        #    NUC
+        #
         if self._nuc_on:
             self.nuc.processing()
+            
+        #-------------------------------------------------------------
+        #
+        #    Detector Bias Management
+        #
+        if self._bm_ena:
+            self.bm.fmean_buf.append(self._f.pixbuf.mean())
+            with self.bm.fmean_incoming:
+                self.bm.fmean_incoming.notify()
 
-        self.rbuf.append(pbuf)
+        #-------------------------------------------------------------
+        #
+        #    Extension Hook
+        #
         self.hook.run(self)
 
         vframe.put_free_frame(self._f)
 
+        #-------------------------------------------------------------
+        #
+        #    FPA temperature quering
+        #
         self.fpa_tocr_query()
 
     #-----------------------------------------------------------------
@@ -501,17 +410,23 @@ class SdcCore(QObject):
 
     #-----------------------------------------------------------------
     def _set_dac(self, addr, data):
+        self._set_dac_lock.acquire()
         self.dac[addr][1] = data
         #lg.info('set dac value, {} = {}'.format(addr, self.dac[addr][1]))
         res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
         if not res:
             print('E: DRC -> device fun exec unsuccessful')
+            
+        self._set_dac_lock.release()
 
     #-----------------------------------------------------------------
     def set_dac(self, addr, data):
+        self.set_dac_lock.acquire()
+        data = int(data)
         self.dac[addr][1] = data
-        #self._set_dac(addr, data)
+        self._set_dac(addr, data)
         self.dac_changed_signal.emit(0)
+        self.set_dac_lock.release()
 
     #-----------------------------------------------------------------
     #
@@ -526,11 +441,11 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _rmmr(self, *args):
+        self.lock.acquire()
         rid     = args[0]()
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid], dtype=np.uint16 )
-        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
         self.lock.release()
@@ -548,13 +463,13 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _wmmr(self, *args):
+        self.lock.acquire()
         rid     = args[0]()
         datal   = args[1] & 0xffff
         datah   = args[1] >> 16
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
         data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
-        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data)
         self.lock.release()
@@ -568,13 +483,13 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _dev_fun_exec(self, *args):
+        self.lock.acquire()
         self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
         id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.FUN_EXEC << drc.ID_TYPE_OFFSET)
         oc      = (args[0] & drc.OPCODE_MASK) + ((len(args) - 1) << drc.PCOUNT_OFFSET)
         hdr     = np.array( [id, oc], dtype=np.uint16 )
         params  = np.array( args[1:], dtype=np.uint16)
         data    = np.concatenate((hdr, params))
-        self.lock.acquire()
         self._drc_sock.empty()
         resp    = self._drc_sock.processing(data)
         res     = drc.check_resp(self._drc_msg_num, resp)
@@ -584,34 +499,6 @@ class SdcCore(QObject):
         else:
             return False
 
-#   def _wcam(self, *args):
-#       addr = args[0]
-#       data = args[1]
-#       cmd  = self.WR | addr
-#
-#       self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
-#       self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
-#       self._wmmr(self.SPI_DR,  data); # send value to write
-#       self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
-#
-#   def wcam(self, addr, data):
-#       self._sock_transaction(self._wcam, [addr, data])
-        
-    #-------------------------------------------------------
-#   def _rcam(self, *args):
-#       addr = args[0]
-#       cmd  = self.RD | addr;
-#
-#       self._wmmr(self.SPI_CSR,  0x1); # nCS -> 0
-#       self._wmmr(self.SPI_DR,   cmd); # send cmd to camera
-#       self._wmmr(self.SPI_DR,     0); # transaction to take data from camera
-#       self._wmmr(self.SPI_CSR,  0x0); # nCS -> 1
-#       return self._rmmr(self.SPI_DR);
-         
-    #-------------------------------------------------------
-#   def rcam(self, addr):
-#       self._sock_transaction(self._rcam, [addr])
-                 
 #-------------------------------------------------------------------------------
 class VframeThread(threading.Thread):
 
@@ -620,6 +507,7 @@ class VframeThread(threading.Thread):
         super().__init__()
         self.core          = sdc
         self._finish_event = threading.Event()
+        self.core.bm.start()
 
     #-------------------------------------------------------
     def finish(self):
@@ -637,9 +525,20 @@ class VframeThread(threading.Thread):
         self.core._agc_ena     = self.core.parent.sdc_core_opt['Automatic Gain Control']
         self.core._camera_ena  = self.core.parent.sdc_core_opt['Start/Stop Camera']
         self.core._camvfg_ena  = self.core.parent.sdc_core_opt['Start/Stop CamVFG']
+        self.core._nuc_ena     = self.core.parent.sdc_core_opt['NUC On/Off']
+        self.core._bm_ena      = self.core.parent.sdc_core_opt['Bias Manager On/Off']
+        
         while True:
-            self.core.processing()
+            try:
+                self.core.processing()
+            except Exception as e:
+                lg.info(str(e))
+
             if self._finish_event.is_set():
+                lg.info('BM Thread pending to finish')
+                self.core.bm.finish()
+                self.core.bm.join()
+                lg.info('BM Thread finished')
                 self.core.deinit()
                 return
 

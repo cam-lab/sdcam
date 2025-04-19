@@ -1,8 +1,10 @@
 import os
+import sys
 import time
 import glob
 import queue
 import collections
+import datetime
 import numpy as np
 
 import threading
@@ -20,48 +22,57 @@ class VbbResp:
     def __init__(self):
         self.host        = None
         
-        self.VPB_MIN     = 1500    # mV
-        self.VPB_MAX     = 3500    # mV
-
         self.FMEAN_MIN_L = 3000    # ADC LSBs
-        self.FMEAN_MIN_H = 4000    # ADC LSBs
+        self.FMEAN_MIN_H = 3500    # ADC LSBs
         self.FMEAN_MAX_L = 12000   # ADC LSBs
         self.FMEAN_MAX_H = 13000   # ADC LSBs
+        
+        #self.vbb_step    = 10      # mV
         
         self.res = []
 
     #-----------------------------------------------------------------
-    def start(self, vpb=1500, vpb_max=3500, vpb_step=30):
+    def start(self, vpb_start=1500, vpb_stop=3500, vpb_step=30, dvbb=10):
 
         self.vpb_step             = vpb_step
-
+        self.stop_flag            = False
+        self.dvbb                 = dvbb
+        
         self.vbbr_thread          = VbbRespThread()
         self.vbbr_thread.parent   = self
         self.vbbr_thread.host     = self.host
-        self.vbbr_thread.vpb      = vpb
-        self.vbbr_thread.vpb_max  = vpb_max
+        self.vbbr_thread.vpb      = vpb_start
+        self.vbbr_thread.vpb_max  = vpb_stop
         self.vbbr_thread.vpb_step = vpb_step
+        self.vbbr_thread.dvbb     = dvbb
         self.vbbr_thread.fmean_l  = self.FMEAN_MIN_L
         self.vbbr_thread.fmean_h  = self.FMEAN_MIN_H
         self.vbbr_thread.start()
         thread_active.set()
         
     #-----------------------------------------------------------------
+    def stop(self):
+        self.stop_flag = True
+
+    #-----------------------------------------------------------------
     def run(self, host):
         if thread_active.is_set():
-            sdc_msg_q.append( (self.host._f.pixbuf.mean(), self.host.dac) )
+            f = self.host._f.pixbuf.copy()
+            sdc_msg_q.append( (f.mean(), self.host.dac) )
 
     #-----------------------------------------------------------------
     def summary(self, data):
         res = np.array(data, dtype=np.uint32)
-        x   = res[:, 0]
-        y   = (res[:, 3] - res[:, 2])*0.12207/30
+        vpb = res[:, 0]
+        vbb = res[:, 1]
+        d   = res[:, 3] - res[:, 2]
+        k   = d*0.12207/self.dvbb
         
-        return res, x, y
+        return res, vpb, vbb, d, k
             
     #-----------------------------------------------------------------
     def save(self, path):
-        res, x, y = self.summary(self.res)
+        res, x, y, d = self.summary(self.res)
         res.tofile(path)
 
     #-----------------------------------------------------------------
@@ -70,7 +81,7 @@ class VbbResp:
         
         # data is numpy array of uint32 items and  has the following format:
         #
-        #    [VPB,   VBB,   Raw Histo Mean at VBB-30mV,   Raw Histo Mead at VBB]
+        #    [VPB,   VBB,   Raw Histo Mean Low,   Raw Histo Mean High,  Raw Mean Delta ]
         #
         # data is 1D array after read from file and needs to be reshaped
 
@@ -85,10 +96,6 @@ class VbbRespThread(threading.Thread):
         self.VBB_MIN   = 1000    # mV
         self.VBB_MAX   = 3500    # mV
 
-        self.vpb       = 3000    # mV
-        self.fmean_l   = 3000    # ADC LSBs
-        self.fmean_h   = 4000    # ADC LSBs
-        
         self.fmean_buf = collections.deque(maxlen=BUFLEN)
         
     #-----------------------------------------------------------------
@@ -112,40 +119,46 @@ class VbbRespThread(threading.Thread):
             n += 1
             if n >=BUFLEN:
                 buf = np.array(self.fmean_buf, dtype=np.uint32)
-                if buf.std() < 10:
+                if buf.std() < 2:
                     #lg.info('get_sdc_msg: buf.mean: {}, buf.std: {}'.format(int(buf.mean()), int(buf.std())))
                     return int(buf.mean()), dac
 
     #-----------------------------------------------------------------
-    def set_vpb(self, val, vbb_min, vbb_max):
+    def set_vpb(self, vpb, vbb, vbb_min, vbb_max):
 
         lg.info('-'*40)
-        lg.info('set VPB: {}, vbb_min: {}, vbb_max: {}'.format(val, vbb_min, vbb_max))
-        self.host.set_dac('VBB', self.host.dac['VBB'][1])
-        self.host.set_dac('VPB', val)
+        lg.info('set VPB: {}, vbb: {}, vbb_min: {}, vbb_max: {}'.format(vpb, vbb, vbb_min, vbb_max))
+        self.host.set_dac('VPB', vpb)
+        self.host.set_dac('VBB', vbb)
         
         fmean, dac = self.get_sdc_msg()
-        vbb        = dac['VBB'][1]
-        vbb_low    = self.VBB_MIN
-        vbb_high   = self.VBB_MAX
+        vbb_l      = vbb_min # self.VBB_MIN
+        vbb_h      = vbb_max # self.VBB_MAX
         
+        step_cnt   = 0
+
         #lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
 
-        while fmean < vbb_min or fmean > vbb_max:
-            if fmean < vbb_min:
-                vbb_low = vbb
-                vbb     = (vbb + vbb_high) >> 1
-                #lg.info('>>>> undershoot, vbb: {}, vbb_low: {}'.format(vbb, vbb_low))
+        #while fmean < vbb_min or fmean > vbb_max:
+        while fmean < self.fmean_l or fmean >  self.fmean_h:
+            if self.parent.stop_flag:
+                return fmean
+
+            step_cnt += 1
+            if fmean < self.fmean_l:
+                vbb_l = vbb
+                vbb   = (vbb + vbb_h) >> 1
+                lg.info('{:2} u, fmean: {:5}, vbb: {}, vbb_l: {}'.format(step_cnt, fmean, vbb, vbb_l))
             else:
-                vbb_high = vbb
-                vbb      = (vbb + vbb_low) >> 1
-                #lg.info('>>>> overshoot, vbb: {}, vbb_high: {}'.format(vbb, vbb_high))
+                vbb_h = vbb
+                vbb   = (vbb + vbb_l) >> 1
+                lg.info('{:2} o, fmean: {:5}, vbb: {}, vbb_h: {}'.format(step_cnt, fmean, vbb, vbb_h))
 
             self.host.set_dac('VBB', vbb)
             fmean, dac = self.get_sdc_msg()
             #lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
                 
-        lg.info('>>>> searching VBB done: VBB: {}, fmean: {} <<<<'.format(vbb, fmean))
+        lg.info('Done => VBB: {}, fmean: {}, steps: {}'.format(vbb, fmean, step_cnt))
         lg.info('-'*40 + os.linesep)
         
         return fmean
@@ -153,17 +166,60 @@ class VbbRespThread(threading.Thread):
     #-----------------------------------------------------------------
     def run(self):
         self.parent.res.clear()
-        if self.vpb_max:
-            for vpb in range(self.vpb, self.vpb_max, self.vpb_step):
-                    m0 = self.set_vpb(vpb, self.fmean_l, self.fmean_h)
-                    vbb = self.host.dac['VBB'][1] + 30
-                    self.host._set_dac('VBB', vbb)
-                    m1, dac = self.get_sdc_msg()
-                    self.parent.res.append( (self.host.dac['VPB'][1], self.host.dac['VBB'][1], m0, m1) )
+        tstart    = time.time()
+        self.stop = False
+        k         = 1
+        
+        for vpb in range(self.vpb, self.vpb_max, self.vpb_step):
+            if self.parent.stop_flag:
+                break
+
+            if vpb == self.vpb:
+                #---------------------------------------------------------
+                #
+                #    Search VBB for initial point
+                #
+                lg.info('VPB: {}, self.vpb: {}'.format(vpb, self.vpb))
+                m0  = self.set_vpb(self.vpb, 2000, self.VBB_MIN, self.VBB_MAX)
+                vbb = self.host.dac['VBB'][1]
+            else:
+                self.host.set_dac('VPB', vpb)
+                m0, dac = self.get_sdc_msg()
+                #lg.info('new point -> VPB: {}, VBB: {}, mean: {}'.format(vpb, vbb, m1))
+                while m0 < self.fmean_l or m0 >  self.fmean_h:
+                    if self.parent.stop_flag:
+                        break
+
+                    midpoint = (self.fmean_h + self.fmean_l) >> 1
+                    vbb += int( round( (midpoint - m0)/k, 0 ) )
+                    lg.info('mean: {}, midpoint: {}, k: {}, miss: {}, vbb: {}'.format(m0, midpoint, k, midpoint - m0, vbb))
+                    self.host.set_dac('VBB', vbb)
+                    m0, dac = self.get_sdc_msg()
+
+            #-------------------------------------------------------------
+            #
+            #    Get response on VBB
+            #
+            #vbb += self.vpb_step
+            self.host.set_dac('VBB', vbb + self.dvbb)
+            m1, dac = self.get_sdc_msg()
+            k       = round( (m1 - m0)/(self.dvbb), 3)
+            self.host.set_dac('VBB', vbb)
+
+            #-------------------------------------------------------------
+            #
+            #    Store result
+            #
+            self.parent.res.append( (vpb, vbb, m0, m1) )
+            lg.info('>>>> VPB: {}, VBB: {}, k: {}'.format(vpb, vbb, k))
+
+        if self.parent.stop_flag:
+            lg.info('>>>>>>>>>> STOP BY USER <<<<<<<<<<<' + os.linesep)
         else:
-            self.set_vpb(self.vpb, self.fmean_l, self.fmean_h)
+            lg.info('>>>>>>>>>> DONE <<<<<<<<<<<' + os.linesep)
             
-        lg.info('>>>>>>>>>> DONE <<<<<<<<<<<' + os.linesep)
+        dt = time.time() - tstart
+        lg.info('time elapsed: {} ({})'.format(round(dt, 1), str(datetime.timedelta(seconds=dt))))
 
         thread_active.clear()
 
@@ -194,3 +250,4 @@ def vbb_responsivity(ext):
 #-------------------------------------------------------------------------------
 
 vbbr = VbbResp()
+
