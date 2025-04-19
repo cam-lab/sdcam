@@ -208,6 +208,7 @@ class DashBoardParamsWidget(QTreeWidget):
             name = self.dac_items.child(i).data(self.colNAME, Qt.DisplayRole)
             #print(name)
             self.dac_items.child(i).setData(self.colDATA, Qt.DisplayRole, self.sdc.dac[name][1])
+            #lg.info('name: {}, value: {}'.format(name, self.sdc.dac[name][1]))
 
     #---------------------------------------------------------------------------
     def item_activated(self, item, col):
@@ -218,7 +219,7 @@ class DashBoardParamsWidget(QTreeWidget):
         if item.parent().text(self.colNAME) == 'DAC':
             name  = item.text(self.colNAME)
             value = int(item.text(self.colDATA))
-            if value != self.sdc.dac[name]:
+            if value != self.sdc.dac[name][1]:
                 self.sdc._set_dac(name, value)
             #lg.info('name: {}, value: {}'.format(name, value))
             
