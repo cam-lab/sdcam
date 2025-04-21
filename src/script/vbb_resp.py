@@ -6,6 +6,7 @@ import queue
 import collections
 import datetime
 import numpy as np
+import matplotlib.pyplot as plt
 
 import threading
 from logger import logger as lg
@@ -70,6 +71,11 @@ class VbbResp:
         
         return res, vpb, vbb, d, k
             
+    #-----------------------------------------------------------------
+    def plot_res(self):
+        res, vpb, vbb, d, k = self.summary(self.res)
+        plt.plot(vpb, vbb, marker='.')
+
     #-----------------------------------------------------------------
     def save(self, path):
         res, x, y, d = self.summary(self.res)
