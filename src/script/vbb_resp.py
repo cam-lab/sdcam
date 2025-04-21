@@ -126,14 +126,14 @@ class VbbRespThread(threading.Thread):
             if n >=BUFLEN:
                 buf = np.array(self.fmean_buf, dtype=np.uint32)
                 if buf.std() < 2:
-                    #lg.info('get_sdc_msg: buf.mean: {}, buf.std: {}'.format(int(buf.mean()), int(buf.std())))
+                    #lg.info(f'get_sdc_msg: buf.mean: {int(buf.mean())}, buf.std: {int(buf.std())}')
                     return int(buf.mean()), dac
 
     #-----------------------------------------------------------------
     def set_vpb(self, vpb, vbb, vbb_min, vbb_max):
 
         lg.info('-'*40)
-        lg.info('set VPB: {}, vbb: {}, vbb_min: {}, vbb_max: {}'.format(vpb, vbb, vbb_min, vbb_max))
+        lg.info(f'set VPB: {vpb}, vbb: {vbb}, vbb_min: {vbb_min}, vbb_max: {vbb_max}')
         self.host.set_dac('VPB', vpb)
         self.host.set_dac('VBB', vbb)
         
@@ -143,9 +143,8 @@ class VbbRespThread(threading.Thread):
         
         step_cnt   = 0
 
-        #lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
+        #lg.info(f'fmean: {fmean}, vbb: {vbb}')
 
-        #while fmean < vbb_min or fmean > vbb_max:
         while fmean < self.fmean_l or fmean >  self.fmean_h:
             if self.parent.stop_flag:
                 return fmean
@@ -154,17 +153,17 @@ class VbbRespThread(threading.Thread):
             if fmean < self.fmean_l:
                 vbb_l = vbb
                 vbb   = (vbb + vbb_h) >> 1
-                lg.info('{:2} u, fmean: {:5}, vbb: {}, vbb_l: {}'.format(step_cnt, fmean, vbb, vbb_l))
+                lg.info(f'{step_cnt:2} u, fmean: {fmean:5}, vbb: {vbb}, vbb_l: {vbb_l}')
             else:
                 vbb_h = vbb
                 vbb   = (vbb + vbb_l) >> 1
-                lg.info('{:2} o, fmean: {:5}, vbb: {}, vbb_h: {}'.format(step_cnt, fmean, vbb, vbb_h))
+                lg.info(f'{step_cnt:2} o, fmean: {fmean:5}, vbb: {vbb}, vbb_h: {vbb_h}')
 
             self.host.set_dac('VBB', vbb)
             fmean, dac = self.get_sdc_msg()
-            #lg.info('fmean: {}, vbb: {}'.format(fmean, vbb))
+            #lg.info(f'fmean: {fmean}, vbb: {vbb}')
                 
-        lg.info('Done => VBB: {}, fmean: {}, steps: {}'.format(vbb, fmean, step_cnt))
+        lg.info(f'Done => VBB: {vbb}, fmean: {fmean}, steps: {step_cnt}')
         lg.info('-'*40 + os.linesep)
         
         return fmean
@@ -185,20 +184,20 @@ class VbbRespThread(threading.Thread):
                 #
                 #    Search VBB for initial point
                 #
-                lg.info('VPB: {}, self.vpb: {}'.format(vpb, self.vpb))
+                lg.info(f'VPB: {vpb}, self.vpb: {self.vpb}')
                 m0  = self.set_vpb(self.vpb, 2000, self.VBB_MIN, self.VBB_MAX)
                 vbb = self.host.dac['VBB'][1]
             else:
                 self.host.set_dac('VPB', vpb)
                 m0, dac = self.get_sdc_msg()
-                #lg.info('new point -> VPB: {}, VBB: {}, mean: {}'.format(vpb, vbb, m1))
+                #lg.info(f'new point -> VPB: {vpb}, VBB: {vbb}, mean: {m1}')
                 while m0 < self.fmean_l or m0 >  self.fmean_h:
                     if self.parent.stop_flag:
                         break
 
                     midpoint = (self.fmean_h + self.fmean_l) >> 1
                     vbb += int( round( (midpoint - m0)/k, 0 ) )
-                    lg.info('mean: {}, midpoint: {}, k: {}, miss: {}, vbb: {}'.format(m0, midpoint, k, midpoint - m0, vbb))
+                    lg.info(f'mean: {m0}, midpoint: {midpoint}, k: {k}, miss: {midpoint - m0}, vbb: {vbb}')
                     self.host.set_dac('VBB', vbb)
                     m0, dac = self.get_sdc_msg()
 
@@ -217,7 +216,7 @@ class VbbRespThread(threading.Thread):
             #    Store result
             #
             self.parent.res.append( (vpb, vbb, m0, m1) )
-            lg.info('>>>> VPB: {}, VBB: {}, k: {}'.format(vpb, vbb, k))
+            lg.info(f'>>>> VPB: {vpb}, VBB: {vbb}, k: {k}')
 
         if self.parent.stop_flag:
             lg.info('>>>>>>>>>> STOP BY USER <<<<<<<<<<<' + os.linesep)
@@ -225,7 +224,7 @@ class VbbRespThread(threading.Thread):
             lg.info('>>>>>>>>>> DONE <<<<<<<<<<<' + os.linesep)
             
         dt = time.time() - tstart
-        lg.info('time elapsed: {} ({})'.format(round(dt, 1), str(datetime.timedelta(seconds=dt))))
+        lg.info(f'time elapsed: {round(dt, 1)} ({str(datetime.timedelta(seconds=dt))})')
 
         thread_active.clear()
 
@@ -236,7 +235,7 @@ def read(fname):
 
 #-------------------------------------------------------------------------------
 def vbb_responsivity(ext):
-    flist = glob.glob('vps=*.{}'.format(ext))
+    flist = glob.glob(f'vps=*.{ext}')
     flist.sort()
     print(flist)
 

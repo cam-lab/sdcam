@@ -33,7 +33,7 @@ class Frames:
 
             if self.count == 0:
                 dt = time.time() - self.t_start
-                lg.info('stop capture frames, time elapsed: ' + '{:.2f}'.format(dt))
+                lg.info('stop capture frames, time elapsed: ' + f'{dt:.2f}')
 
 
     def get_pix(self, row, col):

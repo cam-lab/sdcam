@@ -162,26 +162,26 @@ def check_resp(num, resp):
         return False
 
     if len(resp) == 0:
-        lg.error( 'E: invalid response length: {}'.format( len(resp), os.linesep ) )
-        lg.info('resp: {}'.format(vhex(resp)))
+        lg.error( f'E: invalid response length: {len(resp)}{os.linesep}' )
+        lg.info(f'resp: {vhex(resp)}')
         return False
 
     id = resp[0]
     
     if num != id & ID_NUMBER_MASK:
-        lg.error( 'E: incorrect message number: {}, should be {}{}'.format( id & ID_NUMBER_MASK, num, os.linesep ) )
-        lg.info('resp: {}'.format(vhex(resp)))
+        lg.error( f'E: incorrect message number: {id & ID_NUMBER_MASK}, should be {num}{os.linesep}' )
+        lg.info(f'resp: {vhex(resp)}')
         return False
 
     rc = (id & ID_RESPONSE_MASK) >> ID_RESPONSE_OFFSET
     if rc > len(resp_code):
-        lg.error( 'E: unknown response code: {}'.format( rc, os.linesep ) )
-        lg.info('resp: {}'.format(vhex(resp)))
+        lg.error( f'E: unknown response code: {rc}{os.linesep}' )
+        lg.info(f'resp: {vhex(resp)}')
         return False
         
     if rc != 0:
-        lg.error( 'E: request returns error code: "{}"'.format( resp_code[rc], os.linesep ))
-        lg.info('resp: {}'.format(vhex(resp)))
+        lg.error( f'E: request returns error code: "{resp_code[rc]}{os.linesep}"')
+        lg.info(f'resp: {vhex(resp)}')
         return False
 
     return True

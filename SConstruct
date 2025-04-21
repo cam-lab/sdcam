@@ -73,7 +73,7 @@ if GetOption('verbose') == None:
 Variant = ARGUMENTS.get('bv', 'release')
 
 if not Variant in ['release', 'debug']:
-    print('E: scons: invalid variant "%s" specified in command line. Supported variants are: "release", "debug"' % Variant)
+    print(f'E: scons: invalid variant "{Variant}" specified in command line. Supported variants are: "release", "debug"')
     Exit(1)
 
 #     Toolchain flags
@@ -82,7 +82,7 @@ CXXFLAGS  = hlp.cxxflags(Toolchain)
 OPTFLAGS  = hlp.optflags(Toolchain, Variant)
 
 for k in APP_SETTINGS:
-    DEFINES.append('{}={}'.format(k, APP_SETTINGS[k]))
+    DEFINES.append(f'{k}={APP_SETTINGS[k]}')
 
 DEFINES.append('BOOST_NO_AUTO_PTR')
 

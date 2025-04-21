@@ -232,7 +232,7 @@ class SdcCore(QObject):
             if resp:
                 self._fpa_toc = resp
                 T = round( (resp - 8192)*0.01330525 + 36.039396, 3 )
-                #lg.info('toc: {}, T: {}°C'.format(resp, T))
+                #lg.info(f'toc: {resp}, T: {T}°C')
                 self.fpa_temp_signal.emit(T)
             else:
                 lg.error('device not respond while cam.dba.tocr query')
@@ -412,7 +412,7 @@ class SdcCore(QObject):
     def _set_dac(self, addr, data):
         with self._set_dac_lock:
             self.dac[addr][1] = data
-            #lg.info('set dac value, {} = {}'.format(addr, self.dac[addr][1]))
+            #lg.info(f'set dac value, {addr} = {self.dac[addr][1]}')
             res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
             if not res:
                 print('E: DRC -> device fun exec unsuccessful')

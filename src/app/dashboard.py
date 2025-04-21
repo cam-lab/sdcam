@@ -206,9 +206,8 @@ class DashBoardParamsWidget(QTreeWidget):
     def dac_changed_slot(self):
         for i in range(self.dac_items.childCount()):
             name = self.dac_items.child(i).data(self.colNAME, Qt.DisplayRole)
-            #print(name)
             self.dac_items.child(i).setData(self.colDATA, Qt.DisplayRole, self.sdc.dac[name][1])
-            #lg.info('name: {}, value: {}'.format(name, self.sdc.dac[name][1]))
+            #lg.info(f'name: {name}, value: {self.sdc.dac[name][1]}')
 
     #---------------------------------------------------------------------------
     def item_activated(self, item, col):
@@ -221,13 +220,13 @@ class DashBoardParamsWidget(QTreeWidget):
             value = int(item.text(self.colDATA))
             if value != self.sdc.dac[name][1]:
                 self.sdc._set_dac(name, value)
-            #lg.info('name: {}, value: {}'.format(name, value))
+            #lg.info(f'name: {name}, value: {value}')
             
         elif item.parent().text(self.colNAME) == 'DET':
             param_name  = item.text(self.colNAME)
             param_value = item.text(self.colDATA)
             code        = self.sdc.det[param_name][param_value]
-            lg.info('name: {}, value: {}, code: {}'.format(param_name, param_value, code))
+            lg.info(f'name: {param_name}, value: {param_value}, code: {code}')
 
             if param_name == list(self.sdc.det)[0]:
                 self.sdc._wmmr(drc.cam.dba_dgr, code)
