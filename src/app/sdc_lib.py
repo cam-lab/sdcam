@@ -68,23 +68,19 @@ class Nuc:
         self.afcount   = 2
 
     def launch(self):
-        self.lock.acquire()
+        with self.lock:
         
-        self.fcnt       = 0;
-        self.fpool      = []
-        self.prep_rqst  = True
+            self.fcnt       = 0;
+            self.fpool      = []
+            self.prep_rqst  = True
 
-        self.host._wmmr(drc.cam.cr_c, 7 << 16)
-        if self.host._wmmr(drc.cam.cr_s, (self.afcount + 1) << 16):
-            lg.info('successful set shuttered frame count to {}'.format(self.afcount))
-        else:
-            lg.warning('set shuttered frame count failed')
+            self.host._wmmr(drc.cam.cr_c, 7 << 16)
+            if self.host._wmmr(drc.cam.cr_s, (self.afcount + 1) << 16):
+                lg.info('successful set shuttered frame count to {}'.format(self.afcount))
+            else:
+                lg.warning('set shuttered frame count failed')
 
-        res = self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
-        
-        self.lock.release()
-
-        return res
+            return self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
 
     def processing(self):
         if self.prep_rqst:
@@ -160,9 +156,9 @@ class BiasManager(threading.Thread):
 
             with self.fmean_incoming:
                 res = self.fmean_incoming.wait(1)
-                if not res:
-                    lg.info('Bias Manager thread timeout')
-                    continue
+#               if not res:
+#                   lg.info('Bias Manager thread timeout')
+#                   continue
 
                 buf = np.array(self.fmean_buf, dtype=np.uint32)
                 
