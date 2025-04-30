@@ -257,4 +257,23 @@ def histo_bounds(f, org, top, thld):
     return int(org), int(top)
 
 #-------------------------------------------------------------------------------
+def fft(data, fs):
+    N        = len(data)
+    fft_res  = np.fft.fft(data)
+    ams      = np.abs(fft_res)                    # amplitude spectrum
+    freqs    = np.fft.fftfreq(N, d=1/fs)[:N//2]   # get positive frequences
+    ams      = ams[:N//2]*2/N                     # positive part of amplitude spectrum normalized by N
+    
+    return freqs, ams
+
+#-------------------------------------------------------------------------------
+def fft2(pbuf):
+    f        = pbuf.astype(np.float32)
+    fnorm    = f/np.max(f)
+    fft_res  = np.fft.fft2(fnorm)
+    fft_shft = np.fft.fftshift(fft_res)
+    amspectr = np.abs(fft_shft)
+
+    return amspectr
+#-------------------------------------------------------------------------------
 
