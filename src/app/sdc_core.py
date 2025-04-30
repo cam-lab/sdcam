@@ -232,7 +232,7 @@ class SdcCore(QObject):
             if resp:
                 self._fpa_toc = resp
                 T = round( (resp - 8192)*0.01330525 + 36.039396, 3 )
-                #lg.info('toc: {}, T: {}°C'.format(resp, T))
+                #lg.info(f'toc: {resp}, T: {T}°C')
                 self.fpa_temp_signal.emit(T)
             else:
                 lg.error('device not respond while cam.dba.tocr query')
@@ -410,23 +410,20 @@ class SdcCore(QObject):
 
     #-----------------------------------------------------------------
     def _set_dac(self, addr, data):
-        self._set_dac_lock.acquire()
-        self.dac[addr][1] = data
-        #lg.info('set dac value, {} = {}'.format(addr, self.dac[addr][1]))
-        res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
-        if not res:
-            print('E: DRC -> device fun exec unsuccessful')
-            
-        self._set_dac_lock.release()
+        with self._set_dac_lock:
+            self.dac[addr][1] = data
+            #lg.info(f'set dac value, {addr} = {self.dac[addr][1]}')
+            res = self._dev_fun_exec(drc.DAC_FUN, self.dac[addr][0], self.dac[addr][1])
+            if not res:
+                print('E: DRC -> device fun exec unsuccessful')
 
     #-----------------------------------------------------------------
     def set_dac(self, addr, data):
-        self.set_dac_lock.acquire()
-        data = int(data)
-        self.dac[addr][1] = data
-        self._set_dac(addr, data)
-        self.dac_changed_signal.emit(0)
-        self.set_dac_lock.release()
+        with self.set_dac_lock:
+            data = int(data)
+            self.dac[addr][1] = data
+            self._set_dac(addr, data)
+            self.dac_changed_signal.emit(0)
 
     #-----------------------------------------------------------------
     #
@@ -441,18 +438,17 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _rmmr(self, *args):
-        self.lock.acquire()
-        rid     = args[0]()
-        self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
-        id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
-        data    = np.array( [id, rid], dtype=np.uint16 )
-        self._drc_sock.empty()
-        resp    = self._drc_sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
-        self.lock.release()
-        if drc.check_resp(self._drc_msg_num, resp):
-            return resp[1] + (resp[2] << 16)
-        else:
-            return None
+        with self.lock:
+            rid     = args[0]()
+            self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
+            id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_READ << drc.ID_TYPE_OFFSET)
+            data    = np.array( [id, rid], dtype=np.uint16 )
+            self._drc_sock.empty()
+            resp    = self._drc_sock.processing(data).astype(np.uint32)   # convert to 32-bit type due to following shift operation
+            if drc.check_resp(self._drc_msg_num, resp):
+                return resp[1] + (resp[2] << 16)
+            else:
+                return None
         
     def rmmr(self, rid):
         res = self._rmmr(rid)
@@ -463,17 +459,16 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _wmmr(self, *args):
-        self.lock.acquire()
-        rid     = args[0]()
-        datal   = args[1] & 0xffff
-        datah   = args[1] >> 16
-        self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
-        id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
-        data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
-        self._drc_sock.empty()
-        resp    = self._drc_sock.processing(data)
-        self.lock.release()
-        return drc.check_resp(self._drc_msg_num, resp)
+        with self.lock:
+            rid     = args[0]()
+            datal   = args[1] & 0xffff
+            datah   = args[1] >> 16
+            self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
+            id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.MMR_WRITE << drc.ID_TYPE_OFFSET)
+            data    = np.array( [id, rid, datal, datah], dtype=np.uint16 )
+            self._drc_sock.empty()
+            resp    = self._drc_sock.processing(data)
+            return drc.check_resp(self._drc_msg_num, resp)
         
     def wmmr(self, rid, data):
         if self._wmmr(rid, data):
@@ -483,21 +478,20 @@ class SdcCore(QObject):
         
     #-------------------------------------------------------
     def _dev_fun_exec(self, *args):
-        self.lock.acquire()
-        self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
-        id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.FUN_EXEC << drc.ID_TYPE_OFFSET)
-        oc      = (args[0] & drc.OPCODE_MASK) + ((len(args) - 1) << drc.PCOUNT_OFFSET)
-        hdr     = np.array( [id, oc], dtype=np.uint16 )
-        params  = np.array( args[1:], dtype=np.uint16)
-        data    = np.concatenate((hdr, params))
-        self._drc_sock.empty()
-        resp    = self._drc_sock.processing(data)
-        res     = drc.check_resp(self._drc_msg_num, resp)
-        self.lock.release()
-        if res:
-            return resp[1:]
-        else:
-            return False
+        with self.lock:
+            self._drc_msg_num = (self._drc_msg_num + 1) & 0x00ff
+            id      = (self._drc_msg_num & drc.ID_NUMBER_MASK) + (drc.FUN_EXEC << drc.ID_TYPE_OFFSET)
+            oc      = (args[0] & drc.OPCODE_MASK) + ((len(args) - 1) << drc.PCOUNT_OFFSET)
+            hdr     = np.array( [id, oc], dtype=np.uint16 )
+            params  = np.array( args[1:], dtype=np.uint16)
+            data    = np.concatenate((hdr, params))
+            self._drc_sock.empty()
+            resp    = self._drc_sock.processing(data)
+            res     = drc.check_resp(self._drc_msg_num, resp)
+            if res:
+                return resp[1:]
+            else:
+                return False
 
 #-------------------------------------------------------------------------------
 class VframeThread(threading.Thread):

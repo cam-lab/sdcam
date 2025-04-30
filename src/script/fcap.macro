@@ -1,0 +1,3 @@
+%run src/script/fcap
+sdc.reg_hook(fcap)
+

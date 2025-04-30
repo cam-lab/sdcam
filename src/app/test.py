@@ -14,7 +14,7 @@ class Formatter(object):
         self.im = im
     def __call__(self, x, y):
         #z = self.im.get_array()[int(y), int(x)]
-        return 'x={:.0f}, y={:.0f}'.format(x, y)
+        return f'x={x:.0f}, y={y:.0f}'
     
 def imshow(f):
     fig, ax = plt.subplots()

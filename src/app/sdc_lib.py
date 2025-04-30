@@ -68,23 +68,19 @@ class Nuc:
         self.afcount   = 2
 
     def launch(self):
-        self.lock.acquire()
+        with self.lock:
         
-        self.fcnt       = 0;
-        self.fpool      = []
-        self.prep_rqst  = True
+            self.fcnt       = 0;
+            self.fpool      = []
+            self.prep_rqst  = True
 
-        self.host._wmmr(drc.cam.cr_c, 7 << 16)
-        if self.host._wmmr(drc.cam.cr_s, (self.afcount + 1) << 16):
-            lg.info('successful set shuttered frame count to {}'.format(self.afcount))
-        else:
-            lg.warning('set shuttered frame count failed')
+            self.host._wmmr(drc.cam.cr_c, 7 << 16)
+            if self.host._wmmr(drc.cam.cr_s, (self.afcount + 1) << 16):
+                lg.info(f'successful set shuttered frame count to {self.afcount}')
+            else:
+                lg.warning('set shuttered frame count failed')
 
-        res = self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
-        
-        self.lock.release()
-
-        return res
+            return self.host._wmmr(drc.cam.shtr, self.shtr_begin_line)  # return status for check MMR write acknoledge
 
     def processing(self):
         if self.prep_rqst:
@@ -99,10 +95,10 @@ class Nuc:
             self.fcnt += 1
             if self.fcnt == 2:
                 self.cframe = self.host._f.pixbuf.copy()
-                lg.info('{} blinded frame'.format(self.fcnt))
+                lg.info(f'{self.fcnt} blinded frame')
             elif self.fcnt > 2 and self.fcnt <= self.afcount + 1:
                 self.cframe += self.host._f.pixbuf
-                lg.info('{} blinded frame'.format(self.fcnt))
+                lg.info(f'{self.fcnt} blinded frame')
                 if self.fcnt == self.afcount + 1:
                     self.cframe = (self.cframe/self.afcount).astype(np.uint16)
                     lg.info('cframe complete')
@@ -112,12 +108,12 @@ class Nuc:
             if not f.shtr_on():
                 self.prep_rqst = False
                 s = ' '.join([str(int(f.shtr_on())) for f in self.fpool])
-                lg.info('NUC complete, frames {}, {}'.format(len(self.fpool), s))
+                lg.info(f'NUC complete, frames {len(self.fpool)}, {s}')
                 
                 shtr_end_line = self.host._rmmr(drc.cam.shtr)
                 shtr_begin_line = self.shtr_begin_line
                 
-                lg.info('bl: {}, el: {}, bl_new: {}'.format(shtr_begin_line, shtr_end_line, self.shtr_begin_line))
+                lg.info(f'bl: {shtr_begin_line}, el: {shtr_end_line}, bl_new: {self.shtr_begin_line}')
 
 #-------------------------------------------------------------------------------
 class BiasManager(threading.Thread):
@@ -160,9 +156,9 @@ class BiasManager(threading.Thread):
 
             with self.fmean_incoming:
                 res = self.fmean_incoming.wait(1)
-                if not res:
-                    lg.info('Bias Manager thread timeout')
-                    continue
+#               if not res:
+#                   lg.info('Bias Manager thread timeout')
+#                   continue
 
                 buf = np.array(self.fmean_buf, dtype=np.uint32)
                 
@@ -176,7 +172,7 @@ class BiasManager(threading.Thread):
                         self.vbb = int(np.polyval(self.vbp_vbb_poly, self.vpb))
                         self.host.set_dac('VBB', self.vbb); self.fmean_buf.clear()
                         self.state = 'SETUP'
-                        lg.info('Bias Mgr: set initial VBB point at {}'.format(self.vbb))
+                        lg.info(f'Bias Mgr: set initial VBB point at {self.vbb}')
 
                     else:
                         if mean < 5:
@@ -193,7 +189,7 @@ class BiasManager(threading.Thread):
                         dvbb = int( round( (self.MIDDLE - mean)/self.vbb_gain, 0 ) )
                         self.vbb += dvbb
                         self.host.set_dac('VBB', self.vbb); self.fmean_buf.clear()
-                        lg.info('Bias Mgr: correct VBB point with {} mV'.format(dvbb))
+                        lg.info(f'Bias Mgr: correct VBB point with {dvbb} mV')
                     else:
                         self.state = 'TRACKING'
                         self.host.nuc.launch()
@@ -231,7 +227,7 @@ def plot_frame_hist(pbuf):
 #-------------------------------------------------------------------------------
 def average_frame(buf, n=16):
     if n > 16:
-        lg.warning('invalid frame count {}, max count: 16'.format(n))
+        lg.warning(f'invalid frame count {n}, max count: 16')
         return None
 
     pool = buf[0].copy().astype(np.uint32)
@@ -260,5 +256,24 @@ def histo_bounds(f, org, top, thld):
 
     return int(org), int(top)
 
+#-------------------------------------------------------------------------------
+def fft(data, fs):
+    N        = len(data)
+    fft_res  = np.fft.fft(data)
+    ams      = np.abs(fft_res)                    # amplitude spectrum
+    freqs    = np.fft.fftfreq(N, d=1/fs)[:N//2]   # get positive frequences
+    ams      = ams[:N//2]*2/N                     # positive part of amplitude spectrum normalized by N
+    
+    return freqs, ams
+
+#-------------------------------------------------------------------------------
+def fft2(pbuf):
+    f        = pbuf.astype(np.float32)
+    fnorm    = f/np.max(f)
+    fft_res  = np.fft.fft2(fnorm)
+    fft_shft = np.fft.fftshift(fft_res)
+    amspectr = np.abs(fft_shft)
+
+    return amspectr
 #-------------------------------------------------------------------------------
 

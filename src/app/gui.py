@@ -567,7 +567,7 @@ class MainWindow(QMainWindow):
         
     #---------------------------------------------------------------------------
     def update_status_bar(self):
-        text = 'Zoom: {:.1f} | View: {:d} {:d} | Scene: {:d} {:d} | Value: {}'.format(self.zoom,
+        text = 'Zoom: {:.1f} | View: {:d} : {:d} | Scene: {:d} : {:d} | Value: {}'.format(self.zoom,
                                                                           self.view_cpos_x,  self.view_cpos_y,
                                                                           self.scene_cpos_x, self.scene_cpos_y, self.pixval)
         self.statusBar().showMessage(text)
@@ -732,32 +732,32 @@ class StatisticsWidget(QTableWidget):
         if msg[0] == 0:
             dev_fps = msg[1]
 
-            self.item(self.DEV, self.VALUE).setText ('{:.3f}'.format(dev_fps.value))
-            self.item(self.DEV, self.MEAN).setText  ('{:.3f}'.format(dev_fps.mean))
-            self.item(self.DEV, self.MIN).setText   ('{:.3f}'.format(dev_fps.min))
-            self.item(self.DEV, self.MAX).setText   ('{:.3f}'.format(dev_fps.max))
-            self.item(self.DEV, self.SDEV).setText  ('{:.3f}'.format(dev_fps.sdev))
-            self.item(self.DEV, self.CNT).setText   (   '{:}'.format(dev_fps.frame_count))
+            self.item(self.DEV, self.VALUE).setText (f'{dev_fps.value:.3f}')
+            self.item(self.DEV, self.MEAN ).setText (f'{dev_fps.mean :.3f}')
+            self.item(self.DEV, self.MIN  ).setText (f'{dev_fps.min  :.3f}')
+            self.item(self.DEV, self.MAX  ).setText (f'{dev_fps.max  :.3f}')
+            self.item(self.DEV, self.SDEV ).setText (f'{dev_fps.sdev :.3f}')
+            self.item(self.DEV, self.CNT  ).setText (f'{dev_fps.frame_count}')
 
         if msg[0] == 1:
             sdc_fps = msg[1]
 
-            self.item(self.SDC, self.VALUE).setText ('{:.3f}'.format(sdc_fps.value))
-            self.item(self.SDC, self.MEAN).setText  ('{:.3f}'.format(sdc_fps.mean))
-            self.item(self.SDC, self.MIN).setText   ('{:.3f}'.format(sdc_fps.min))
-            self.item(self.SDC, self.MAX).setText   ('{:.3f}'.format(sdc_fps.max))
-            self.item(self.SDC, self.SDEV).setText  ('{:.3f}'.format(sdc_fps.sdev))
-            self.item(self.SDC, self.CNT).setText   (   '{:}'.format(sdc_fps.frame_count))
+            self.item(self.SDC, self.VALUE).setText (f'{sdc_fps.value:.3f}')
+            self.item(self.SDC, self.MEAN ).setText (f'{sdc_fps.mean :.3f}')
+            self.item(self.SDC, self.MIN  ).setText (f'{sdc_fps.min  :.3f}')
+            self.item(self.SDC, self.MAX  ).setText (f'{sdc_fps.max  :.3f}')
+            self.item(self.SDC, self.SDEV ).setText (f'{sdc_fps.sdev :.3f}')
+            self.item(self.SDC, self.CNT  ).setText (f'{sdc_fps.frame_count}')
             
         if msg[0] == 2:
             fpa_temp = msg[1]
 
-            self.item(self.FPA_TEMP, self.VALUE).setText ('{:.3f}'.format(fpa_temp.value))
-            self.item(self.FPA_TEMP, self.MEAN).setText  ('{:.3f}'.format(fpa_temp.mean))
-            self.item(self.FPA_TEMP, self.MIN).setText   ('{:.3f}'.format(fpa_temp.min))
-            self.item(self.FPA_TEMP, self.MAX).setText   ('{:.3f}'.format(fpa_temp.max))
-            self.item(self.FPA_TEMP, self.SDEV).setText  ('{:.3f}'.format(fpa_temp.sdev))
-            self.item(self.FPA_TEMP, self.CNT).setText   (   '{:}'.format(fpa_temp.count))
+            self.item(self.FPA_TEMP, self.VALUE).setText (f'{fpa_temp.value:.3f}')
+            self.item(self.FPA_TEMP, self.MEAN ).setText (f'{fpa_temp.mean :.3f}')
+            self.item(self.FPA_TEMP, self.MIN  ).setText (f'{fpa_temp.min  :.3f}')
+            self.item(self.FPA_TEMP, self.MAX  ).setText (f'{fpa_temp.max  :.3f}')
+            self.item(self.FPA_TEMP, self.SDEV ).setText (f'{fpa_temp.sdev :.3f}')
+            self.item(self.FPA_TEMP, self.CNT  ).setText (f'{fpa_temp.count}')
 
         if msg[0] == 3:
             forg   = msg[1][0]
@@ -766,40 +766,40 @@ class StatisticsWidget(QTableWidget):
             rhlow  = msg[1][3]
             rhhigh = msg[1][4]
 
-            self.item(self.FORG, self.VALUE).setText ('{:.0f}'.format(forg.value))
-            self.item(self.FORG, self.MEAN).setText  ('{:.0f}'.format(forg.mean))
-            self.item(self.FORG, self.MIN).setText   ('{:.0f}'.format(forg.min))
-            self.item(self.FORG, self.MAX).setText   ('{:.0f}'.format(forg.max))
-            self.item(self.FORG, self.SDEV).setText  ('{:.0f}'.format(forg.sdev))
-            self.item(self.FORG, self.CNT).setText   (   '{:}'.format(forg.count))
+            self.item(self.FORG, self.VALUE).setText (f'{forg.value:.0f}')
+            self.item(self.FORG, self.MEAN ).setText (f'{forg.mean :.0f}')
+            self.item(self.FORG, self.MIN  ).setText (f'{forg.min  :.0f}')
+            self.item(self.FORG, self.MAX  ).setText (f'{forg.max  :.0f}')
+            self.item(self.FORG, self.SDEV ).setText (f'{forg.sdev :.0f}')
+            self.item(self.FORG, self.CNT  ).setText (f'{forg.count}')
 
-            self.item(self.FGAIN, self.VALUE).setText ('{:.2f}'.format(fgain.value))
-            self.item(self.FGAIN, self.MEAN).setText  ('{:.2f}'.format(fgain.mean))
-            self.item(self.FGAIN, self.MIN).setText   ('{:.2f}'.format(fgain.min))
-            self.item(self.FGAIN, self.MAX).setText   ('{:.2f}'.format(fgain.max))
-            self.item(self.FGAIN, self.SDEV).setText  ('{:.2f}'.format(fgain.sdev))
-            self.item(self.FGAIN, self.CNT).setText   (   '{:}'.format(fgain.count))
+            self.item(self.FGAIN, self.VALUE).setText(f'{fgain.value:.2f}')
+            self.item(self.FGAIN, self.MEAN ).setText(f'{fgain.mean :.2f}')
+            self.item(self.FGAIN, self.MIN  ).setText(f'{fgain.min  :.2f}')
+            self.item(self.FGAIN, self.MAX  ).setText(f'{fgain.max  :.2f}')
+            self.item(self.FGAIN, self.SDEV ).setText(f'{fgain.sdev :.2f}')
+            self.item(self.FGAIN, self.CNT  ).setText(f'{fgain.count}')
 
-            self.item(self.RFMEAN, self.VALUE).setText ('{:.0f}'.format(rfmean.value))
-            self.item(self.RFMEAN, self.MEAN).setText  ('{:.0f}'.format(rfmean.mean))
-            self.item(self.RFMEAN, self.MIN).setText   ('{:.0f}'.format(rfmean.min))
-            self.item(self.RFMEAN, self.MAX).setText   ('{:.0f}'.format(rfmean.max))
-            self.item(self.RFMEAN, self.SDEV).setText  ('{:.0f}'.format(rfmean.sdev))
-            self.item(self.RFMEAN, self.CNT).setText   (   '{:}'.format(rfmean.count))
+            self.item(self.RFMEAN, self.VALUE).setText(f'{rfmean.value:.0f}')
+            self.item(self.RFMEAN, self.MEAN ).setText(f'{rfmean.mean :.0f}')
+            self.item(self.RFMEAN, self.MIN  ).setText(f'{rfmean.min  :.0f}')
+            self.item(self.RFMEAN, self.MAX  ).setText(f'{rfmean.max  :.0f}')
+            self.item(self.RFMEAN, self.SDEV ).setText(f'{rfmean.sdev :.0f}')
+            self.item(self.RFMEAN, self.CNT  ).setText(f'{rfmean.count}')
 
-            self.item(self.RHLOW, self.VALUE).setText ('{:.0f}'.format(rhlow.value))
-            self.item(self.RHLOW, self.MEAN).setText  ('{:.0f}'.format(rhlow.mean))
-            self.item(self.RHLOW, self.MIN).setText   ('{:.0f}'.format(rhlow.min))
-            self.item(self.RHLOW, self.MAX).setText   ('{:.0f}'.format(rhlow.max))
-            self.item(self.RHLOW, self.SDEV).setText  ('{:.0f}'.format(rhlow.sdev))
-            self.item(self.RHLOW, self.CNT).setText   (   '{:}'.format(rhlow.count))
+            self.item(self.RHLOW, self.VALUE).setText (f'{rhlow.value:.0f}')
+            self.item(self.RHLOW, self.MEAN ).setText (f'{rhlow.mean :.0f}')
+            self.item(self.RHLOW, self.MIN  ).setText (f'{rhlow.min  :.0f}')
+            self.item(self.RHLOW, self.MAX  ).setText (f'{rhlow.max  :.0f}')
+            self.item(self.RHLOW, self.SDEV ).setText (f'{rhlow.sdev :.0f}')
+            self.item(self.RHLOW, self.CNT  ).setText (   f'{rhlow.count}')
             
-            self.item(self.RHHIGH, self.VALUE).setText ('{:.0f}'.format(rhhigh.value))
-            self.item(self.RHHIGH, self.MEAN).setText  ('{:.0f}'.format(rhhigh.mean))
-            self.item(self.RHHIGH, self.MIN).setText   ('{:.0f}'.format(rhhigh.min))
-            self.item(self.RHHIGH, self.MAX).setText   ('{:.0f}'.format(rhhigh.max))
-            self.item(self.RHHIGH, self.SDEV).setText  ('{:.0f}'.format(rhhigh.sdev))
-            self.item(self.RHHIGH, self.CNT).setText   (   '{:}'.format(rhhigh.count))
+            self.item(self.RHHIGH, self.VALUE).setText(f'{rhhigh.value:.0f}')
+            self.item(self.RHHIGH, self.MEAN ).setText(f'{rhhigh.mean :.0f}')
+            self.item(self.RHHIGH, self.MIN  ).setText(f'{rhhigh.min  :.0f}')
+            self.item(self.RHHIGH, self.MAX  ).setText(f'{rhhigh.max  :.0f}')
+            self.item(self.RHHIGH, self.SDEV ).setText(f'{rhhigh.sdev :.0f}')
+            self.item(self.RHHIGH, self.CNT  ).setText(f'{rhhigh.count}')
 
 #-------------------------------------------------------------------------------
         

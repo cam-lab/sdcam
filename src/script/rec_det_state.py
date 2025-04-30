@@ -86,7 +86,7 @@ class RecDetState:
                 
                 self.table.append(rec)
                 dt = time.time() - self.t_start
-                lg.info('stop record det state, time elapsed: ' + '{:.2f}'.format(dt))
+                lg.info(f'stop record det state, time elapsed: {dt:.2f}')
                 
         if self.vbb_sweep:
             if self.vbb_state == 'set DAC':
@@ -114,7 +114,7 @@ class RecDetState:
                     #lg.info('vbb: {}, vbb_stop: {}'.format(self.vbb, self.vbb_stop))
                     if self.vbb == self.vbb_stop:
                         self.vbb_sweep = False
-                        lg.info('VBB sweep from {} to {} with step {} done'.format(self.vbb_start, self.vbb_stop, self.vbb_step))
+                        lg.info(f'VBB sweep from {self.vbb_start} to {self.vbb_stop} with step {self.vbb_step} done')
 
     #-----------------------------------------------------------------
     def save(self, fname):
@@ -140,7 +140,7 @@ def read(fname):
 
 #-------------------------------------------------------------------------------
 def vbb_responsivity(ext):
-    flist = glob.glob('vps=*.{}'.format(ext))
+    flist = glob.glob(f'vps=*.{ext}')
     flist.sort()
     print(flist)
 
